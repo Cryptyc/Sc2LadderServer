@@ -42,12 +42,51 @@ void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2) {
 LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InDllDirectory)
 	:CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
+	, DllDirectory(InDllDirectory)
 {
-	std::string inputFolderPath = InDllDirectory;
+
+}
+
+void LadderManager::RunLadderManager()
+{
+	while (1)
+	{
+		RefreshAgents();
+		if (Agents.size() > 1)
+		{
+			std::vector<AgentInfo>::const_iterator it = Agents.begin();
+			while (it != Agents.end())
+			{
+				AgentInfo Agent1 = *it;
+				it++;
+				if (it == Agents.end())
+				{
+					break;
+				}
+				AgentInfo Agent2 = *it;
+				if (Agent2.Agent != nullptr && Agent1.Agent != nullptr)
+				{
+					StartGame(Agent1, Agent2);
+				}
+
+			}
+
+		}
+	}
+}
+
+void LadderManager::RefreshAgents()
+{
+	std::string inputFolderPath = DllDirectory;
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
 	getFilesList(inputFolderPath, extension, filesPaths);
 	std::vector<std::string>::const_iterator it = filesPaths.begin();
+
+	if (Agents.size())
+	{
+		Agents.clear();
+	}
 
 	while (it != filesPaths.end())
 	{
@@ -62,6 +101,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, co
 				if (NewAgent && AgentName)
 				{
 					AgentInfo NewAgentInfo(NewAgent, std::string(AgentName), *it);
+					Agents.push_back(NewAgentInfo);
 				}
 			}
 		}
@@ -87,4 +127,8 @@ void LadderManager::getFilesList(std::string filePath, std::string extension, st
 int main(int argc, char** argv)
 {
 	LadderMan = new LadderManager(argc, argv, DLLDir);
+	if (LadderMan != nullptr)
+	{
+		LadderMan->RunLadderManager();
+	}
 }
