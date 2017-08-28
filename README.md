@@ -10,3 +10,5 @@ const char DllExport *GetAgentName();  // Returns a string identifier for the ag
 
 
 CommandCenter bots are not currently supported, hopefully will support that this week.
+
+Requires Blizzard API files
