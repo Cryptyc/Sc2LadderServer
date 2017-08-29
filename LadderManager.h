@@ -20,11 +20,12 @@ public:
 private:
     void StartGame(AgentInfo Agent1, AgentInfo Agent2);
     void RefreshAgents();
+    void ClearAgents();
     std::vector<AgentInfo> Agents;
     void getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName);
-    int CoordinatorArgc;
-    char** CoordinatorArgv;
+
     const char *DllDirectory;
+    sc2::Coordinator coordinator;
 };
 
 LadderManager *LadderMan;

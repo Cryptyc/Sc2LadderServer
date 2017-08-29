@@ -12,10 +12,6 @@ const static char *DLLDir = "e:\\sc2Dll\\";
 
 //*************************************************************************************************
 void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2) {
-	sc2::Coordinator coordinator;
-	if (!coordinator.LoadSettings(CoordinatorArgc, CoordinatorArgv)) {
-		return;
-	}
 
 	// Add the custom bot, it will control the players.
 
@@ -40,10 +36,10 @@ void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2) {
 }
 
 LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InDllDirectory)
-	:CoordinatorArgc(InCoordinatorArgc)
-	, CoordinatorArgv(inCoordinatorArgv)
-	, DllDirectory(InDllDirectory)
+
+	: DllDirectory(InDllDirectory)
 {
+	coordinator.LoadSettings(InCoordinatorArgc, inCoordinatorArgv);
 
 }
 
@@ -75,22 +71,27 @@ void LadderManager::RunLadderManager()
 	}
 }
 
+void LadderManager::ClearAgents()
+{
+	for (AgentInfo Agent : Agents)
+	{
+		delete Agent.Agent;
+	}
+}
+
 void LadderManager::RefreshAgents()
 {
 	std::string inputFolderPath = DllDirectory;
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
 	getFilesList(inputFolderPath, extension, filesPaths);
-	std::vector<std::string>::const_iterator it = filesPaths.begin();
-
 	if (Agents.size())
 	{
 		Agents.clear();
 	}
-
-	while (it != filesPaths.end())
+	for(std::string filePath : filesPaths)
 	{
-		HINSTANCE hGetProcIDDLL = LoadLibrary(it->c_str());
+		HINSTANCE hGetProcIDDLL = LoadLibrary(filePath.c_str());
 		if (hGetProcIDDLL) {
 			// resolve function address here
 			GetAgentFunction GetAgent = (GetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXXZ");
@@ -100,12 +101,11 @@ void LadderManager::RefreshAgents()
 				const char *AgentName = GetAgentName();
 				if (NewAgent && AgentName)
 				{
-					AgentInfo NewAgentInfo(NewAgent, std::string(AgentName), *it);
+					AgentInfo NewAgentInfo(NewAgent, std::string(AgentName), filePath);
 					Agents.push_back(NewAgentInfo);
 				}
 			}
 		}
-		it++;
 	}
 
 }
@@ -129,6 +129,7 @@ int main(int argc, char** argv)
 	LadderMan = new LadderManager(argc, argv, DLLDir);
 	if (LadderMan != nullptr)
 	{
+
 		LadderMan->RunLadderManager();
 	}
 }
