@@ -1,16 +1,11 @@
+#pragma once
+
 typedef void* (*GetAgentFunction)();
 typedef char* (*GetAgentNameFunction)();
-typedef struct SAgentInfo
-{
-    sc2::Agent *Agent;
-    std::string AgentName;
-    std::string DllFile;
-    SAgentInfo(sc2::Agent *InAgent, std::string InAgentName, std::string InDllFile)
-        : Agent(InAgent)
-        , AgentName(InAgentName)
-        , DllFile(InDllFile)
-    {}
-} AgentInfo;
+const extern char *DLLDir;
+const extern char *ReplayDir;
+const extern char *MapListFile;
+
 class LadderManager
 {
 public:
@@ -18,10 +13,12 @@ public:
     void RunLadderManager();
 
 private:
-    void StartGame(AgentInfo Agent1, AgentInfo Agent2);
+    void StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map);
     void RefreshAgents();
     void ClearAgents();
+    void GetMapList();
     std::vector<AgentInfo> Agents;
+    std::vector<std::string> MapList;
     void getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName);
 
     const char *DllDirectory;

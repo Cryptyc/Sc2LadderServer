@@ -77,6 +77,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_SCL_SECURE_NO_WARNINGS;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <AdditionalIncludeDirectories>E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies>..\build\bin\sc2apid.lib;..\build\bin\sc2libd.lib;..\build\bin\sc2utilsd.lib;..\build\bin\sc2protocold.lib;..\build\bin\libprotobufd.lib;..\build\bin\civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
@@ -120,9 +121,32 @@
     <ClCompile Include="LadderManager.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <ClCompile Include="MatchupList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LadderManager.h" />
+    <ClInclude Include="MatchupList.h" />
+    <ClInclude Include="Types.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\build\contrib\civetweb\src\c-library.vcxproj">
+      <Project>{d924f204-6ff2-37d9-aa18-1c6e6cb28293}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\contrib\protobuf\cmake\libprotobuf.vcxproj">
+      <Project>{3d350e5c-67c9-34c6-8fc3-fdfdad56a24c}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\src\sc2api.vcxproj">
+      <Project>{2ded738c-4463-363d-8ca5-017a1915cbf8}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\src\sc2lib.vcxproj">
+      <Project>{f339c356-6e14-3590-9a64-af80b63a75b5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\src\sc2utils.vcxproj">
+      <Project>{5d226e37-ee3b-3381-9975-52bd26c98bb1}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\ZERO_CHECK.vcxproj">
+      <Project>{35c126d2-d103-38ae-bec8-1a9dd8ecb9c3}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

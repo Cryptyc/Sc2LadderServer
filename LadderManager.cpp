@@ -1,17 +1,22 @@
-#include "sc2api/sc2_api.h"
 #include "sc2lib/sc2_lib.h"
-
+#include "sc2api/sc2_api.h"
 #include "sc2utils/sc2_manage_process.h"
+#include <fstream>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <Windows.h>
+#include "types.h"
 #include "LadderManager.h"
+#include "MatchupList.h"
 
 const static char *DLLDir = "e:\\sc2Dll\\";
+const static char *ReplayDir = "e:\\sc2Dll\\Replays\\replay";
+const static char *MapListFile = "e:\\sc2Dll\\maplist";
+
 
 //*************************************************************************************************
-void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2) {
+void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
 
 	// Add the custom bot, it will control the players.
 
@@ -25,13 +30,15 @@ void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2) {
 
 	// Step forward the game simulation.
 	bool do_break = false;
-	while (!do_break) {
-		coordinator.StartGame(sc2::kMapBelShirVestigeLE);
-		while (coordinator.Update() && !do_break) {
-			if (sc2::PollKeyPress()) {
-				do_break = true;
-			}
+	coordinator.StartGame(Map);
+	while (coordinator.Update() && !do_break) {
+		if (sc2::PollKeyPress()) {
+			break;
 		}
+	}
+	if (coordinator.HasReplays())
+	{
+		coordinator.SaveReplayList(ReplayDir);
 	}
 }
 
@@ -42,32 +49,25 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, co
 	coordinator.LoadSettings(InCoordinatorArgc, inCoordinatorArgv);
 
 }
+void LadderManager::GetMapList()
+{
+	std::ifstream file(MapListFile);
+	std::string str;
+	while (std::getline(file, str))
+	{
+		// Process str
+	}
+
+}
 
 void LadderManager::RunLadderManager()
 {
 	while (1)
 	{
 		RefreshAgents();
-		if (Agents.size() > 1)
-		{
-			std::vector<AgentInfo>::const_iterator it = Agents.begin();
-			while (it != Agents.end())
-			{
-				AgentInfo Agent1 = *it;
-				it++;
-				if (it == Agents.end())
-				{
-					break;
-				}
-				AgentInfo Agent2 = *it;
-				if (Agent2.Agent != nullptr && Agent1.Agent != nullptr)
-				{
-					StartGame(Agent1, Agent2);
-				}
+		MatchupList *Matchups = new MatchupList();
+		Matchups->GenerateMatches(Agents, MapList);
 
-			}
-
-		}
 	}
 }
 
