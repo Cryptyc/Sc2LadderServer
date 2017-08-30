@@ -39,9 +39,13 @@ bool MatchupList::GenerateMatches(std::vector<AgentInfo> Agents, std::vector<std
 	return true;
 }
 
-Matchup MatchupList::GetNextMatchup()
+bool MatchupList::GetNextMatchup(Matchup &NextMatch)
 {
-	Matchup NextMatch = Matchups.back();
+	if (Matchups.empty())
+	{
+		return false;
+	}
+	NextMatch = Matchups.back();
 	Matchups.pop_back();
-	return NextMatch;
+	return true;;
 }

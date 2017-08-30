@@ -9,6 +9,7 @@ typedef struct SAgentInfo
     sc2::Race AgentRace;
     std::string AgentName;
     std::string DllFile;
+    SAgentInfo() {}
     SAgentInfo(sc2::Agent *InAgent, sc2::Race InAgentRace, std::string InAgentName, std::string InDllFile)
         : Agent(InAgent)
         , AgentRace(InAgentRace)
@@ -27,7 +28,7 @@ typedef struct SMatchup
     AgentInfo Agent1;
     AgentInfo Agent2;
     std::string Map;
-
+    SMatchup() {}
     SMatchup(AgentInfo InAgent1, AgentInfo InAgent2, std::string InMap)
         : Agent1(InAgent1),
         Agent2(InAgent2),

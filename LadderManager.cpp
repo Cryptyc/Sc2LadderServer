@@ -62,13 +62,16 @@ void LadderManager::GetMapList()
 
 void LadderManager::RunLadderManager()
 {
-	while (1)
-	{
-		RefreshAgents();
-		MatchupList *Matchups = new MatchupList();
-		Matchups->GenerateMatches(Agents, MapList);
 
+	RefreshAgents();
+	MatchupList *Matchups = new MatchupList();
+	Matchups->GenerateMatches(Agents, MapList);
+	Matchup NextMatch;
+	while (Matchups->GetNextMatchup(NextMatch))
+	{
+		StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 	}
+	
 }
 
 void LadderManager::ClearAgents()
