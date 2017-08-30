@@ -2,6 +2,8 @@
 
 typedef void* (*GetAgentFunction)();
 typedef char* (*GetAgentNameFunction)();
+typedef int (*GetAgentRaceFunction)();
+
 const extern char *DLLDir;
 const extern char *ReplayDir;
 const extern char *MapListFile;

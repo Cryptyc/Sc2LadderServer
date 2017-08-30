@@ -6,10 +6,12 @@
 typedef struct SAgentInfo
 {
     sc2::Agent *Agent;
+    sc2::Race AgentRace;
     std::string AgentName;
     std::string DllFile;
-    SAgentInfo(sc2::Agent *InAgent, std::string InAgentName, std::string InDllFile)
+    SAgentInfo(sc2::Agent *InAgent, sc2::Race InAgentRace, std::string InAgentName, std::string InDllFile)
         : Agent(InAgent)
+        , AgentRace(InAgentRace)
         , AgentName(InAgentName)
         , DllFile(InDllFile)
     {}

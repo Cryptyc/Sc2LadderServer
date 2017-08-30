@@ -21,8 +21,8 @@ void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Ma
 	// Add the custom bot, it will control the players.
 
 	coordinator.SetParticipants({
-		CreateParticipant(sc2::Race::Random, Agent1.Agent),
-		CreateParticipant(sc2::Race::Random, Agent2.Agent),
+		CreateParticipant(Agent1.AgentRace, Agent1.Agent),
+		CreateParticipant(Agent2.AgentRace, Agent2.Agent),
 	});
 
 	// Start the game.
@@ -97,12 +97,14 @@ void LadderManager::RefreshAgents()
 			// resolve function address here
 			GetAgentFunction GetAgent = (GetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXXZ");
 			GetAgentNameFunction GetAgentName = (GetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDXZ");
-			if (GetAgent && GetAgentName) {
+			GetAgentRaceFunction GetAgentRace = (GetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHXZ");
+			if (GetAgent && GetAgentName && GetAgentRace) {
 				sc2::Agent *NewAgent = (sc2::Agent *)(GetAgent());
 				const char *AgentName = GetAgentName();
 				if (NewAgent && AgentName)
 				{
-					AgentInfo NewAgentInfo(NewAgent, std::string(AgentName), filePath);
+					sc2::Race AgentRace = (sc2::Race)GetAgentRace();
+					AgentInfo NewAgentInfo(NewAgent, AgentRace, std::string(AgentName), filePath);
 					Agents.push_back(NewAgentInfo);
 				}
 			}
