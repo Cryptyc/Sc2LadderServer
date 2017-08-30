@@ -11,12 +11,12 @@
 #include "MatchupList.h"
 
 const static char *DLLDir = "e:\\sc2Dll\\";
-const static char *ReplayDir = "e:\\sc2Dll\\Replays\\replay";
+const static char *ReplayDir = "e:\\sc2Dll\\Replays\\";
 const static char *MapListFile = "e:\\sc2Dll\\maplist";
 
 
 //*************************************************************************************************
-void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
+int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
 
 	// Add the custom bot, it will control the players.
 
@@ -31,15 +31,15 @@ void LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Ma
 	// Step forward the game simulation.
 	bool do_break = false;
 	coordinator.StartGame(Map);
-	while (coordinator.Update() && !do_break) {
+	while (coordinator.Update() && !coordinator.AllGamesEnded()) {
 		if (sc2::PollKeyPress()) {
 			break;
 		}
 	}
-	if (coordinator.HasReplays())
-	{
-		coordinator.SaveReplayList(ReplayDir);
-	}
+	std::string ReplayFile = ReplayDir + Agent1.AgentName + "v" + Agent2.AgentName + "-" + Map + ".Sc2Replay";
+	Agent1.Agent->Control()->SaveReplay(ReplayFile);
+	coordinator.LeaveGame();
+	return 1; // Should be the index of the winning team.  Will figure this out tomorrow
 }
 
 LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InDllDirectory)

@@ -15,7 +15,7 @@ public:
     void RunLadderManager();
 
 private:
-    void StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map);
+    int StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map);
     void RefreshAgents();
     void ClearAgents();
     void GetMapList();
