@@ -55,7 +55,7 @@ void LadderManager::GetMapList()
 	std::string str;
 	while (std::getline(file, str))
 	{
-		// Process str
+		MapList.push_back(str);
 	}
 
 }
@@ -84,6 +84,7 @@ void LadderManager::RefreshAgents()
 	std::string inputFolderPath = DllDirectory;
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
+	GetMapList();
 	getFilesList(inputFolderPath, extension, filesPaths);
 	if (Agents.size())
 	{

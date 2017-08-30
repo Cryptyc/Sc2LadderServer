@@ -13,6 +13,10 @@ typedef struct SAgentInfo
         , AgentName(InAgentName)
         , DllFile(InDllFile)
     {}
+    bool operator ==(const SAgentInfo &Other)
+    {
+        return AgentName == Other.AgentName;
+    }
 } AgentInfo;
 
 

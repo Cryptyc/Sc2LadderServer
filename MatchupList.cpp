@@ -23,6 +23,10 @@ bool MatchupList::GenerateMatches(std::vector<AgentInfo> Agents, std::vector<std
 	{
 		for (AgentInfo Agent2 : Agents)
 		{
+			if (Agent1 == Agent2)
+			{
+				continue;
+			}
 			for (std::string map : Maps)
 			{
 				Matchup NextMatchup(Agent1, Agent2, map);
