@@ -1,17 +1,22 @@
 #pragma once;
 
 #include <string>
-
+typedef void* (*GetAgentFunction)();
+typedef char* (*GetAgentNameFunction)();
+typedef int(*GetAgentRaceFunction)();
+typedef void* (*CCGetAgentFunction)(const char*);
+typedef char* (*CCGetAgentNameFunction)(const char*);
+typedef int(*CCGetAgentRaceFunction)(const char*);
 
 typedef struct SAgentInfo
 {
-    sc2::Agent *Agent;
+    GetAgentFunction AgentFunction;
     sc2::Race AgentRace;
     std::string AgentName;
     std::string DllFile;
     SAgentInfo() {}
-    SAgentInfo(sc2::Agent *InAgent, sc2::Race InAgentRace, std::string InAgentName, std::string InDllFile)
-        : Agent(InAgent)
+    SAgentInfo(GetAgentFunction InAgentFunction, sc2::Race InAgentRace, std::string InAgentName, std::string InDllFile)
+        : AgentFunction(InAgentFunction)
         , AgentRace(InAgentRace)
         , AgentName(InAgentName)
         , DllFile(InDllFile)
