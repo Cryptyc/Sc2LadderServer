@@ -17,7 +17,11 @@ Command Center bots are supported.  Just add the json config file in the command
 LadderManager will read a config file from the LadderManager.conf file with the following values
 
 DllDirectory				Directory to read DLL files from
+
 CommandCenterDirectory		Directory to read .ccbot command center config files
+
 LocalReplayDirectory		Directory to store local replays
+
 MapListFile					Location of the map list file.  Should be each map on a single line
+
 UploadResultLocation		Location of remote server to store results
