@@ -143,9 +143,9 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		form = curl_mime_init(curl);
 
 		/* Fill in the file upload field */
-		field = curl_mime_addpart(form);
 		if (std::fstream(ReplayLoc.c_str()))
 		{
+			field = curl_mime_addpart(form);
 			curl_mime_name(field, "replayfile", CURL_ZERO_TERMINATED);
 			curl_mime_filedata(field, ReplayLoc.c_str());
 		}
@@ -165,12 +165,14 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Map", CURL_ZERO_TERMINATED);
 		curl_mime_data(field, ThisMatch.Map.c_str(), CURL_ZERO_TERMINATED);
-
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "Winner", CURL_ZERO_TERMINATED);
+		curl_mime_data(field, std::to_string(result).c_str(), CURL_ZERO_TERMINATED);
 		/* initialize custom header list (stating that Expect: 100-continue is not
 		wanted */
 		headerlist = curl_slist_append(headerlist, buf);
 		/* what URL that receives this POST */
-		curl_easy_setopt(curl, CURLOPT_URL, UploadResultLocation);
+		curl_easy_setopt(curl, CURLOPT_URL, UploadResultLocation.c_str());
 
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 
@@ -188,6 +190,7 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		curl_mime_free(form);
 		/* free slist */
 		curl_slist_free_all(headerlist);
+		_unlink(ReplayLoc.c_str());
 
 
 	}
