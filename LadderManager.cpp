@@ -20,10 +20,8 @@ const static char *DLLDir = "e:\\sc2Dll\\";
 const static char *CommandCenterDir = "e:\\sc2Dll\\CommandCenter\\";
 const static char *ReplayDir = "e:\\sc2Dll\\Replays\\";
 const static char *MapListFile = "e:\\sc2Dll\\maplist";
-const static char *MainReplayDir = "C:\\Users\\crypt\\Documents\\StarCraft II\\Replays\\Multiplayer\\";
 const static char *UploadReplayLocation = "http://127.0.0.1/replayupload.php"; 
 const static char *UploadResultLocation = "http://127.0.0.1/fileupload.php";
-// const static char *UploadReplayLocation = "https://sc2laddertest.000webhostapp.com/fileupload.php";
 
 
 //*************************************************************************************************
