@@ -119,12 +119,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LadderConfig.cpp" />
     <ClCompile Include="LadderManager.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <ClCompile Include="MatchupList.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="LadderConfig.h" />
     <ClInclude Include="LadderManager.h" />
     <ClInclude Include="MatchupList.h" />
     <ClInclude Include="Types.h" />

@@ -13,16 +13,11 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "types.h"
+#include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
 
-const static char *DLLDir = "e:\\sc2Dll\\";
-const static char *CommandCenterDir = "e:\\sc2Dll\\CommandCenter\\";
-const static char *ReplayDir = "e:\\sc2Dll\\Replays\\";
-const static char *MapListFile = "e:\\sc2Dll\\maplist";
-const static char *UploadReplayLocation = "http://127.0.0.1/replayupload.php"; 
-const static char *UploadResultLocation = "http://127.0.0.1/fileupload.php";
-
+const static char *ConfigFile = "LadderManager.conf";
 
 //*************************************************************************************************
 int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
@@ -66,6 +61,8 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 		}
 
 	}
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+
 	std::string ReplayFile = ReplayDir + Agent1.AgentName + "v" + Agent2.AgentName + "-" + Map + ".Sc2Replay";
 	Sc2Agent1->Control()->SaveReplay(ReplayFile);
 	coordinator->WaitForAllResponses();
@@ -85,24 +82,35 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	return result;
 }
 
-LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InDllDirectory)
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 
-	: DllDirectory(InDllDirectory)
-	, coordinator(nullptr)
+	: coordinator(nullptr)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
 {
-	std::string CCDllLoc = std::string(CommandCenterDir) + "CommandCenter.dll";
-	HINSTANCE hGetProcIDDLL = LoadLibrary(CCDllLoc.c_str());
+
+}
+bool LadderManager::LoadSetup()
+{
+	Config = new LadderConfig(ConfigFile);
+	if (!Config->ParseConfig())
+	{
+		return false;
+	}
+	std::string CCDLLLoc = Config->GetValue("CommandCenterDirectory");
+	CCDLLLoc +=  "CommandCenter.dll";
+	HINSTANCE hGetProcIDDLL = LoadLibrary(CCDLLLoc.c_str());
 	if (hGetProcIDDLL) {
 		CCGetAgent = (CCGetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXPEBD@Z");
 		CCGetAgentName = (CCGetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDPEBD@Z");
 		CCGetAgentRace = (CCGetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHPEBD@Z");
 	}
-
+	return true;
 }
+
 void LadderManager::GetMapList()
 {
+	std::string MapListFile = Config->GetValue("MapListFile");
 	std::ifstream file(MapListFile);
 	std::string str;
 	while (std::getline(file, str))
@@ -115,6 +123,8 @@ void LadderManager::GetMapList()
 
 void LadderManager::UploadMime(int result, Matchup ThisMatch)
 {
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
 	std::string ReplayFile = ThisMatch.Agent1.AgentName + "v" + ThisMatch.Agent2.AgentName + "-" + ThisMatch.Map + ".Sc2Replay";
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
@@ -160,7 +170,7 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		wanted */
 		headerlist = curl_slist_append(headerlist, buf);
 		/* what URL that receives this POST */
-		curl_easy_setopt(curl, CURLOPT_URL, UploadReplayLocation);
+		curl_easy_setopt(curl, CURLOPT_URL, UploadResultLocation);
 
 		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
 
@@ -204,6 +214,11 @@ void LadderManager::RunLadderManager()
 void LadderManager::LoadCCBots()
 {
 	if (CCGetAgent && CCGetAgentName && CCGetAgentRace) {
+		std::string CommandCenterDir = Config->GetValue("CommandCenterDirectory");
+		if (CommandCenterDir == "")
+		{
+			return;
+		}
 		std::string extension = "*.ccbot*";
 		std::vector<std::string> filesPaths;
 		getFilesList(CommandCenterDir, extension, filesPaths);
@@ -233,7 +248,7 @@ void LadderManager::StartCoordinator()
 
 void LadderManager::RefreshAgents()
 {
-	std::string inputFolderPath = DllDirectory;
+	std::string inputFolderPath = Config->GetValue("DllDirectory");
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
 	GetMapList();
@@ -280,9 +295,10 @@ void LadderManager::getFilesList(std::string filePath, std::string extension, st
 
 int main(int argc, char** argv)
 {
-	LadderMan = new LadderManager(argc, argv, DLLDir);
-	if (LadderMan != nullptr)
+	LadderMan = new LadderManager(argc, argv);
+	if(LadderMan->LoadSetup())
 	{
 		LadderMan->RunLadderManager();
 	}
+
 }

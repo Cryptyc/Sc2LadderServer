@@ -1,13 +1,12 @@
 #pragma once
 
-const extern char *DLLDir;
-const extern char *ReplayDir;
-const extern char *MapListFile;
+
 
 class LadderManager
 {
 public:
-    LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InDllDirectory);
+    LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
+    bool LoadSetup();
 	void RunLadderManager();
 
 private:
@@ -24,12 +23,13 @@ private:
     int CoordinatorArgc;
     char **CoordinatorArgv;
 
-    const char *DllDirectory;
+    std::string DllDirectory;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;
     CCGetAgentFunction CCGetAgent;
     CCGetAgentNameFunction CCGetAgentName;
     CCGetAgentRaceFunction CCGetAgentRace;
+    LadderConfig *Config;
 };
 
 LadderManager *LadderMan;
