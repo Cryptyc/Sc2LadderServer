@@ -77,11 +77,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_SCL_SECURE_NO_WARNINGS;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\LadderManager\curl\include;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\build\bin\sc2apid.lib;..\build\bin\sc2libd.lib;..\build\bin\sc2utilsd.lib;..\build\bin\sc2protocold.lib;..\build\bin\libprotobufd.lib;..\build\bin\civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>..\build\bin\sc2apid.lib;..\build\bin\sc2libd.lib;..\build\bin\sc2utilsd.lib;..\build\bin\sc2protocold.lib;..\build\bin\libprotobufd.lib;..\build\bin\civetweb.lib;.\curl\lib\libcurl_debug.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <AdditionalLibraryDirectories>E:\Sc2AI\curl-7.55.1\build\Win64\VC14\LIB Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -140,6 +141,9 @@
     </ProjectReference>
     <ProjectReference Include="..\build\src\sc2lib.vcxproj">
       <Project>{f339c356-6e14-3590-9a64-af80b63a75b5}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\build\src\sc2protocol.vcxproj">
+      <Project>{e80e310e-d87c-3f93-84b6-14c8bc783f69}</Project>
     </ProjectReference>
     <ProjectReference Include="..\build\src\sc2utils.vcxproj">
       <Project>{5d226e37-ee3b-3381-9975-52bd26c98bb1}</Project>
