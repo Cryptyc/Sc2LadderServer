@@ -53,13 +53,21 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	int Agent1Army = 0;
 	int Agent2Army = 0;
 	coordinator->StartGame(Map);
+	int64_t EndGameTime = 0;
+	if (MaxGameTime > 0)
+	{
+		EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
+	}
 	while (coordinator->Update() && !coordinator->AllGamesEnded()) {
 		if (Sc2Agent1->Observation() != nullptr && Sc2Agent2->Observation() != nullptr)
 		{
 			Agent1Army = Sc2Agent1->Observation()->GetArmyCount();
 			Agent2Army = Sc2Agent2->Observation()->GetArmyCount();
 		}
-
+		if (clock() > EndGameTime)
+		{
+			break;
+		}
 	}
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
@@ -87,6 +95,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	: coordinator(nullptr)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
+	, MaxGameTime(0)
 {
 
 }
@@ -104,6 +113,11 @@ bool LadderManager::LoadSetup()
 		CCGetAgent = (CCGetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXPEBD@Z");
 		CCGetAgentName = (CCGetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDPEBD@Z");
 		CCGetAgentRace = (CCGetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHPEBD@Z");
+	}
+	std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
+	if (MaxGameTimeString.length() > 0)
+	{
+		MaxGameTime = std::stoi(MaxGameTimeString);
 	}
 	return true;
 }
@@ -190,7 +204,7 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		curl_mime_free(form);
 		/* free slist */
 		curl_slist_free_all(headerlist);
-		_unlink(ReplayLoc.c_str());
+		MoveFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
 
 
 	}

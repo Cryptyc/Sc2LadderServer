@@ -23,6 +23,7 @@ private:
     int CoordinatorArgc;
     char **CoordinatorArgv;
 
+    int32_t MaxGameTime;
     std::string DllDirectory;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;
