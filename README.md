@@ -9,6 +9,8 @@ const char *GetAgentName();  // Returns a string identifier for the agent name
 
 int GetAgentRace();  // Returns the agents prefered race.  should be sc2::Race cast to int.
 
+The './data/' Directory is writable, you should create a subdirectory with your bot name if you want to write data files
+
 Requires Blizzard API files
 
 ------
