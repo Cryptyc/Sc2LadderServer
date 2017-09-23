@@ -1,7 +1,7 @@
 #include "sc2lib/sc2_lib.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_interfaces.h"
-
+#include "sc2api/sc2_score.h"
 #include "sc2api/sc2_map_info.h"
 #include "sc2utils/sc2_manage_process.h"
 #include <fstream>
@@ -50,8 +50,8 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	coordinator->LaunchStarcraft();
 	// Step forward the game simulation.
 	bool do_break = false;
-	int Agent1Army = 0;
-	int Agent2Army = 0;
+	float Agent1Army = 0.0f;
+	float Agent2Army = 0.0f;
 	coordinator->StartGame(Map);
 	int64_t EndGameTime = 0;
 	if (MaxGameTime > 0)
@@ -61,10 +61,11 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	while (coordinator->Update() && !coordinator->AllGamesEnded()) {
 		if (Sc2Agent1->Observation() != nullptr && Sc2Agent2->Observation() != nullptr)
 		{
-			Agent1Army = Sc2Agent1->Observation()->GetArmyCount();
-			Agent2Army = Sc2Agent2->Observation()->GetArmyCount();
+			Agent1Army = Sc2Agent1->Observation()->GetScore().score;
+			Agent2Army = Sc2Agent2->Observation()->GetScore().score;
 		}
-		if (clock() > EndGameTime)
+		clock_t LocalClock = clock();
+		if (LocalClock > EndGameTime)
 		{
 			break;
 		}
@@ -107,7 +108,7 @@ bool LadderManager::LoadSetup()
 		return false;
 	}
 	std::string CCDLLLoc = Config->GetValue("CommandCenterDirectory");
-	CCDLLLoc +=  "CommandCenter.dll";
+	CCDLLLoc +=  "CommandCenter_d.dll";
 	HINSTANCE hGetProcIDDLL = LoadLibrary(CCDLLLoc.c_str());
 	if (hGetProcIDDLL) {
 		CCGetAgent = (CCGetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXPEBD@Z");
@@ -224,6 +225,7 @@ void LadderManager::RunLadderManager()
 		int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 
 		UploadMime(result, NextMatch);
+
 	}
 	
 }

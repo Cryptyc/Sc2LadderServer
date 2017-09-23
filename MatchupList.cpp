@@ -34,8 +34,8 @@ bool MatchupList::GenerateMatches(std::vector<AgentInfo> Agents, std::vector<std
 			}
 		}
 	}
-	auto rng = std::default_random_engine{};
-	std::shuffle(std::begin(Matchups), std::end(Matchups), rng);
+	srand(time(0));
+	std::random_shuffle(std::begin(Matchups), std::end(Matchups));
 	return true;
 }
 
