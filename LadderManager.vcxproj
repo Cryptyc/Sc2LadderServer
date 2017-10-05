@@ -18,9 +18,28 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="LadderConfig.cpp" />
+    <ClCompile Include="LadderManager.cpp" />
+    <ClCompile Include="MatchupList.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="curl\include\curl\curl.h" />
+    <ClInclude Include="curl\include\curl\curlver.h" />
+    <ClInclude Include="curl\include\curl\easy.h" />
+    <ClInclude Include="curl\include\curl\mprintf.h" />
+    <ClInclude Include="curl\include\curl\multi.h" />
+    <ClInclude Include="curl\include\curl\stdcheaders.h" />
+    <ClInclude Include="curl\include\curl\system.h" />
+    <ClInclude Include="curl\include\curl\typecheck-gcc.h" />
+    <ClInclude Include="LadderConfig.h" />
+    <ClInclude Include="LadderManager.h" />
+    <ClInclude Include="MatchupList.h" />
+    <ClInclude Include="Types.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{82AC4BD8-5D06-44D1-9C2F-D70ED972782C}</ProjectGuid>
+    <ProjectGuid>{EAC9A5CD-A6F4-4B4A-983B-6F69F296235A}</ProjectGuid>
     <RootNamespace>LadderManager</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -70,19 +89,22 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_SCL_SECURE_NO_WARNINGS;CMAKE_INTDIR="Debug";%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\LadderManager\curl\include;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <PreprocessorDefinitions>CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>..\build\bin\sc2apid.lib;..\build\bin\sc2libd.lib;..\build\bin\sc2utilsd.lib;..\build\bin\sc2protocold.lib;..\build\bin\libprotobufd.lib;..\build\bin\civetweb.lib;.\curl\lib\libcurl_debug.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
-      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
-      <AdditionalLibraryDirectories>E:\Sc2AI\curl-7.55.1\build\Win64\VC14\LIB Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libcurl.lib;sc2api.lib;sc2lib.lib;sc2utils.lib;sc2protocol.lib;libprotobuf.lib;civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -91,6 +113,20 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>CURL_STATICLIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcurl_debug.lib;sc2apid.lib;sc2libd.lib;sc2utilsd.lib;sc2protocold.lib;libprotobufd.lib;civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -105,55 +141,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-    </ClCompile>
-    <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="LadderConfig.cpp" />
-    <ClCompile Include="LadderManager.cpp">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">E:\Sc2AI\s2client-api\examples\..\include;E:\Sc2AI\s2client-api\examples\common;E:\Sc2AI\s2client-api\build\generated;E:\Sc2AI\s2client-api\contrib\SDL-mirror\include;E:\Sc2AI\s2client-api\contrib\protobuf\src;E:\Sc2AI\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
-    <ClCompile Include="MatchupList.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="LadderConfig.h" />
-    <ClInclude Include="LadderManager.h" />
-    <ClInclude Include="MatchupList.h" />
-    <ClInclude Include="Types.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\build\contrib\civetweb\src\c-library.vcxproj">
-      <Project>{d924f204-6ff2-37d9-aa18-1c6e6cb28293}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\contrib\protobuf\cmake\libprotobuf.vcxproj">
-      <Project>{3d350e5c-67c9-34c6-8fc3-fdfdad56a24c}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\src\sc2api.vcxproj">
-      <Project>{2ded738c-4463-363d-8ca5-017a1915cbf8}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\src\sc2lib.vcxproj">
-      <Project>{f339c356-6e14-3590-9a64-af80b63a75b5}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\src\sc2protocol.vcxproj">
-      <Project>{e80e310e-d87c-3f93-84b6-14c8bc783f69}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\src\sc2utils.vcxproj">
-      <Project>{5d226e37-ee3b-3381-9975-52bd26c98bb1}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\build\ZERO_CHECK.vcxproj">
-      <Project>{35c126d2-d103-38ae-bec8-1a9dd8ecb9c3}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

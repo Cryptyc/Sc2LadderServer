@@ -356,7 +356,7 @@ typedef size_t (*curl_read_callback)(char *buffer,
                                       size_t nitems,
                                       void *instream);
 
-typedef enum  {
+typedef enum {
   CURLSOCKTYPE_IPCXN,  /* socket created for a specific IP connection */
   CURLSOCKTYPE_ACCEPT, /* socket created by accept() call */
   CURLSOCKTYPE_LAST    /* never use */
@@ -398,7 +398,7 @@ typedef enum {
   CURLIOE_LAST           /* never use */
 } curlioerr;
 
-typedef enum  {
+typedef enum {
   CURLIOCMD_NOP,         /* no operation */
   CURLIOCMD_RESTARTREAD, /* restart the read stream from start */
   CURLIOCMD_LAST         /* never use */
@@ -2009,8 +2009,7 @@ CURL_EXTERN curl_mimepart *curl_mime_addpart(curl_mime *mime);
  *
  * Set mime/form part name.
  */
-CURL_EXTERN CURLcode curl_mime_name(curl_mimepart *part,
-                                    const char *name, size_t namesize);
+CURL_EXTERN CURLcode curl_mime_name(curl_mimepart *part, const char *name);
 
 /*
  * NAME curl_mime_filename()
@@ -2371,7 +2370,8 @@ typedef struct {
 typedef enum {
   CURLSSLSET_OK = 0,
   CURLSSLSET_UNKNOWN_BACKEND,
-  CURLSSLSET_TOO_LATE
+  CURLSSLSET_TOO_LATE,
+  CURLSSLSET_NO_BACKENDS /* libcurl was built without any SSL support */
 } CURLsslset;
 
 CURL_EXTERN CURLsslset curl_global_sslset(curl_sslbackend id, const char *name,

@@ -161,27 +161,27 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		if (std::fstream(ReplayLoc.c_str()))
 		{
 			field = curl_mime_addpart(form);
-			curl_mime_name(field, "replayfile", CURL_ZERO_TERMINATED);
+			curl_mime_name(field, "replayfile");
 			curl_mime_filedata(field, ReplayLoc.c_str());
 		}
 		/* Fill in the filename field */
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Bot1Name", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Bot1Name");
 		curl_mime_data(field, ThisMatch.Agent1.AgentName.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Bot1Race", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Bot1Race");
 		curl_mime_data(field, std::to_string((int)ThisMatch.Agent1.AgentRace).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Bot2Name", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Bot2Name");
 		curl_mime_data(field, ThisMatch.Agent2.AgentName.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Bot2Race", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Bot2Race");
 		curl_mime_data(field, std::to_string((int)ThisMatch.Agent2.AgentRace).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Map", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Map");
 		curl_mime_data(field, ThisMatch.Map.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Winner", CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Winner");
 		curl_mime_data(field, std::to_string(result).c_str(), CURL_ZERO_TERMINATED);
 		/* initialize custom header list (stating that Expect: 100-continue is not
 		wanted */
@@ -222,8 +222,8 @@ void LadderManager::RunLadderManager()
 	Matchup NextMatch;
 	while (Matchups->GetNextMatchup(NextMatch))
 	{
+		std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
 		int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
-
 		UploadMime(result, NextMatch);
 
 	}
@@ -268,6 +268,7 @@ void LadderManager::StartCoordinator()
 void LadderManager::RefreshAgents()
 {
 	std::string inputFolderPath = Config->GetValue("DllDirectory");
+	std::cout << "Searching for DLL in " << inputFolderPath << " \n";
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
 	GetMapList();
@@ -276,8 +277,10 @@ void LadderManager::RefreshAgents()
 	{
 		Agents.clear();
 	}
-	for(std::string filePath : filesPaths)
+	std::cout << "Loading Bots\n";
+	for (std::string filePath : filesPaths)
 	{
+		std::cout << "Found " << filePath << " \n";
 		HINSTANCE hGetProcIDDLL = LoadLibrary(filePath.c_str());
 		if (hGetProcIDDLL) {
 			// resolve function address here
@@ -285,6 +288,7 @@ void LadderManager::RefreshAgents()
 			GetAgentNameFunction GetAgentName = (GetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDXZ");
 			GetAgentRaceFunction GetAgentRace = (GetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHXZ");
 			if (GetAgent && GetAgentName && GetAgentRace) {
+				std::cout << "DLL Valid \n";
 				const char *AgentName = GetAgentName();
 				if (AgentName)
 				{
@@ -295,7 +299,6 @@ void LadderManager::RefreshAgents()
 			}
 		}
 	}
-	LoadCCBots();
 }
 
 void LadderManager::getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName)
