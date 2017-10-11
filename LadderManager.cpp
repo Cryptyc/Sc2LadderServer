@@ -19,6 +19,30 @@
 
 const static char *ConfigFile = "LadderManager.conf";
 
+void LadderManager::StartAsyncGame()
+{
+	sc2::Agent *Agent1 = new sc2::Agent();
+	sc2::Agent *Agent2 = new sc2::Agent();
+	StartCoordinator();
+	coordinator->SetParticipants({
+		CreateParticipant(sc2::Race::Random, Agent1),
+		CreateParticipant(sc2::Race::Random, Agent2),
+	});
+	int64_t EndGameTime = 0;
+	if (MaxGameTime > 0)
+	{
+		EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
+	}
+	while (!coordinator->AllGamesEnded()) {
+		clock_t LocalClock = clock();
+		if (LocalClock > EndGameTime)
+		{
+			break;
+		}
+		Sleep(5);
+	}
+}
+
 //*************************************************************************************************
 int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
 
@@ -52,23 +76,30 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	bool do_break = false;
 	float Agent1Army = 0.0f;
 	float Agent2Army = 0.0f;
-	coordinator->StartGame(Map);
-	int64_t EndGameTime = 0;
-	if (MaxGameTime > 0)
+	try
 	{
-		EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
+		coordinator->StartGame(Map);
+		int64_t EndGameTime = 0;
+		if (MaxGameTime > 0)
+		{
+			EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
+		}
+		while (coordinator->Update() && !coordinator->AllGamesEnded()) {
+			if (Sc2Agent1->Observation() != nullptr && Sc2Agent2->Observation() != nullptr)
+			{
+				Agent1Army = Sc2Agent1->Observation()->GetScore().score;
+				Agent2Army = Sc2Agent2->Observation()->GetScore().score;
+			}
+			clock_t LocalClock = clock();
+			if (LocalClock > EndGameTime)
+			{
+				break;
+			}
+		}
 	}
-	while (coordinator->Update() && !coordinator->AllGamesEnded()) {
-		if (Sc2Agent1->Observation() != nullptr && Sc2Agent2->Observation() != nullptr)
-		{
-			Agent1Army = Sc2Agent1->Observation()->GetScore().score;
-			Agent2Army = Sc2Agent2->Observation()->GetScore().score;
-		}
-		clock_t LocalClock = clock();
-		if (LocalClock > EndGameTime)
-		{
-			break;
-		}
+	catch (...)
+	{
+		std::cout << "Crash in agent detected";
 	}
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
@@ -102,13 +133,14 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 }
 bool LadderManager::LoadSetup()
 {
+
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{
 		return false;
 	}
 	std::string CCDLLLoc = Config->GetValue("CommandCenterDirectory");
-	CCDLLLoc +=  "CommandCenter_d.dll";
+	CCDLLLoc +=  "CommandCenter.dll";
 	HINSTANCE hGetProcIDDLL = LoadLibrary(CCDLLLoc.c_str());
 	if (hGetProcIDDLL) {
 		CCGetAgent = (CCGetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXPEBD@Z");
@@ -217,15 +249,33 @@ void LadderManager::RunLadderManager()
 {
 
 	RefreshAgents();
-	MatchupList *Matchups = new MatchupList();
+	std::cout << "Starting with agents: \r\n";
+	for (auto &Agent : Agents)
+	{
+		std::cout << Agent.second.AgentName + "\r\n";
+	}
+	std::string MatchListFile = Config->GetValue("MatchupListFile");
+	MatchupList *Matchups = new MatchupList(MatchListFile);
 	Matchups->GenerateMatches(Agents, MapList);
 	Matchup NextMatch;
-	while (Matchups->GetNextMatchup(NextMatch))
+	bool done = false;
+	while (!done)
 	{
-		std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
-		int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
-		UploadMime(result, NextMatch);
+		try
+		{
 
+			while (Matchups->GetNextMatchup(NextMatch))
+			{
+				std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
+				int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+				UploadMime(result, NextMatch);
+				Matchups->SaveMatchList();
+			}
+		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Exception in game " << e.what() << " \r\n";
+		}
 	}
 	
 }
@@ -248,7 +298,7 @@ void LadderManager::LoadCCBots()
 			{
 				sc2::Race AgentRace = (sc2::Race)CCGetAgentRace(path.c_str());
 				AgentInfo NewAgentInfo(nullptr, AgentRace, std::string(AgentName), path);
-				Agents.push_back(NewAgentInfo);
+				Agents.insert(std::make_pair(std::string(AgentName), NewAgentInfo));
 			}
 		}	
 	}
@@ -294,11 +344,12 @@ void LadderManager::RefreshAgents()
 				{
 					sc2::Race AgentRace = (sc2::Race)GetAgentRace();
 					AgentInfo NewAgentInfo(GetAgent, AgentRace, std::string(AgentName), filePath);
-					Agents.push_back(NewAgentInfo);
+					Agents.insert(std::make_pair(std::string(AgentName), NewAgentInfo));
 				}
 			}
 		}
 	}
+	LoadCCBots();
 }
 
 void LadderManager::getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName)
@@ -315,10 +366,12 @@ void LadderManager::getFilesList(std::string filePath, std::string extension, st
 	}
 }
 
+
 int main(int argc, char** argv)
 {
+
 	LadderMan = new LadderManager(argc, argv);
-	if(LadderMan->LoadSetup())
+	if (LadderMan->LoadSetup())
 	{
 		LadderMan->RunLadderManager();
 	}

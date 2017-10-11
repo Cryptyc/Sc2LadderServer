@@ -122,6 +122,7 @@
       <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>..\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

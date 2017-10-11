@@ -3,11 +3,13 @@
 class MatchupList
 {
 public:
-    MatchupList();
-    bool GenerateMatches(std::vector<AgentInfo> Agents, std::vector<std::string> Maps);
+    MatchupList(std::string inMatchupListFile);
+    bool GenerateMatches(std::map<std::string, AgentInfo> Agents, std::vector<std::string> Maps);
     bool GetNextMatchup(Matchup &NextMatch);
-    
-private:
-    std::vector<Matchup> Matchups;
+    bool SaveMatchList();
 
+private:
+    std::string MatchupListFile;
+    std::vector<Matchup> Matchups;
+    bool LoadMatchupList(std::map<std::string, AgentInfo> Agents);
 };
