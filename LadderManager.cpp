@@ -90,8 +90,7 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 				Agent1Army = Sc2Agent1->Observation()->GetScore().score;
 				Agent2Army = Sc2Agent2->Observation()->GetScore().score;
 			}
-			clock_t LocalClock = clock();
-			if (LocalClock > EndGameTime)
+			if(Sc2Agent1->Observation()->GetGameLoop() > MAX_GAME_TIME)
 			{
 				break;
 			}
@@ -100,6 +99,8 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 	catch (...)
 	{
 		std::cout << "Crash in agent detected";
+		SaveError(Agent1.AgentName, Agent2.AgentName, Map);
+
 	}
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
@@ -258,26 +259,22 @@ void LadderManager::RunLadderManager()
 	MatchupList *Matchups = new MatchupList(MatchListFile);
 	Matchups->GenerateMatches(Agents, MapList);
 	Matchup NextMatch;
-	bool done = false;
-	while (!done)
+	try
 	{
-		try
-		{
 
-			while (Matchups->GetNextMatchup(NextMatch))
-			{
-				std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
-				int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
-				UploadMime(result, NextMatch);
-				Matchups->SaveMatchList();
-			}
-		}
-		catch (const std::exception& e)
+		while (Matchups->GetNextMatchup(NextMatch))
 		{
-			std::cout << "Exception in game " << e.what() << " \r\n";
+			std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
+			int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			UploadMime(result, NextMatch);
+			Matchups->SaveMatchList();
 		}
 	}
-	
+	catch (const std::exception& e)
+	{
+		std::cout << "Exception in game " << e.what() << " \r\n";
+		SaveError(NextMatch.Agent1.AgentName, NextMatch.Agent2.AgentName, NextMatch.Map);
+	}
 }
 
 void LadderManager::LoadCCBots()
@@ -366,6 +363,21 @@ void LadderManager::getFilesList(std::string filePath, std::string extension, st
 	}
 }
 
+void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::string Map)
+{
+	std::string ErrorListFile = Config->GetValue("ErrorListFile");
+	if (ErrorListFile == "")
+	{
+		return;
+	}
+	std::ofstream ofs(ErrorListFile, std::ofstream::app);
+	if (!ofs)
+	{
+		return;
+	}
+	ofs << "\"" + Agent1 + "\"vs\"" + Agent2 + "\" " + Map + "\r\n";
+	ofs.close();
+}
 
 int main(int argc, char** argv)
 {

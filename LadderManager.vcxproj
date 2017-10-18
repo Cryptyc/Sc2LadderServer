@@ -112,6 +112,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>curl\include;..\build\generated;..\src;..\contrib\SDL-mirror\include;..\src;..\contrib\civetweb\include;..\include;..\contrib\protobuf\src;..\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -119,7 +121,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\s2client-api\LadderManager\curl\include;..\..\s2client-api\build\generated;..\..\s2client-api\src\..\contrib\SDL-mirror\include;..\..\s2client-api\src\..\contrib\civetweb\include;..\..\s2client-api\src\..\include;..\..\s2client-api\contrib\protobuf\src;..\..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -136,10 +138,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>..\build\bin\sc2api.lib;..\build\bin\sc2lib.lib;..\build\bin\sc2utils.lib;..\build\bin\sc2protocol.lib;..\build\bin\libprotobuf.lib;..\build\bin\civetweb.lib;curl\lib\libcurl.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

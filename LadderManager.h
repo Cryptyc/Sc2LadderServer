@@ -1,5 +1,5 @@
 #pragma once
-
+#define MAX_GAME_TIME 60480
 
 
 class LadderManager
@@ -20,6 +20,8 @@ private:
     std::map<std::string, AgentInfo> Agents;
     std::vector<std::string> MapList;
     void getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName);
+
+	void SaveError(std::string Agent1, std::string Agent2, std::string Map);
 
     int CoordinatorArgc;
     char **CoordinatorArgv;
