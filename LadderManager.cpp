@@ -19,14 +19,14 @@
 
 const static char *ConfigFile = "LadderManager.conf";
 
-void LadderManager::StartAsyncGame()
+void LadderManager::StartAsyncGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map)
 {
-	sc2::Agent *Agent1 = new sc2::Agent();
-	sc2::Agent *Agent2 = new sc2::Agent();
+	sc2::Agent *Agent1Bot = new sc2::Agent();
+	sc2::Agent *Agent2Bot = new sc2::Agent();
 	StartCoordinator();
 	coordinator->SetParticipants({
-		CreateParticipant(sc2::Race::Random, Agent1),
-		CreateParticipant(sc2::Race::Random, Agent2),
+		CreateParticipant(sc2::Race::Random, Agent1Bot),
+		CreateParticipant(sc2::Race::Random, Agent2Bot),
 	});
 	int64_t EndGameTime = 0;
 	if (MaxGameTime > 0)
@@ -265,7 +265,8 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
-			int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			int result = 1;
+			StartAsyncGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
