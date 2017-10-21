@@ -10,16 +10,14 @@ public:
 	void RunLadderManager();
 
 private:
-	void StartAsyncGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map);
-	int StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map);
-    void RefreshAgents();
-    void LoadCCBots();
+    std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort);
+    int StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
     void StartCoordinator();
+    void LoadAgents();
     void GetMapList();
     void UploadMime(int result, Matchup ThisMatch);
-    std::map<std::string, AgentInfo> Agents;
+    std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
-    void getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName);
 
 	void SaveError(std::string Agent1, std::string Agent2, std::string Map);
 
@@ -30,9 +28,6 @@ private:
     std::string DllDirectory;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;
-    CCGetAgentFunction CCGetAgent;
-    CCGetAgentNameFunction CCGetAgentName;
-    CCGetAgentRaceFunction CCGetAgentRace;
     LadderConfig *Config;
 };
 

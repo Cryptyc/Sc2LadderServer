@@ -1,0 +1,21 @@
+{
+
+	"Bots": {
+		"CryptBot": {
+			"Race": "Protoss",
+			"Type": "BinaryCpp",
+			"Path": "CryptBot.exe"
+		},
+		"ProtossBot": {
+			"Race": "Protoss",
+			"Type": "BinaryCpp",
+			"Path": "CryptBot.exe"
+		},
+		"CCZergBot": {
+			"Race": "Zerg",
+			"Type": "CommandCenter",
+			"Path": "ZergBot.ccbot"
+		}
+
+	}
+}
