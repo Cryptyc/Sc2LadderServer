@@ -71,7 +71,9 @@ int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map
 		CreateParticipant(Agent2.AgentRace, Sc2Agent2),
 	});
 	// Start the game.
+	std::cout << "Launching SC2 (two times)\r\n";
 	coordinator->LaunchStarcraft();
+	std::cout << "Launch complete, running simulation..\r\n";
 	// Step forward the game simulation.
 	bool do_break = false;
 	float Agent1Army = 0.0f;
@@ -138,6 +140,7 @@ bool LadderManager::LoadSetup()
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{
+		std::cout << "No valid config found at " << ConfigFile << std::endl;
 		return false;
 	}
 	std::string CCDLLLoc = Config->GetValue("CommandCenterDirectory");
@@ -250,10 +253,15 @@ void LadderManager::RunLadderManager()
 {
 
 	RefreshAgents();
-	std::cout << "Starting with agents: \r\n";
+	std::cout << "Starting with " << MapList.size() << " maps:\r\n";
+	for (auto &map : MapList)
+	{
+		std::cout << "* " << map + "\r\n";
+	}
+	std::cout << "Starting with " << Agents.size() << " agents: \r\n";
 	for (auto &Agent : Agents)
 	{
-		std::cout << Agent.second.AgentName + "\r\n";
+		std::cout << "* " << Agent.second.AgentName + "\r\n";
 	}
 	std::string MatchListFile = Config->GetValue("MatchupListFile");
 	MatchupList *Matchups = new MatchupList(MatchListFile);
@@ -318,7 +326,9 @@ void LadderManager::RefreshAgents()
 	std::cout << "Searching for DLL in " << inputFolderPath << " \n";
 	std::string extension = "*.dll*";
 	std::vector<std::string> filesPaths;
+	
 	GetMapList();
+
 	getFilesList(inputFolderPath, extension, filesPaths);
 	if (Agents.size())
 	{
@@ -381,6 +391,7 @@ void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::strin
 
 int main(int argc, char** argv)
 {
+	std::cout << "LadderManager started." << std::endl;
 
 	LadderMan = new LadderManager(argc, argv);
 	if (LadderMan->LoadSetup())
@@ -388,4 +399,5 @@ int main(int argc, char** argv)
 		LadderMan->RunLadderManager();
 	}
 
+	std::cout << "Finished." << std::endl;
 }
