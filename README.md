@@ -53,16 +53,16 @@ LadderManager will read a config file from the LadderManager.conf file with the 
 * Configure the Linker
   * Check that the linker has x64 as its target: From the project properties, go to *Linker* -> *Advanced* -> *Target Machine* -> *MachineX64*
   * Add the `curl.dll` to the build output: Again in the properties, go to *Build Events* > *Post-Build Event* and add the following as a new entry to *Command Line*: `copy $(SolutionDir)curl\bin\* $(SolutionDir)$(IntDir)`
+  * Add another line to the *Post-Build Event*: `copy $(SolutionDir)LadderManager.conf $(SolutionDir)$(IntDir)` - From this point on, after each build, the `LadderManager.conf` from your project root directory will be copied into the directory with the server binary where it is needed. Keep that in mind if you change the config!
  
-
 * From the *Build* menu, click *Build Solution*
   * The build should run through. If not, please check if all steps above were followed.
   * In the directory with the project's `LadderManager.vcxproj`, a new directory `Release` or `x64/Release` should have been created, containing the `LadderManager.exe`
-  * Copy the `LadderManager.conf` into that directory.
 
-* Update the `LadderManager.conf` (the one at your `.exe`'s side) to fit to your system. The entries are described in the table above. The following steps referring to the entries made here are:
+* Update the `LadderManager.conf` (the one in the project root) to fit to your system. The entries are described in the table above. The following steps referring to the entries made here are:
   * Insert the DLLs of the bots you want to run against each other into the `DllDirectory`
   * Create the `MapListFile` as a plain text file. For each map you want the bots to play on, add its name into this file, **including** the `.SC2Map` file ending. Each map comes in its own line.
+  * Run *Build* > *Rebuild Solution* to have the updated configuration alongside your `.exe` in the `x64/Release` directory. (*Build Solution* instead of *Rebuild* will not work here, as it only builds if there were changes in the code.)
   
 * Run the Sc2LadderServer by double-clicking on the `LadderManager.exe`. If it closes too fast (most likely because you have an error in your configuration) and you want to see what's going on, open up a command line window, navigate to the `Release` directory and enter `LadderManager.exe`.
 
