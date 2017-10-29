@@ -5,6 +5,11 @@
 #include "sc2api/sc2_map_info.h"
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2api/sc2_game_settings.h"
+#include "sc2api/sc2_proto_interface.h"
+#include "sc2api/sc2_interfaces.h"
+#include "sc2api/sc2_proto_to_pods.h"
+#include "s2clientprotocol/sc2api.pb.h"
+
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
 #include <fstream>
@@ -81,7 +86,7 @@ void StartBotProcess(std::string CommandLine)
 	}
 }
 
-std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort)
+std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort, std::string PipeName)
 {
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
@@ -98,21 +103,94 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 
 		}
 	}
-	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1";
+	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --PipeName " + PipeName;
 	return OutCmdLine;
 
 }
 
-int LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
+GameState LadderManager::RequestGameState(HANDLE hPipe)
+{
+	char buffer[1024];
+	DWORD dwRead;
+	const char *request = "GAMESTATE\0";
+
+	DWORD numWritten;
+	WriteFile(hPipe, request, strlen(request), &numWritten, NULL);
+	ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL);
+	/* add terminating zero */
+	buffer[dwRead] = '\0';
+	/* do something with data in buffer */
+	std::cout << "recieved " << buffer << std::endl;
+	rapidjson::Document doc;
+	bool parsingFailed = doc.Parse(buffer).HasParseError();
+	GameState CurrentGameState;
+	if (parsingFailed)
+	{
+		std::cerr << "Unable to parse game state information" << std::endl;
+		return CurrentGameState;
+	}
+	if (doc.HasMember("InGame"))
+	{
+		if (strncmp(doc["InGame"].GetString(), "true", 4) == 0)
+		{
+			CurrentGameState.IsInGame = true;
+		}
+		else
+		{
+			CurrentGameState.IsInGame = false;
+		}
+	}
+
+	if (doc.HasMember("GameLoop"))
+	{
+		CurrentGameState.GameLoop = doc["GameLoop"].GetInt();
+	}
+	if (doc.HasMember("CurrentScore") )
+	{
+		CurrentGameState.Score = doc["CurrentScore"].GetDouble();
+	}
+	return CurrentGameState;
+
+}
+
+void LadderManager::RequestExitGame(HANDLE hPipe)
+{
+	char buffer[1024];
+	DWORD dwRead;
+	const char *request = "ENDGAME\0"; 
+	DWORD numWritten;
+	WriteFile(hPipe, request, strlen(request), &numWritten, NULL);
+
+}
+
+HANDLE LadderManager::SetupNamedPipe(std::string PipeName)
+{
+	HANDLE hPipe;
+	std::string ConvertedPipeName = "\\\\.\\pipe\\" + PipeName;
+	hPipe = CreateNamedPipe(TEXT(ConvertedPipeName.c_str()),
+		PIPE_ACCESS_DUPLEX | PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
+		PIPE_WAIT,
+		1,
+		1024 * 16,
+		1024 * 16,
+		NMPWAIT_USE_DEFAULT_WAIT,
+		NULL);
+//	ConnectNamedPipe(hPipe, NULL);
+	std::cout << "Pipe " + PipeName + " Connected" << std::endl;
+	return hPipe;
+
+}
+
+ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
 {
 
 
 	// Add the custom bot, it will control the players.
-	sc2::Agent bot;
+	sc2::Agent bot1;
 	sc2::Agent bot2;
 	StartCoordinator();
 	coordinator->SetParticipants({
-		CreateParticipant(Agent1.Race, &bot),
+		CreateParticipant(Agent1.Race, &bot1),
 		CreateParticipant(Agent2.Race, &bot2),
 	});
 
@@ -124,23 +202,51 @@ int LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map
 
 	coordinator->StartGameCoordinator(Map);
 
-	const sc2::ProcessInfo ps1 = bot.Control()->GetProcessInfo();
+	const sc2::ProcessInfo ps1 = bot1.Control()->GetProcessInfo();
 	const sc2::ProcessInfo ps2 = bot2.Control()->GetProcessInfo();
 
-	std::string Agent1Path = GetBotCommandLine(Agent1, ps1.port, ps2.port);
-	std::string Agent2Path = GetBotCommandLine(Agent1, ps1.port, ps2.port);
+	std::string Agent1Path = GetBotCommandLine(Agent1, ps1.port, ps2.port, "bot1Pipe");
+	std::string Agent2Path = GetBotCommandLine(Agent1, ps1.port, ps2.port, "bot2Pipe");
 	if (Agent1Path == "" || Agent2Path == "")
 	{
-		return 0;
+		return InitializationError;
 	}
+	bool TimeoutResult = false;
+//	std::thread bot1Thread(StartBotProcess, Agent1Path);
+//	std::thread bot2Thread(StartBotProcess, Agent2Path);
+	HANDLE bot1Pipe = SetupNamedPipe("bot1Pipe");
+	HANDLE bot2Pipe = SetupNamedPipe("bot2Pipe");
+	Sleep(30000);
+	int CurrentBotRequest = 0;
+	bool AllBotsExited = false;
+	while (!AllBotsExited)
+	{
+		GameState Bot1GameState = RequestGameState(bot1Pipe);
+		GameState Bot2GameState = RequestGameState(bot2Pipe);
+		if (Bot1GameState.IsInGame == false && Bot2GameState.IsInGame == false)
+		{
+			AllBotsExited = true;
+		}
+		if (Bot1GameState.GameLoop > MaxGameTime && Bot2GameState.GameLoop > MaxGameTime)
+		{
+			RequestExitGame(bot1Pipe);
+			RequestExitGame(bot2Pipe);
+		}
+		Sleep(10000);
 
-	std::thread bot1Thread(StartBotProcess, Agent1Path);
-	std::thread bot2Thread(StartBotProcess, Agent2Path);
-	bot1Thread.join();
-	bot2Thread.join();
+	}
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
-
-	return 0;
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".Sc2Replay";
+	bot1.Control()->SaveReplay(ReplayFile);
+	coordinator->WaitForAllResponses();
+	coordinator->LeaveGame();
+	coordinator->WaitForAllResponses();
+	if (TimeoutResult)
+	{
+		return Timeout;
+	}
+	return ProcessingReplay;
 }
 
 

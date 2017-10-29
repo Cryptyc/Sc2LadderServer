@@ -14,6 +14,30 @@ enum BotType
     CommandCenter
 };
 
+enum ResultType
+{
+    InitializationError,
+    Timeout,
+    ProcessingReplay,
+    Player1Win,
+    Player1Crash,
+    Player2Win,
+    Player2Crash
+};
+
+typedef struct SGameState
+{
+    bool IsInGame;
+    int GameLoop;
+    float Score;
+    SGameState()
+        : IsInGame(true)
+        , GameLoop(-1)
+        , Score(-1)
+    {}
+
+} GameState;
+
 typedef struct SBotConfig
 {
     BotType Type;

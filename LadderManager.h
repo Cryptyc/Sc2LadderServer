@@ -10,8 +10,11 @@ public:
 	void RunLadderManager();
 
 private:
-    std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort);
-    int StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
+    std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort, std::string PipeName);
+    GameState RequestGameState(HANDLE hPipe);
+    void RequestExitGame(HANDLE hPipe);
+    HANDLE SetupNamedPipe(std::string PipeName);
+    ResultType StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
     void StartCoordinator();
     void LoadAgents();
     void GetMapList();
