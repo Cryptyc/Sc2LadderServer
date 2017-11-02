@@ -26,6 +26,7 @@ bool MatchupList::GenerateMatches(std::map<std::string, AgentInfo> Agents, std::
 	Matchups.clear();
 	if (!LoadMatchupList(Agents))
 	{
+		std::cout << "Could not load MatchupList from file. Generating new one..\r\n";
 		for (int i = 0; i < 2; i++)
 		{
 			for (const auto &Agent1 : Agents)
@@ -47,6 +48,9 @@ bool MatchupList::GenerateMatches(std::map<std::string, AgentInfo> Agents, std::
 		srand(time(0));
 		std::random_shuffle(std::begin(Matchups), std::end(Matchups));
 		return true;
+	}
+	else {
+		std::cout << "MatchupList loaded from file with " << Matchups.size() << " matches to go.\r\n";
 	}
 	return true;
 }
