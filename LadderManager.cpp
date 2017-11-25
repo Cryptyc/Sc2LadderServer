@@ -9,6 +9,10 @@
 #include "sc2api/sc2_interfaces.h"
 #include "sc2api/sc2_proto_to_pods.h"
 #include "s2clientprotocol/sc2api.pb.h"
+#include "sc2api/sc2_server.h"
+#include "sc2api/sc2_connection.h"
+#include "sc2api/sc2_args.h"
+#include "sc2api/sc2_client.h"
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -17,6 +21,8 @@
 #include <vector>
 #include <iostream>
 #include <Windows.h>
+#include <future>
+#include <chrono>
 #include <curl\curl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -27,6 +33,131 @@
 #include "MatchupList.h"
 
 const static char *ConfigFile = "LadderManager.conf";
+
+enum ExitCase
+{
+	InProgress,
+	GameEnd,
+	ClientRequestExit,
+	ClientTimeout
+};
+
+bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
+{
+	bool success = true;
+	if (response.has_error()) {
+		std::string errorCode = "Unknown";
+		switch (response.error()) {
+		case SC2APIProtocol::ResponseCreateGame::MissingMap: {
+			errorCode = "Missing Map";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapPath: {
+			errorCode = "Invalid Map Path";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapData: {
+			errorCode = "Invalid Map Data";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapName: {
+			errorCode = "Invalid Map Name";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapHandle: {
+			errorCode = "Invalid Map Handle";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::MissingPlayerSetup: {
+			errorCode = "Missing Player Setup";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidPlayerSetup: {
+			errorCode = "Invalid Player Setup";
+			break;
+		}
+		default: {
+			break;
+		}
+		}
+
+		std::cerr << "CreateGame request returned an error code: " << errorCode << std::endl;
+		success = false;
+	}
+
+	if (response.has_error_details() && response.error_details().length() > 0) {
+		std::cerr << "CreateGame request returned error details: " << response.error_details() << std::endl;
+		success = false;
+	}
+	return success;
+
+}
+
+
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
+{
+	//    std::cout << "Sending Join game request" << std::endl;
+	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
+	//    Client->Send(Create_game_request.get());
+	ExitCase CurrentExitCase = ExitCase::InProgress;
+	std::cout << "Starting proxy" << std::endl;
+
+	clock_t LastRequest = clock();
+
+	while (CurrentExitCase == ExitCase::InProgress) {
+		SC2APIProtocol::Status CurrentStatus;
+		if (server->HasRequest()) {
+			const sc2::RequestData request = server->PeekRequest();
+			const SC2APIProtocol::Request::RequestCase IncomingRequestCase = request.second->request_case();
+			if ( IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kDebug
+				|| IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kCreateGame
+				)
+			{
+				// Drop these request types
+				continue;
+			}
+			else if (IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kQuit
+				|| IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kLeaveGame)
+			{
+				// Intercept leave game and quit requests, we want to keep game alive to save replays
+				CurrentExitCase = ExitCase::ClientRequestExit;
+				break;
+			}
+			server->SendRequest(client->connection_);
+
+			// Block for sc2's response then queue it.
+			SC2APIProtocol::Response* response = nullptr;
+			client->Receive(response, 100000);
+			server->QueueResponse(client->connection_, response);
+
+			// Send the response back to the client.
+			server->SendResponse();
+			if (response != nullptr)
+			{
+				CurrentStatus = response->status();
+				if (CurrentStatus > SC2APIProtocol::Status::in_replay)
+				{
+					CurrentExitCase = ExitCase::GameEnd;
+				}
+				if (response->response_case() == SC2APIProtocol::Response::ResponseCase::kObservation)
+				{
+				}
+			}
+			LastRequest = clock();
+
+		}
+		else
+		{
+			if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
+			{
+				std::cout << "Client timeout" << std::endl;
+				CurrentExitCase = ExitCase::ClientTimeout;
+			}
+		}
+	}
+	return CurrentExitCase;
+}
+
 
 void StartBotProcess(std::string CommandLine)
 {
@@ -43,7 +174,7 @@ void StartBotProcess(std::string CommandLine)
 	// Create the process
 	BOOL result = CreateProcess(NULL, cmdLine,
 		NULL, NULL, FALSE,
-		NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW,
+		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
 		NULL, NULL, &startupInfo, &processInformation);
 
 
@@ -86,7 +217,7 @@ void StartBotProcess(std::string CommandLine)
 	}
 }
 
-std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort, std::string PipeName)
+std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort)
 {
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
@@ -103,150 +234,180 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 
 		}
 	}
-	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --PipeName " + PipeName;
+	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 ";
 	return OutCmdLine;
 
 }
 
-GameState LadderManager::RequestGameState(HANDLE hPipe)
-{
-	char buffer[1024];
-	DWORD dwRead;
-	const char *request = "GAMESTATE\0";
 
-	DWORD numWritten;
-	WriteFile(hPipe, request, strlen(request), &numWritten, NULL);
-	ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL);
-	/* add terminating zero */
-	buffer[dwRead] = '\0';
-	/* do something with data in buffer */
-	std::cout << "recieved " << buffer << std::endl;
-	rapidjson::Document doc;
-	bool parsingFailed = doc.Parse(buffer).HasParseError();
-	GameState CurrentGameState;
-	if (parsingFailed)
-	{
-		std::cerr << "Unable to parse game state information" << std::endl;
-		return CurrentGameState;
-	}
-	if (doc.HasMember("InGame"))
-	{
-		if (strncmp(doc["InGame"].GetString(), "true", 4) == 0)
-		{
-			CurrentGameState.IsInGame = true;
-		}
-		else
-		{
-			CurrentGameState.IsInGame = false;
-		}
+void ResolveMap(const std::string& map_name, SC2APIProtocol::RequestCreateGame* request, sc2::ProcessSettings process_settings) {
+	// BattleNet map
+	if (!sc2::HasExtension(map_name, ".SC2Map")) {
+		request->set_battlenet_map_name(map_name);
+		return;
 	}
 
-	if (doc.HasMember("GameLoop"))
-	{
-		CurrentGameState.GameLoop = doc["GameLoop"].GetInt();
+	// Absolute path
+	SC2APIProtocol::LocalMap* local_map = request->mutable_local_map();
+	if (sc2::DoesFileExist(map_name)) {
+		local_map->set_map_path(map_name);
+		return;
 	}
-	if (doc.HasMember("CurrentScore") )
-	{
-		CurrentGameState.Score = doc["CurrentScore"].GetDouble();
-	}
-	return CurrentGameState;
 
+	// Relative path - Game maps directory
+	std::string game_relative = sc2::GetGameMapsDirectory(process_settings.process_path) + map_name;
+	if (sc2::DoesFileExist(game_relative)) {
+		local_map->set_map_path(map_name);
+		return;
+	}
+
+	// Relative path - Library maps directory
+	std::string library_relative = sc2::GetLibraryMapsDirectory() + map_name;
+	if (sc2::DoesFileExist(library_relative)) {
+		local_map->set_map_path(library_relative);
+		return;
+	}
+
+	// Relative path - Remotely saved maps directory
+	local_map->set_map_path(map_name);
 }
 
-void LadderManager::RequestExitGame(HANDLE hPipe)
+sc2::GameRequestPtr CreateStartGameRequest(std::string MapName, std::vector<sc2::PlayerSetup> players, sc2::ProcessSettings process_settings)
 {
-	char buffer[1024];
-	DWORD dwRead;
-	const char *request = "ENDGAME\0"; 
-	DWORD numWritten;
-	WriteFile(hPipe, request, strlen(request), &numWritten, NULL);
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
 
+	SC2APIProtocol::RequestCreateGame* request_create_game = request->mutable_create_game();
+	for (const sc2::PlayerSetup& setup : players)
+	{
+		SC2APIProtocol::PlayerSetup* playerSetup = request_create_game->add_player_setup();
+		playerSetup->set_type(SC2APIProtocol::PlayerType(setup.type));
+		playerSetup->set_race(SC2APIProtocol::Race(int(setup.race) + 1));
+		playerSetup->set_difficulty(SC2APIProtocol::Difficulty(setup.difficulty));
+	}
+	ResolveMap(MapName, request_create_game, process_settings);
+
+	request_create_game->set_realtime(false);
+	return request;
 }
-
-HANDLE LadderManager::SetupNamedPipe(std::string PipeName)
+sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 {
-	HANDLE hPipe;
-	std::string ConvertedPipeName = "\\\\.\\pipe\\" + PipeName;
-	hPipe = CreateNamedPipe(TEXT(ConvertedPipeName.c_str()),
-		PIPE_ACCESS_DUPLEX | PIPE_TYPE_BYTE | PIPE_READMODE_BYTE,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
-		PIPE_WAIT,
-		1,
-		1024 * 16,
-		1024 * 16,
-		NMPWAIT_USE_DEFAULT_WAIT,
-		NULL);
-//	ConnectNamedPipe(hPipe, NULL);
-	std::cout << "Pipe " + PipeName + " Connected" << std::endl;
-	return hPipe;
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+	request->mutable_leave_game();
 
+	return request;
 }
 
 ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
 {
 
-
-	// Add the custom bot, it will control the players.
-	sc2::Agent bot1;
-	sc2::Agent bot2;
-	StartCoordinator();
-	coordinator->SetParticipants({
-		CreateParticipant(Agent1.Race, &bot1),
-		CreateParticipant(Agent2.Race, &bot2),
-	});
-
-	// Start the game.
-	coordinator->LaunchStarcraft();
-
-	// Step forward the game simulation.
-	bool do_break = false;
-
-	coordinator->StartGameCoordinator(Map);
-
-	const sc2::ProcessInfo ps1 = bot1.Control()->GetProcessInfo();
-	const sc2::ProcessInfo ps2 = bot2.Control()->GetProcessInfo();
-
-	std::string Agent1Path = GetBotCommandLine(Agent1, ps1.port, ps2.port, "bot1Pipe");
-	std::string Agent2Path = GetBotCommandLine(Agent1, ps1.port, ps2.port, "bot2Pipe");
+	using namespace std::chrono_literals;
+	// Setup server that mimicks sc2.
+	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START);
+	std::string Agent2Path = GetBotCommandLine(Agent2, 5678, PORT_START);
 	if (Agent1Path == "" || Agent2Path == "")
 	{
-		return InitializationError;
+		return ResultType::InitializationError;
 	}
-	bool TimeoutResult = false;
-//	std::thread bot1Thread(StartBotProcess, Agent1Path);
-//	std::thread bot2Thread(StartBotProcess, Agent2Path);
-	HANDLE bot1Pipe = SetupNamedPipe("bot1Pipe");
-	HANDLE bot2Pipe = SetupNamedPipe("bot2Pipe");
-	Sleep(30000);
-	int CurrentBotRequest = 0;
-	bool AllBotsExited = false;
-	while (!AllBotsExited)
+
+	sc2::Server server;
+	sc2::Server server2;
+	server.Listen("5677", "100000", "100000", "5");
+	server2.Listen("5678", "100000", "100000", "5");
+
+	// Find game executable and run it.
+	sc2::ProcessSettings process_settings;
+	sc2::GameSettings game_settings;
+	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+	sc2::StartProcess(process_settings.process_path,
+	{ "-listen", "127.0.0.1",
+		"-port", "5679",
+		"-displayMode", "0",
+		"-dataVersion", process_settings.data_version }
+	);
+
+	sc2::StartProcess(process_settings.process_path,
+	{ "-listen", "127.0.0.1",
+		"-port", "5680",
+		"-displayMode", "0",
+		"-dataVersion", process_settings.data_version }
+	);
+	sc2::SleepFor(10000);
+
+	// Connect to running sc2 process.
+	sc2::Connection client;
+	client.Connect("127.0.0.1", 5679);
+	sc2::Connection client2;
+	client2.Connect("127.0.0.1", 5680);
+	std::vector<sc2::PlayerSetup> Players;
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
+	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest("Odyssey LE", Players, process_settings);
+	client.Send(Create_game_request.get());
+	SC2APIProtocol::Response* create_response = nullptr;
+	if (client.Receive(create_response, 100000))
 	{
-		GameState Bot1GameState = RequestGameState(bot1Pipe);
-		GameState Bot2GameState = RequestGameState(bot2Pipe);
-		if (Bot1GameState.IsInGame == false && Bot2GameState.IsInGame == false)
+		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
+		ProcessResponse(create_response->create_game());
+	}
+	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
+	auto bot2ProgramThread = std::thread(StartBotProcess, Agent2Path);
+
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2);
+	ResultType CurrentResult = ResultType::InitializationError;
+	bool GameRunning = true;
+	Sleep(10000);
+//	bot1ProgramThread.join();
+//	bot2ProgramThread.join();
+	
+	while (GameRunning)
+	{
+
+		auto update1status = bot2UpdateThread.wait_for(1s);
+		auto update2status = bot2UpdateThread.wait_for(0ms);
+		if (update1status == std::future_status::ready)
 		{
-			AllBotsExited = true;
+			ExitCase BotExitCase = bot1UpdateThread.get();
+			if (BotExitCase == ExitCase::ClientRequestExit || BotExitCase == ExitCase::ClientTimeout)
+			{
+				CurrentResult = ResultType::Player1Crash;
+			}
+			else
+			{
+				CurrentResult = ResultType::ProcessingReplay;
+			}
+			GameRunning = false;
+			break;
 		}
-		if (Bot1GameState.GameLoop > MaxGameTime && Bot2GameState.GameLoop > MaxGameTime)
+		if(update2status == std::future_status::ready)
 		{
-			RequestExitGame(bot1Pipe);
-			RequestExitGame(bot2Pipe);
+			ExitCase BotExitCase = bot1UpdateThread.get();
+			if (BotExitCase == ExitCase::ClientRequestExit || BotExitCase == ExitCase::ClientTimeout)
+			{
+				CurrentResult = ResultType::Player2Crash;
+			}
+			else
+			{
+				CurrentResult = ResultType::ProcessingReplay;
+			}
+			GameRunning = false;
+			break;
 		}
-		Sleep(10000);
 
 	}
+	
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
 	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".Sc2Replay";
-	bot1.Control()->SaveReplay(ReplayFile);
-	coordinator->WaitForAllResponses();
-	coordinator->LeaveGame();
-	coordinator->WaitForAllResponses();
+	client.Send(CreateLeaveGameRequest().get());
+	bool TimeoutResult = false;
 	if (TimeoutResult)
 	{
-		return Timeout;
+		return ResultType::Timeout;
 	}
-	return ProcessingReplay;
+	return ResultType::ProcessingReplay;
 }
 
 
