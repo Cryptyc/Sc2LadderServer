@@ -13,6 +13,7 @@
 #include "sc2api/sc2_connection.h"
 #include "sc2api/sc2_args.h"
 #include "sc2api/sc2_client.h"
+#include "sc2api/sc2_proto_to_pods.h"
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -34,13 +35,6 @@
 
 const static char *ConfigFile = "LadderManager.conf";
 
-enum ExitCase
-{
-	InProgress,
-	GameEnd,
-	ClientRequestExit,
-	ClientTimeout
-};
 
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 {
@@ -94,7 +88,7 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 }
 
 
-ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, std::vector<sc2::PlayerResult> *PlayerResults)
 {
 	//    std::cout << "Sending Join game request" << std::endl;
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
@@ -103,21 +97,16 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 	std::cout << "Starting proxy" << std::endl;
 
 	clock_t LastRequest = clock();
-
 	while (CurrentExitCase == ExitCase::InProgress) {
 		SC2APIProtocol::Status CurrentStatus;
 		if (server->HasRequest()) {
 			const sc2::RequestData request = server->PeekRequest();
-			const SC2APIProtocol::Request::RequestCase IncomingRequestCase = request.second->request_case();
-			if ( IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kDebug
-				|| IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kCreateGame
-				)
+			if(request.second->has_debug() || request.second->has_create_game())
 			{
 				// Drop these request types
 				continue;
 			}
-			else if (IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kQuit
-				|| IncomingRequestCase == SC2APIProtocol::Request::RequestCase::kLeaveGame)
+			else if(request.second->has_leave_game() || request.second->has_quit())
 			{
 				// Intercept leave game and quit requests, we want to keep game alive to save replays
 				CurrentExitCase = ExitCase::ClientRequestExit;
@@ -128,10 +117,6 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 			// Block for sc2's response then queue it.
 			SC2APIProtocol::Response* response = nullptr;
 			client->Receive(response, 100000);
-			server->QueueResponse(client->connection_, response);
-
-			// Send the response back to the client.
-			server->SendResponse();
 			if (response != nullptr)
 			{
 				CurrentStatus = response->status();
@@ -139,10 +124,25 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 				{
 					CurrentExitCase = ExitCase::GameEnd;
 				}
-				if (response->response_case() == SC2APIProtocol::Response::ResponseCase::kObservation)
+				if (response->has_observation())
 				{
+					const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
+					const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
+					uint32_t currentGameLoop = ActualObservation.game_loop();
+					if (currentGameLoop > MAX_GAME_TIME)
+					{
+						CurrentExitCase = ExitCase::GameTimeout;
+					}
+
+
 				}
+
 			}
+
+			server->QueueResponse(client->connection_, response);
+
+			// Send the response back to the client.
+			server->SendResponse();
 			LastRequest = clock();
 
 		}
@@ -154,6 +154,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 				CurrentExitCase = ExitCase::ClientTimeout;
 			}
 		}
+
 	}
 	return CurrentExitCase;
 }
@@ -168,7 +169,6 @@ void StartBotProcess(std::string CommandLine)
 	STARTUPINFO startupInfo = { 0 };
 	DWORD exitCode;
 	startupInfo.cb = sizeof(startupInfo);
-	int nStrBuffer = CommandLine.length() + 50;
 	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
 
 	// Create the process
@@ -215,6 +215,19 @@ void StartBotProcess(std::string CommandLine)
 
 		// We succeeded.
 	}
+}
+
+bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult> *PlayerResults)
+{
+	if (Response.player_result_size())
+	{
+		PlayerResults->clear();
+		for (const auto& player_result : Response.player_result()) {
+			PlayerResults->push_back(sc2::PlayerResult(player_result.player_id(), sc2::ConvertGameResultFromProto(player_result.result())));
+		}
+		return true;
+	}
+	return false;
 }
 
 std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort)
@@ -299,6 +312,69 @@ sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 	return request;
 }
 
+sc2::GameRequestPtr LadderManager::CreateQuitRequest()
+{
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+	request->mutable_quit();
+
+	return request;
+}
+
+
+ResultType LadderManager::GetPlayerResults(sc2::Connection *client)
+{
+	if (client == nullptr)
+	{
+		return ResultType::ProcessingReplay;
+	}
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr ObservationRequest = proto.MakeRequest();
+	ObservationRequest->mutable_observation();
+	client->Send(ObservationRequest.get());
+	SC2APIProtocol::Response* ObservationResponse = nullptr;
+	std::vector<sc2::PlayerResult> PlayerResults;
+	if (client->Receive(ObservationResponse, 100000))
+	{
+		ProcessObservationResponse(ObservationResponse->observation(), &PlayerResults);
+	}
+	if (PlayerResults.size() > 1)
+	{
+		if (PlayerResults.back().result == sc2::GameResult::Undecided)
+		{
+			return ResultType::ProcessingReplay;
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Tie)
+		{
+			return ResultType::Tie;
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Win)
+		{
+			if (PlayerResults.back().player_id == 1)
+			{
+				return ResultType::Player1Win;
+			}
+			else
+			{
+				return ResultType::Player2Win;
+			}
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Loss)
+		{
+			if (PlayerResults.back().player_id == 1)
+			{
+				return ResultType::Player2Win;
+			}
+			else
+			{
+				return ResultType::Player1Win;
+			}
+
+		}
+	}
+	return ResultType::ProcessingReplay;
+}
+
 ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
 {
 
@@ -340,6 +416,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	client.Connect("127.0.0.1", 5679);
 	sc2::Connection client2;
 	client2.Connect("127.0.0.1", 5680);
+
+
 	std::vector<sc2::PlayerSetup> Players;
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
@@ -353,15 +431,16 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
 	auto bot2ProgramThread = std::thread(StartBotProcess, Agent2Path);
+	std::vector<sc2::PlayerResult> Player1Results;
+	std::vector<sc2::PlayerResult> Player2Results;
 
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server);
-	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2);
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Player1Results);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Player2Results);
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
+	sc2::ProtoInterface proto_1;
+
 	Sleep(10000);
-//	bot1ProgramThread.join();
-//	bot2ProgramThread.join();
-	
 	while (GameRunning)
 	{
 
@@ -370,44 +449,65 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		if (update1status == std::future_status::ready)
 		{
 			ExitCase BotExitCase = bot1UpdateThread.get();
-			if (BotExitCase == ExitCase::ClientRequestExit || BotExitCase == ExitCase::ClientTimeout)
+			if (BotExitCase == ExitCase::ClientRequestExit)
+			{
+				// If Player 1 has requested exit, he has surrendered, and player 2 is awarded the win
+				CurrentResult = ResultType::Player2Win;
+			}
+			else if( BotExitCase == ExitCase::ClientTimeout)
 			{
 				CurrentResult = ResultType::Player1Crash;
 			}
-			else
+			else if (BotExitCase == ExitCase::GameTimeout)
+			{
+				CurrentResult = ResultType::Timeout;
+			}
+			else 
 			{
 				CurrentResult = ResultType::ProcessingReplay;
 			}
+
 			GameRunning = false;
 			break;
 		}
 		if(update2status == std::future_status::ready)
 		{
 			ExitCase BotExitCase = bot1UpdateThread.get();
-			if (BotExitCase == ExitCase::ClientRequestExit || BotExitCase == ExitCase::ClientTimeout)
+			if (BotExitCase == ExitCase::ClientRequestExit)
+			{
+				// If Player 2 has requested exit, he has surrendered, and player 1 is awarded the win
+				CurrentResult = ResultType::Player1Win;
+			}
+			else if (BotExitCase == ExitCase::ClientTimeout)
 			{
 				CurrentResult = ResultType::Player2Crash;
+			}
+			else if (BotExitCase == ExitCase::GameTimeout)
+			{
+				CurrentResult = ResultType::Timeout;
 			}
 			else
 			{
 				CurrentResult = ResultType::ProcessingReplay;
 			}
+
 			GameRunning = false;
 			break;
 		}
-
 	}
-	
-	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	if (CurrentResult == ResultType::ProcessingReplay)
+	{
+		CurrentResult = GetPlayerResults(&client);
+	}
 
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".Sc2Replay";
 	client.Send(CreateLeaveGameRequest().get());
-	bool TimeoutResult = false;
-	if (TimeoutResult)
-	{
-		return ResultType::Timeout;
-	}
-	return ResultType::ProcessingReplay;
+	client2.Send(CreateLeaveGameRequest().get());
+
+	bot2ProgramThread.join();
+	bot1ProgramThread.join();
+	return CurrentResult;
 }
 
 
@@ -510,7 +610,7 @@ void LadderManager::GetMapList()
 }
 
 
-void LadderManager::UploadMime(int result, Matchup ThisMatch)
+void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 {
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
@@ -555,8 +655,8 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		curl_mime_name(field, "Map");
 		curl_mime_data(field, ThisMatch.Map.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Winner");
-		curl_mime_data(field, std::to_string(result).c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Result");
+		curl_mime_data(field, GetResultType(result).c_str(), CURL_ZERO_TERMINATED);
 		/* initialize custom header list (stating that Expect: 100-continue is not
 		wanted */
 		headerlist = curl_slist_append(headerlist, buf);
@@ -607,8 +707,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			std::cout << "Starting " << NextMatch.Agent1.Name << " vs " << NextMatch.Agent2.Name << " on " << NextMatch.Map << " \n";
-			int result = 1;
-			StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			ResultType result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}

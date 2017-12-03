@@ -22,7 +22,18 @@ enum ResultType
     Player1Win,
     Player1Crash,
     Player2Win,
-    Player2Crash
+    Player2Crash,
+	Tie,
+	Error
+};
+
+enum ExitCase
+{
+	InProgress,
+	GameEnd,
+	ClientRequestExit,
+	ClientTimeout,
+	GameTimeout
 };
 
 typedef struct SGameState
@@ -134,4 +145,37 @@ static BotType GetTypeFromString(const std::string &TypeIn)
         return BotType::CommandCenter;
     }
     return BotType::CommandCenter;
+}
+
+static std::string GetResultType(ResultType InResultType)
+{
+	switch (InResultType)
+	{
+	case InitializationError:
+		return "InitializationError";
+		
+	case Timeout :
+		return "Timeout";
+
+	case ProcessingReplay :
+		return "ProcessingReplay";
+
+	case Player1Win :
+		return "Player1Win";
+
+	case Player1Crash :
+		return "Player1Crash";
+
+	case Player2Win :
+		return "Player2Win";
+
+	case Player2Crash :
+		return "Player2Crash";
+
+	case Tie :
+		return "Tie";
+
+	default:
+		return "Error";
+	}
 }

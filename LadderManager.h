@@ -13,11 +13,13 @@ public:
 private:
     std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort);
 	sc2::GameRequestPtr CreateLeaveGameRequest();
+	sc2::GameRequestPtr CreateQuitRequest();
+	ResultType GetPlayerResults(sc2::Connection * client);
 	ResultType StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
     void StartCoordinator();
     void LoadAgents();
     void GetMapList();
-    void UploadMime(int result, Matchup ThisMatch);
+    void UploadMime(ResultType result, Matchup ThisMatch);
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
 
