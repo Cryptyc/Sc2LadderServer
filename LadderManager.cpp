@@ -526,6 +526,7 @@ bool LadderManager::LoadSetup()
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{
+		std::cout << "No valid config found at " << ConfigFile << std::endl;
 		return false;
 	}
 
@@ -692,6 +693,11 @@ void LadderManager::RunLadderManager()
 
 	GetMapList();
 	LoadAgents();
+  std::cout << "Starting with " << MapList.size() << " maps:\r\n";
+	for (auto &map : MapList)
+	{
+		std::cout << "* " << map + "\r\n";
+	}
 	std::cout << "Starting with agents: \r\n";
 	for (auto &Agent : BotConfigs)
 	{
@@ -749,6 +755,7 @@ void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::strin
 
 int main(int argc, char** argv)
 {
+	std::cout << "LadderManager started." << std::endl;
 
 	LadderMan = new LadderManager(argc, argv);
 	if (LadderMan->LoadSetup())
@@ -756,4 +763,5 @@ int main(int argc, char** argv)
 		LadderMan->RunLadderManager();
 	}
 
+	std::cout << "Finished." << std::endl;
 }
