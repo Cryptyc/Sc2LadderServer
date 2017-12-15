@@ -1,6 +1,9 @@
 # Sc2LadderServer
 A ladder server for SC2 API.
 
+New proxy interface is now implemented, the DLL instructions are out of date. I will update the instructions within a few days
+
+-------
 Currently very early WIP.  Will pull in DLL files from a directory.  DLL libraries should have the following functions exported:
 
     void *CreateNewAgent();  // Returns a pointer to a class deriving from sc2::Agent
