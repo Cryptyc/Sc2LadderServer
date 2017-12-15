@@ -24,14 +24,6 @@
     <ClCompile Include="MatchupList.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="curl\include\curl\curl.h" />
-    <ClInclude Include="curl\include\curl\curlver.h" />
-    <ClInclude Include="curl\include\curl\easy.h" />
-    <ClInclude Include="curl\include\curl\mprintf.h" />
-    <ClInclude Include="curl\include\curl\multi.h" />
-    <ClInclude Include="curl\include\curl\stdcheaders.h" />
-    <ClInclude Include="curl\include\curl\system.h" />
-    <ClInclude Include="curl\include\curl\typecheck-gcc.h" />
     <ClInclude Include="LadderConfig.h" />
     <ClInclude Include="LadderManager.h" />
     <ClInclude Include="MatchupList.h" />
@@ -112,22 +104,26 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>curl\include;..\build\generated;..\src;..\contrib\SDL-mirror\include;..\src;..\contrib\civetweb\include;..\include;..\contrib\protobuf\src;..\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>curl\include;..\s2client-api\build\generated;..\s2client-api\src;..\s2client-api\contrib\SDL-mirror\include;..\s2client-api\src;..\s2client-api\contrib\civetweb\include;..\s2client-api\include;..\s2client-api\contrib\protobuf\src;..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_SCL_SECURE_NO_WARNINGS;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>..\s2client-api\build\bin\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;sc2apid.lib;sc2libd.lib;sc2utilsd.lib;sc2rendererd.lib;sc2protocold.lib;libprotobufd.lib;civetweb.lib;winmm.lib;imm32.lib;version.lib;dinput8.lib</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\s2client-api\LadderManager\curl\include;..\..\s2client-api\build\generated;..\..\s2client-api\src\..\contrib\SDL-mirror\include;..\..\s2client-api\src\..\contrib\civetweb\include;..\..\s2client-api\src\..\include;..\..\s2client-api\contrib\protobuf\src;..\..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>curl\include;..\s2client-api\build\generated;..\s2client-api\src\..\contrib\SDL-mirror\include;..\s2client-api\src\..\contrib\civetweb\include;..\s2client-api\src\..\include;..\s2client-api\contrib\protobuf\src;..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>CURL_STATICLIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\s2client-api\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>libcurl_debug.lib;sc2apid.lib;sc2libd.lib;sc2utilsd.lib;sc2protocold.lib;libprotobufd.lib;civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -143,7 +139,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\build\bin\sc2api.lib;..\build\bin\sc2lib.lib;..\build\bin\sc2utils.lib;..\build\bin\sc2protocol.lib;..\build\bin\libprotobuf.lib;..\build\bin\civetweb.lib;curl\lib\libcurl.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>sc2api.lib;sc2lib.lib;sc2utils.libsc2protocol.lib;libprotobuf.lib;civetweb.lib;curl\lib\libcurl.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

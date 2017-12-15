@@ -4,14 +4,30 @@
 #include "sc2api/sc2_score.h"
 #include "sc2api/sc2_map_info.h"
 #include "sc2utils/sc2_manage_process.h"
+#include "sc2api/sc2_game_settings.h"
+#include "sc2api/sc2_proto_interface.h"
+#include "sc2api/sc2_interfaces.h"
+#include "sc2api/sc2_proto_to_pods.h"
+#include "s2clientprotocol/sc2api.pb.h"
+#include "sc2api/sc2_server.h"
+#include "sc2api/sc2_connection.h"
+#include "sc2api/sc2_args.h"
+#include "sc2api/sc2_client.h"
+#include "sc2api/sc2_proto_to_pods.h"
+
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/document.h"
 #include <fstream>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <Windows.h>
+#include <future>
+#include <chrono>
 #include <curl\curl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sstream>   
 #include "types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
@@ -19,111 +35,481 @@
 
 const static char *ConfigFile = "LadderManager.conf";
 
-void LadderManager::StartAsyncGame()
+
+bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 {
-	sc2::Agent *Agent1 = new sc2::Agent();
-	sc2::Agent *Agent2 = new sc2::Agent();
-	StartCoordinator();
-	coordinator->SetParticipants({
-		CreateParticipant(sc2::Race::Random, Agent1),
-		CreateParticipant(sc2::Race::Random, Agent2),
-	});
-	int64_t EndGameTime = 0;
-	if (MaxGameTime > 0)
-	{
-		EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
-	}
-	while (!coordinator->AllGamesEnded()) {
-		clock_t LocalClock = clock();
-		if (LocalClock > EndGameTime)
-		{
+	bool success = true;
+	if (response.has_error()) {
+		std::string errorCode = "Unknown";
+		switch (response.error()) {
+		case SC2APIProtocol::ResponseCreateGame::MissingMap: {
+			errorCode = "Missing Map";
 			break;
 		}
-		Sleep(5);
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapPath: {
+			errorCode = "Invalid Map Path";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapData: {
+			errorCode = "Invalid Map Data";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapName: {
+			errorCode = "Invalid Map Name";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidMapHandle: {
+			errorCode = "Invalid Map Handle";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::MissingPlayerSetup: {
+			errorCode = "Missing Player Setup";
+			break;
+		}
+		case SC2APIProtocol::ResponseCreateGame::InvalidPlayerSetup: {
+			errorCode = "Invalid Player Setup";
+			break;
+		}
+		default: {
+			break;
+		}
+		}
+
+		std::cerr << "CreateGame request returned an error code: " << errorCode << std::endl;
+		success = false;
 	}
+
+	if (response.has_error_details() && response.error_details().length() > 0) {
+		std::cerr << "CreateGame request returned error details: " << response.error_details() << std::endl;
+		success = false;
+	}
+	return success;
+
 }
 
-//*************************************************************************************************
-int LadderManager::StartGame(AgentInfo Agent1, AgentInfo Agent2, std::string Map) {
 
-	// Add the custom bot, it will control the players.
-	sc2::Agent *Sc2Agent1;
-	sc2::Agent *Sc2Agent2;
-	if (Agent1.DllFile.find("ccbot") != std::string::npos)
-	{
-		Sc2Agent1 = (sc2::Agent *)CCGetAgent(Agent1.DllFile.c_str());
-	}
-	else
-	{
-		Sc2Agent1 = (sc2::Agent *)Agent1.AgentFunction();
-	}
-	if (Agent2.DllFile.find("ccbot") != std::string::npos)
-	{
-		Sc2Agent2 = (sc2::Agent *)CCGetAgent(Agent2.DllFile.c_str());
-	}
-	else
-	{
-		Sc2Agent2 = (sc2::Agent *)Agent2.AgentFunction();
-	}
-	StartCoordinator();
-	coordinator->SetParticipants({
-		CreateParticipant(Agent1.AgentRace, Sc2Agent1),
-		CreateParticipant(Agent2.AgentRace, Sc2Agent2),
-	});
-	// Start the game.
-	std::cout << "Launching SC2 (two times)\r\n";
-	coordinator->LaunchStarcraft();
-	std::cout << "Launch complete, running simulation..\r\n";
-	// Step forward the game simulation.
-	bool do_break = false;
-	float Agent1Army = 0.0f;
-	float Agent2Army = 0.0f;
-	try
-	{
-		coordinator->StartGame(Map);
-		int64_t EndGameTime = 0;
-		if (MaxGameTime > 0)
-		{
-			EndGameTime = clock() + (MaxGameTime * CLOCKS_PER_SEC);
-		}
-		while (coordinator->Update() && !coordinator->AllGamesEnded()) {
-			if (Sc2Agent1->Observation() != nullptr && Sc2Agent2->Observation() != nullptr)
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, std::vector<sc2::PlayerResult> *PlayerResults)
+{
+	//    std::cout << "Sending Join game request" << std::endl;
+	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
+	//    Client->Send(Create_game_request.get());
+	ExitCase CurrentExitCase = ExitCase::InProgress;
+	std::cout << "Starting proxy" << std::endl;
+
+	clock_t LastRequest = clock();
+	while (CurrentExitCase == ExitCase::InProgress) {
+		SC2APIProtocol::Status CurrentStatus;
+		if (server->HasRequest()) {
+			const sc2::RequestData request = server->PeekRequest();
+			if(request.second->has_debug() || request.second->has_create_game())
 			{
-				Agent1Army = Sc2Agent1->Observation()->GetScore().score;
-				Agent2Army = Sc2Agent2->Observation()->GetScore().score;
+				// Drop these request types
+				continue;
 			}
-			if(Sc2Agent1->Observation()->GetGameLoop() > MAX_GAME_TIME)
+			else if(request.second->has_leave_game() || request.second->has_quit())
 			{
+				// Intercept leave game and quit requests, we want to keep game alive to save replays
+				CurrentExitCase = ExitCase::ClientRequestExit;
 				break;
 			}
+			server->SendRequest(client->connection_);
+
+			// Block for sc2's response then queue it.
+			SC2APIProtocol::Response* response = nullptr;
+			client->Receive(response, 100000);
+			if (response != nullptr)
+			{
+				CurrentStatus = response->status();
+				if (CurrentStatus > SC2APIProtocol::Status::in_replay)
+				{
+					CurrentExitCase = ExitCase::GameEnd;
+				}
+				if (response->has_observation())
+				{
+					const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
+					const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
+					uint32_t currentGameLoop = ActualObservation.game_loop();
+					if (currentGameLoop > MAX_GAME_TIME)
+					{
+						CurrentExitCase = ExitCase::GameTimeout;
+					}
+
+
+				}
+
+			}
+
+			server->QueueResponse(client->connection_, response);
+
+			// Send the response back to the client.
+			server->SendResponse();
+			LastRequest = clock();
+
 		}
-	}
-	catch (...)
-	{
-		std::cout << "Crash in agent detected";
-		SaveError(Agent1.AgentName, Agent2.AgentName, Map);
+		else
+		{
+			if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
+			{
+				std::cout << "Client timeout" << std::endl;
+				CurrentExitCase = ExitCase::ClientTimeout;
+			}
+		}
 
 	}
-	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	return CurrentExitCase;
+}
 
-	std::string ReplayFile = ReplayDir + Agent1.AgentName + "v" + Agent2.AgentName + "-" + Map + ".Sc2Replay";
-	Sc2Agent1->Control()->SaveReplay(ReplayFile);
-	coordinator->WaitForAllResponses();
-	int32_t result = 0;
-	if (Agent1Army > Agent2Army)
+
+void StartBotProcess(std::string CommandLine)
+{
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+	// Executes the given command using CreateProcess() and WaitForSingleObject().
+	// Returns FALSE if the command could not be executed or if the exit code could not be determined.
+	PROCESS_INFORMATION processInformation = { 0 };
+	STARTUPINFO startupInfo = { 0 };
+	DWORD exitCode;
+	startupInfo.cb = sizeof(startupInfo);
+	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
+
+	// Create the process
+	BOOL result = CreateProcess(NULL, cmdLine,
+		NULL, NULL, FALSE,
+		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
+		NULL, NULL, &startupInfo, &processInformation);
+
+
+	if (!result)
 	{
-		result = 1;
+		// CreateProcess() failed
+		// Get the error from the system
+		LPVOID lpMsgBuf;
+		DWORD dw = GetLastError();
+		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
+
+
+		// Free resources created by the system
+		LocalFree(lpMsgBuf);
+
+		// We failed.
+		exitCode = -1;
 	}
 	else
 	{
-		result = 2;
+		// Successfully created the process.  Wait for it to finish.
+		WaitForSingleObject(processInformation.hProcess, INFINITE);
+
+		// Get the exit code.
+		result = GetExitCodeProcess(processInformation.hProcess, &exitCode);
+
+		// Close the handles.
+		CloseHandle(processInformation.hProcess);
+		CloseHandle(processInformation.hThread);
+
+		if (!result)
+		{
+			// Could not get exit code.
+			exitCode = -1;
+		}
+
+
+		// We succeeded.
 	}
-	coordinator->LeaveGame();
-	coordinator->WaitForAllResponses();
-	delete Sc2Agent1;
-	delete Sc2Agent2;
-	return result;
 }
+
+bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult> *PlayerResults)
+{
+	if (Response.player_result_size())
+	{
+		PlayerResults->clear();
+		for (const auto& player_result : Response.player_result()) {
+			PlayerResults->push_back(sc2::PlayerResult(player_result.player_id(), sc2::ConvertGameResultFromProto(player_result.result())));
+		}
+		return true;
+	}
+	return false;
+}
+
+std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort)
+{
+	std::string OutCmdLine;
+	switch (AgentConfig.Type)
+	{
+		case BinaryCpp:
+		{
+			OutCmdLine = AgentConfig.Path;
+			break;
+		}
+		case CommandCenter:
+		{
+			OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.Path;
+			break;
+
+		}
+	}
+	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 ";
+	return OutCmdLine;
+
+}
+
+
+void ResolveMap(const std::string& map_name, SC2APIProtocol::RequestCreateGame* request, sc2::ProcessSettings process_settings) {
+	// BattleNet map
+	if (!sc2::HasExtension(map_name, ".SC2Map")) {
+		request->set_battlenet_map_name(map_name);
+		return;
+	}
+
+	// Absolute path
+	SC2APIProtocol::LocalMap* local_map = request->mutable_local_map();
+	if (sc2::DoesFileExist(map_name)) {
+		local_map->set_map_path(map_name);
+		return;
+	}
+
+	// Relative path - Game maps directory
+	std::string game_relative = sc2::GetGameMapsDirectory(process_settings.process_path) + map_name;
+	if (sc2::DoesFileExist(game_relative)) {
+		local_map->set_map_path(map_name);
+		return;
+	}
+
+	// Relative path - Library maps directory
+	std::string library_relative = sc2::GetLibraryMapsDirectory() + map_name;
+	if (sc2::DoesFileExist(library_relative)) {
+		local_map->set_map_path(library_relative);
+		return;
+	}
+
+	// Relative path - Remotely saved maps directory
+	local_map->set_map_path(map_name);
+}
+
+sc2::GameRequestPtr CreateStartGameRequest(std::string MapName, std::vector<sc2::PlayerSetup> players, sc2::ProcessSettings process_settings)
+{
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+
+	SC2APIProtocol::RequestCreateGame* request_create_game = request->mutable_create_game();
+	for (const sc2::PlayerSetup& setup : players)
+	{
+		SC2APIProtocol::PlayerSetup* playerSetup = request_create_game->add_player_setup();
+		playerSetup->set_type(SC2APIProtocol::PlayerType(setup.type));
+		playerSetup->set_race(SC2APIProtocol::Race(int(setup.race) + 1));
+		playerSetup->set_difficulty(SC2APIProtocol::Difficulty(setup.difficulty));
+	}
+	ResolveMap(MapName, request_create_game, process_settings);
+
+	request_create_game->set_realtime(false);
+	return request;
+}
+sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
+{
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+	request->mutable_leave_game();
+
+	return request;
+}
+
+sc2::GameRequestPtr LadderManager::CreateQuitRequest()
+{
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+	request->mutable_quit();
+
+	return request;
+}
+
+
+ResultType LadderManager::GetPlayerResults(sc2::Connection *client)
+{
+	if (client == nullptr)
+	{
+		return ResultType::ProcessingReplay;
+	}
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr ObservationRequest = proto.MakeRequest();
+	ObservationRequest->mutable_observation();
+	client->Send(ObservationRequest.get());
+	SC2APIProtocol::Response* ObservationResponse = nullptr;
+	std::vector<sc2::PlayerResult> PlayerResults;
+	if (client->Receive(ObservationResponse, 100000))
+	{
+		ProcessObservationResponse(ObservationResponse->observation(), &PlayerResults);
+	}
+	if (PlayerResults.size() > 1)
+	{
+		if (PlayerResults.back().result == sc2::GameResult::Undecided)
+		{
+			return ResultType::ProcessingReplay;
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Tie)
+		{
+			return ResultType::Tie;
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Win)
+		{
+			if (PlayerResults.back().player_id == 1)
+			{
+				return ResultType::Player1Win;
+			}
+			else
+			{
+				return ResultType::Player2Win;
+			}
+		}
+		else if (PlayerResults.back().result == sc2::GameResult::Loss)
+		{
+			if (PlayerResults.back().player_id == 1)
+			{
+				return ResultType::Player2Win;
+			}
+			else
+			{
+				return ResultType::Player1Win;
+			}
+
+		}
+	}
+	return ResultType::ProcessingReplay;
+}
+
+ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
+{
+
+	using namespace std::chrono_literals;
+	// Setup server that mimicks sc2.
+	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START);
+	std::string Agent2Path = GetBotCommandLine(Agent2, 5678, PORT_START);
+	if (Agent1Path == "" || Agent2Path == "")
+	{
+		return ResultType::InitializationError;
+	}
+
+	sc2::Server server;
+	sc2::Server server2;
+	server.Listen("5677", "100000", "100000", "5");
+	server2.Listen("5678", "100000", "100000", "5");
+
+	// Find game executable and run it.
+	sc2::ProcessSettings process_settings;
+	sc2::GameSettings game_settings;
+	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+	sc2::StartProcess(process_settings.process_path,
+	{ "-listen", "127.0.0.1",
+		"-port", "5679",
+		"-displayMode", "0",
+		"-dataVersion", process_settings.data_version }
+	);
+
+	sc2::StartProcess(process_settings.process_path,
+	{ "-listen", "127.0.0.1",
+		"-port", "5680",
+		"-displayMode", "0",
+		"-dataVersion", process_settings.data_version }
+	);
+	sc2::SleepFor(10000);
+
+	// Connect to running sc2 process.
+	sc2::Connection client;
+	client.Connect("127.0.0.1", 5679);
+	sc2::Connection client2;
+	client2.Connect("127.0.0.1", 5680);
+
+
+	std::vector<sc2::PlayerSetup> Players;
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
+	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest("Odyssey LE", Players, process_settings);
+	client.Send(Create_game_request.get());
+	SC2APIProtocol::Response* create_response = nullptr;
+	if (client.Receive(create_response, 100000))
+	{
+		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
+		ProcessResponse(create_response->create_game());
+	}
+	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
+	auto bot2ProgramThread = std::thread(StartBotProcess, Agent2Path);
+	std::vector<sc2::PlayerResult> Player1Results;
+	std::vector<sc2::PlayerResult> Player2Results;
+
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Player1Results);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Player2Results);
+	ResultType CurrentResult = ResultType::InitializationError;
+	bool GameRunning = true;
+	sc2::ProtoInterface proto_1;
+
+	Sleep(10000);
+	while (GameRunning)
+	{
+
+		auto update1status = bot2UpdateThread.wait_for(1s);
+		auto update2status = bot2UpdateThread.wait_for(0ms);
+		if (update1status == std::future_status::ready)
+		{
+			ExitCase BotExitCase = bot1UpdateThread.get();
+			if (BotExitCase == ExitCase::ClientRequestExit)
+			{
+				// If Player 1 has requested exit, he has surrendered, and player 2 is awarded the win
+				CurrentResult = ResultType::Player2Win;
+			}
+			else if( BotExitCase == ExitCase::ClientTimeout)
+			{
+				CurrentResult = ResultType::Player1Crash;
+			}
+			else if (BotExitCase == ExitCase::GameTimeout)
+			{
+				CurrentResult = ResultType::Timeout;
+			}
+			else 
+			{
+				CurrentResult = ResultType::ProcessingReplay;
+			}
+
+			GameRunning = false;
+			break;
+		}
+		if(update2status == std::future_status::ready)
+		{
+			ExitCase BotExitCase = bot1UpdateThread.get();
+			if (BotExitCase == ExitCase::ClientRequestExit)
+			{
+				// If Player 2 has requested exit, he has surrendered, and player 1 is awarded the win
+				CurrentResult = ResultType::Player1Win;
+			}
+			else if (BotExitCase == ExitCase::ClientTimeout)
+			{
+				CurrentResult = ResultType::Player2Crash;
+			}
+			else if (BotExitCase == ExitCase::GameTimeout)
+			{
+				CurrentResult = ResultType::Timeout;
+			}
+			else
+			{
+				CurrentResult = ResultType::ProcessingReplay;
+			}
+
+			GameRunning = false;
+			break;
+		}
+	}
+	if (CurrentResult == ResultType::ProcessingReplay)
+	{
+		CurrentResult = GetPlayerResults(&client);
+	}
+
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".Sc2Replay";
+	client.Send(CreateLeaveGameRequest().get());
+	client2.Send(CreateLeaveGameRequest().get());
+
+	bot2ProgramThread.join();
+	bot1ProgramThread.join();
+	return CurrentResult;
+}
+
 
 LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 
@@ -143,20 +529,73 @@ bool LadderManager::LoadSetup()
 		std::cout << "No valid config found at " << ConfigFile << std::endl;
 		return false;
 	}
-	std::string CCDLLLoc = Config->GetValue("CommandCenterDirectory");
-	CCDLLLoc +=  "CommandCenter.dll";
-	HINSTANCE hGetProcIDDLL = LoadLibrary(CCDLLLoc.c_str());
-	if (hGetProcIDDLL) {
-		CCGetAgent = (CCGetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXPEBD@Z");
-		CCGetAgentName = (CCGetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDPEBD@Z");
-		CCGetAgentRace = (CCGetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHPEBD@Z");
-	}
+
 	std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
 	if (MaxGameTimeString.length() > 0)
 	{
 		MaxGameTime = std::stoi(MaxGameTimeString);
 	}
 	return true;
+}
+
+void LadderManager::LoadAgents()
+{
+	std::string BotConfigFile = Config->GetValue("BotConfigFile");
+	if (BotConfigFile.length() < 1)
+	{
+		return;
+	}
+	std::ifstream t(BotConfigFile);
+	std::stringstream buffer;
+	buffer << t.rdbuf();
+	std::string BotConfigString = buffer.str();
+	rapidjson::Document doc;
+	bool parsingFailed = doc.Parse(BotConfigString.c_str()).HasParseError();
+	if (parsingFailed)
+	{
+		std::cerr << "Unable to parse bot config file" << std::endl;
+		return;
+	}
+	if (doc.HasMember("Bots") && doc["Bots"].IsObject())
+	{
+		const rapidjson::Value & Bots = doc["Bots"];
+		for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
+		{
+			BotConfig NewBot;
+			NewBot.Name = itr->name.GetString();
+			const rapidjson::Value &    val = itr->value;
+
+			if (val.HasMember("Race") && val["Race"].IsString())
+			{
+				NewBot.Race = GetRaceFromString(val["Race"].GetString());
+			}
+			else
+			{
+				std::cerr << "Unable to parse race for bot " << NewBot.Name << std::endl;
+				continue;
+			}
+			if (val.HasMember("Type") && val["Type"].IsString())
+			{
+				NewBot.Type = GetTypeFromString(val["Type"].GetString());
+			}
+			else
+			{
+				std::cerr << "Unable to parse type for bot " << NewBot.Name << std::endl;
+				continue;
+			}
+			if (val.HasMember("Path") && val["Path"].IsString())
+			{
+				NewBot.Path = val["Path"].GetString();
+			}
+			else
+			{
+				std::cerr << "Unable to parse path for bot " << NewBot.Name << std::endl;
+				continue;
+			}
+			BotConfigs.insert(std::make_pair(std::string(NewBot.Name), NewBot));
+
+		}
+	}
 }
 
 void LadderManager::GetMapList()
@@ -172,11 +611,11 @@ void LadderManager::GetMapList()
 }
 
 
-void LadderManager::UploadMime(int result, Matchup ThisMatch)
+void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 {
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
-	std::string ReplayFile = ThisMatch.Agent1.AgentName + "v" + ThisMatch.Agent2.AgentName + "-" + ThisMatch.Map + ".Sc2Replay";
+	std::string ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + ThisMatch.Map + ".Sc2Replay";
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
 	CURLcode res;
@@ -203,22 +642,22 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 		/* Fill in the filename field */
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot1Name");
-		curl_mime_data(field, ThisMatch.Agent1.AgentName.c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, ThisMatch.Agent1.Name.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot1Race");
-		curl_mime_data(field, std::to_string((int)ThisMatch.Agent1.AgentRace).c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, std::to_string((int)ThisMatch.Agent1.Race).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot2Name");
-		curl_mime_data(field, ThisMatch.Agent2.AgentName.c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, ThisMatch.Agent2.Name.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot2Race");
-		curl_mime_data(field, std::to_string((int)ThisMatch.Agent2.AgentRace).c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, std::to_string((int)ThisMatch.Agent2.Race).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Map");
 		curl_mime_data(field, ThisMatch.Map.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
-		curl_mime_name(field, "Winner");
-		curl_mime_data(field, std::to_string(result).c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_name(field, "Result");
+		curl_mime_data(field, GetResultType(result).c_str(), CURL_ZERO_TERMINATED);
 		/* initialize custom header list (stating that Expect: 100-continue is not
 		wanted */
 		headerlist = curl_slist_append(headerlist, buf);
@@ -252,28 +691,29 @@ void LadderManager::UploadMime(int result, Matchup ThisMatch)
 void LadderManager::RunLadderManager()
 {
 
-	RefreshAgents();
-	std::cout << "Starting with " << MapList.size() << " maps:\r\n";
+	GetMapList();
+	LoadAgents();
+  std::cout << "Starting with " << MapList.size() << " maps:\r\n";
 	for (auto &map : MapList)
 	{
 		std::cout << "* " << map + "\r\n";
 	}
-	std::cout << "Starting with " << Agents.size() << " agents: \r\n";
-	for (auto &Agent : Agents)
+	std::cout << "Starting with agents: \r\n";
+	for (auto &Agent : BotConfigs)
 	{
-		std::cout << "* " << Agent.second.AgentName + "\r\n";
+		std::cout << Agent.second.Name + "\r\n";
 	}
 	std::string MatchListFile = Config->GetValue("MatchupListFile");
 	MatchupList *Matchups = new MatchupList(MatchListFile);
-	Matchups->GenerateMatches(Agents, MapList);
+	Matchups->GenerateMatches(BotConfigs, MapList);
 	Matchup NextMatch;
 	try
 	{
 
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
-			std::cout << "Starting " << NextMatch.Agent1.AgentName << " vs " << NextMatch.Agent2.AgentName << " on " << NextMatch.Map << " \n";
-			int result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			std::cout << "Starting " << NextMatch.Agent1.Name << " vs " << NextMatch.Agent2.Name << " on " << NextMatch.Map << " \n";
+			ResultType result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
@@ -281,33 +721,10 @@ void LadderManager::RunLadderManager()
 	catch (const std::exception& e)
 	{
 		std::cout << "Exception in game " << e.what() << " \r\n";
-		SaveError(NextMatch.Agent1.AgentName, NextMatch.Agent2.AgentName, NextMatch.Map);
+		SaveError(NextMatch.Agent1.Name, NextMatch.Agent2.Name, NextMatch.Map);
 	}
 }
 
-void LadderManager::LoadCCBots()
-{
-	if (CCGetAgent && CCGetAgentName && CCGetAgentRace) {
-		std::string CommandCenterDir = Config->GetValue("CommandCenterDirectory");
-		if (CommandCenterDir == "")
-		{
-			return;
-		}
-		std::string extension = "*.ccbot*";
-		std::vector<std::string> filesPaths;
-		getFilesList(CommandCenterDir, extension, filesPaths);
-		for (std::string path : filesPaths)
-		{
-			const char *AgentName = CCGetAgentName(path.c_str());
-			if (AgentName)
-			{
-				sc2::Race AgentRace = (sc2::Race)CCGetAgentRace(path.c_str());
-				AgentInfo NewAgentInfo(nullptr, AgentRace, std::string(AgentName), path);
-				Agents.insert(std::make_pair(std::string(AgentName), NewAgentInfo));
-			}
-		}	
-	}
-}
 void LadderManager::StartCoordinator()
 {
 	if (coordinator != nullptr)
@@ -318,59 +735,6 @@ void LadderManager::StartCoordinator()
 	}
 	coordinator = new sc2::Coordinator();
 	coordinator->LoadSettings(CoordinatorArgc, CoordinatorArgv);
-}
-
-void LadderManager::RefreshAgents()
-{
-	std::string inputFolderPath = Config->GetValue("DllDirectory");
-	std::cout << "Searching for DLL in " << inputFolderPath << " \n";
-	std::string extension = "*.dll*";
-	std::vector<std::string> filesPaths;
-	
-	GetMapList();
-
-	getFilesList(inputFolderPath, extension, filesPaths);
-	if (Agents.size())
-	{
-		Agents.clear();
-	}
-	std::cout << "Loading Bots\n";
-	for (std::string filePath : filesPaths)
-	{
-		std::cout << "Found " << filePath << " \n";
-		HINSTANCE hGetProcIDDLL = LoadLibrary(filePath.c_str());
-		if (hGetProcIDDLL) {
-			// resolve function address here
-			GetAgentFunction GetAgent = (GetAgentFunction)GetProcAddress(hGetProcIDDLL, "?CreateNewAgent@@YAPEAXXZ");
-			GetAgentNameFunction GetAgentName = (GetAgentNameFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentName@@YAPEBDXZ");
-			GetAgentRaceFunction GetAgentRace = (GetAgentRaceFunction)GetProcAddress(hGetProcIDDLL, "?GetAgentRace@@YAHXZ");
-			if (GetAgent && GetAgentName && GetAgentRace) {
-				std::cout << "DLL Valid \n";
-				const char *AgentName = GetAgentName();
-				if (AgentName)
-				{
-					sc2::Race AgentRace = (sc2::Race)GetAgentRace();
-					AgentInfo NewAgentInfo(GetAgent, AgentRace, std::string(AgentName), filePath);
-					Agents.insert(std::make_pair(std::string(AgentName), NewAgentInfo));
-				}
-			}
-		}
-	}
-	LoadCCBots();
-}
-
-void LadderManager::getFilesList(std::string filePath, std::string extension, std::vector<std::string> & returnFileName)
-{
-	WIN32_FIND_DATA fileInfo;
-	HANDLE hFind;
-	std::string  fullPath = filePath + extension;
-	hFind = FindFirstFile(fullPath.c_str(), &fileInfo);
-	if (hFind != INVALID_HANDLE_VALUE) {
-		returnFileName.push_back(filePath + fileInfo.cFileName);
-		while (FindNextFile(hFind, &fileInfo) != 0) {
-			returnFileName.push_back(filePath + fileInfo.cFileName);
-		}
-	}
 }
 
 void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::string Map)

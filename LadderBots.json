@@ -1,0 +1,15 @@
+{
+
+	"Bots": {
+		"CryptBot": {
+			"Race": "Terran",
+			"Type": "BinaryCpp",
+			"Path": "bot_simple.exe"
+		},
+		"ProtossBot": {
+			"Race": "Terran",
+			"Type": "BinaryCpp",
+			"Path": "bot_simple.exe"
+		}
+	}
+}

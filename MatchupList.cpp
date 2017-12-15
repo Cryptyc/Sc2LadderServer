@@ -21,7 +21,7 @@ MatchupList::MatchupList(std::string inMatchupListFile)
 
 }
 
-bool MatchupList::GenerateMatches(std::map<std::string, AgentInfo> Agents, std::vector<std::string> Maps)
+bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::vector<std::string> Maps)
 {
 	Matchups.clear();
 	if (!LoadMatchupList(Agents))
@@ -75,14 +75,14 @@ bool MatchupList::SaveMatchList()
 	}
 	for (Matchup &NextMatch : Matchups)
 	{
-		ofs << "\"" + NextMatch.Agent1.AgentName + "\"vs\"" + NextMatch.Agent2.AgentName + "\" " + NextMatch.Map + "\r\n";
+		ofs << "\"" + NextMatch.Agent1.Name + "\"vs\"" + NextMatch.Agent2.Name + "\" " + NextMatch.Map + "\r\n";
 	}
 	ofs.close();
 	return true;
 
 }
 
-bool MatchupList::LoadMatchupList(std::map<std::string, AgentInfo> Agents)
+bool MatchupList::LoadMatchupList(std::map<std::string, BotConfig> Agents)
 {
 	std::ifstream ifs(MatchupListFile);
 	if (!ifs.good())
@@ -114,14 +114,14 @@ bool MatchupList::LoadMatchupList(std::map<std::string, AgentInfo> Agents)
 			std::cout << "Unable to find agent: " + FirstAgent << "\r\n";
 			continue;
 		}
-		AgentInfo Agent1 = search->second;
+		BotConfig Agent1 = search->second;
 		search = Agents.find(SecondAgent);
 		if (search == Agents.end())
 		{
 			std::cout << "Unable to find agent: " + SecondAgent << "\r\n";
 			continue;
 		}
-		AgentInfo Agent2 = search->second;
+		BotConfig Agent2 = search->second;
 		Matchup NextMatchup(Agent1, Agent2, Map);
 		Matchups.push_back(NextMatchup);
 
