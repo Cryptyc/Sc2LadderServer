@@ -14,6 +14,7 @@
 #include "sc2api/sc2_args.h"
 #include "sc2api/sc2_client.h"
 #include "sc2api/sc2_proto_to_pods.h"
+#include "civetweb.h"
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -142,7 +143,14 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, std::vector<sc
 			server->QueueResponse(client->connection_, response);
 
 			// Send the response back to the client.
-			server->SendResponse();
+			if (server->connections_.size() > 0)
+			{
+				server->SendResponse();
+			}
+			else
+			{
+				CurrentExitCase = ExitCase::ClientTimeout;
+			}
 			LastRequest = clock();
 
 		}
@@ -157,6 +165,35 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, std::vector<sc
 
 	}
 	return CurrentExitCase;
+}
+
+bool LadderManager::SaveReplay(sc2::Connection *client, const std::string& path) {
+	sc2::ProtoInterface proto;
+	sc2::GameRequestPtr request = proto.MakeRequest();
+	request->mutable_save_replay();
+
+	client->Send(request.get());
+	SC2APIProtocol::Response* replay_response = nullptr;
+	if (!client->Receive(replay_response, 1000000))
+	{
+		std::cout << "Failed to receive replay response" << std::endl;
+		return false;
+	}
+
+	const SC2APIProtocol::ResponseSaveReplay& response_replay = replay_response->save_replay();
+
+	if (response_replay.data().size() == 0) {
+		return false;
+	}
+
+	std::ofstream file;
+	file.open(path, std::fstream::binary);
+	if (!file.is_open()) {
+		return false;
+	}
+
+	file.write(&response_replay.data()[0], response_replay.data().size());
+	return true;
 }
 
 
@@ -217,7 +254,7 @@ void StartBotProcess(std::string CommandLine)
 	}
 }
 
-bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult> *PlayerResults)
+bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult> *PlayerResults)
 {
 	if (Response.player_result_size())
 	{
@@ -307,7 +344,7 @@ sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 {
 	sc2::ProtoInterface proto;
 	sc2::GameRequestPtr request = proto.MakeRequest();
-	request->mutable_leave_game();
+	request->mutable_quit();
 
 	return request;
 }
@@ -387,10 +424,10 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		return ResultType::InitializationError;
 	}
 
-	sc2::Server server;
-	sc2::Server server2;
-	server.Listen("5677", "100000", "100000", "5");
-	server2.Listen("5678", "100000", "100000", "5");
+	sc2::Server *server = new sc2::Server;
+	sc2::Server *server2 = new sc2::Server;
+	server->Listen("5677", "100000", "100000", "5");
+	server2->Listen("5678", "100000", "100000", "5");
 
 	// Find game executable and run it.
 	sc2::ProcessSettings process_settings;
@@ -421,7 +458,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	std::vector<sc2::PlayerSetup> Players;
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
-	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest("Odyssey LE", Players, process_settings);
+	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
 	client.Send(Create_game_request.get());
 	SC2APIProtocol::Response* create_response = nullptr;
 	if (client.Receive(create_response, 100000))
@@ -434,8 +471,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	std::vector<sc2::PlayerResult> Player1Results;
 	std::vector<sc2::PlayerResult> Player2Results;
 
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Player1Results);
-	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Player2Results);
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, server, &Player1Results);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, server2, &Player2Results);
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
 	sc2::ProtoInterface proto_1;
@@ -499,11 +536,27 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		CurrentResult = GetPlayerResults(&client);
 	}
+	delete server;
+	delete server2;
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".Sc2Replay";
-	client.Send(CreateLeaveGameRequest().get());
-	client2.Send(CreateLeaveGameRequest().get());
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".SC2Replay";
+	if (client.connection_ != nullptr)
+	{
+		SaveReplay(&client, ReplayFile);
+		client.Send(CreateLeaveGameRequest().get());
+		if (client2.connection_ != nullptr)
+		{
+			client2.Send(CreateLeaveGameRequest().get());
+		}
+
+	}
+	else if (client2.connection_ != nullptr)
+	{
+		SaveReplay(&client, ReplayFile);
+		client2.Send(CreateLeaveGameRequest().get());
+	}
+
 
 	bot2ProgramThread.join();
 	bot1ProgramThread.join();
