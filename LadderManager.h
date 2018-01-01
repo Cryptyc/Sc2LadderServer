@@ -11,7 +11,9 @@ public:
 	void RunLadderManager();
 
 private:
-    std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort);
+	bool SaveReplay(sc2::Connection *client, const std::string & path);
+	bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult>* PlayerResults);
+	std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort);
 	sc2::GameRequestPtr CreateLeaveGameRequest();
 	sc2::GameRequestPtr CreateQuitRequest();
 	ResultType GetPlayerResults(sc2::Connection * client);
@@ -29,7 +31,6 @@ private:
     char **CoordinatorArgv;
 
     int32_t MaxGameTime;
-    std::string DllDirectory;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;
     LadderConfig *Config;
