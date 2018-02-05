@@ -88,7 +88,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>curl\include;..\s2client-api\build\generated;..\s2client-api\src\..\contrib\SDL-mirror\include;..\s2client-api\src\..\contrib\civetweb\include;..\s2client-api\src\..\include;..\s2client-api\contrib\protobuf\src;..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>

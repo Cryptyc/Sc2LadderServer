@@ -11,7 +11,8 @@ typedef int(*CCGetAgentRaceFunction)(const char*);
 enum BotType
 {
     BinaryCpp,
-    CommandCenter
+    CommandCenter,
+	DefaultBot
 };
 
 enum ResultType
@@ -55,12 +56,14 @@ typedef struct SBotConfig
     std::string Name;
     std::string Path;
     sc2::Race Race;
+	sc2::Difficulty Difficulty;
     SBotConfig() {}
-    SBotConfig(BotType InType, std::string InBotName, sc2::Race InBotRace, std::string InBotPath)
+    SBotConfig(BotType InType, std::string InBotName, sc2::Race InBotRace, std::string InBotPath, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy)
         : Type(InType)
         , Race(InBotRace)
         , Name(InBotName)
         , Path(InBotPath)
+		, Difficulty(InDifficulty)
     {}
     bool operator ==(const SBotConfig &Other)
     {
@@ -132,6 +135,23 @@ static sc2::Race GetRaceFromString(const std::string & RaceIn)
     return sc2::Race::Random;
 }
 
+static std::string GetRaceString(const sc2::Race RaceIn)
+{
+	switch (RaceIn)
+	{
+	case sc2::Race::Protoss:
+		return "Protoss";
+	case sc2::Race::Random:
+		return "Random";
+	case sc2::Race::Terran:
+		return "Terran";
+	case sc2::Race::Zerg:
+		return "Zerg";
+	}
+}
+
+
+
 static BotType GetTypeFromString(const std::string &TypeIn)
 {
     std::string type(TypeIn);
@@ -144,7 +164,104 @@ static BotType GetTypeFromString(const std::string &TypeIn)
     {
         return BotType::CommandCenter;
     }
-    return BotType::CommandCenter;
+	else if (type == "computer")
+	{
+		return BotType::DefaultBot;
+	}
+	return BotType::BinaryCpp;
+}
+
+static sc2::Difficulty GetDifficultyFromString(std::string InDifficulty)
+{
+	if (InDifficulty == "VeryEasy")
+	{
+		return sc2::Difficulty::VeryEasy;
+	}
+	if (InDifficulty == "Easy")
+	{
+		return sc2::Difficulty::Easy;
+	}
+	if (InDifficulty == "Medium")
+	{
+		return sc2::Difficulty::Medium;
+	}
+	if (InDifficulty == "MediumHard")
+	{
+		return sc2::Difficulty::MediumHard;
+	}
+	if (InDifficulty == "Hard")
+	{
+		return sc2::Difficulty::Hard;
+	}
+	if (InDifficulty == "HardVeryHard")
+	{
+		return sc2::Difficulty::HardVeryHard;
+	}
+	if (InDifficulty == "VeryHard")
+	{
+		return sc2::Difficulty::VeryHard;
+	}
+	if (InDifficulty == "CheatVision")
+	{
+		return sc2::Difficulty::CheatVision;
+	}
+	if (InDifficulty == "CheatMoney")
+	{
+		return sc2::Difficulty::CheatMoney;
+	}
+	if (InDifficulty == "CheatInsane")
+	{
+		return sc2::Difficulty::CheatInsane;
+	}
+
+	return sc2::Difficulty::Easy;
+}
+static std::string GetDifficultyString(sc2::Difficulty InDifficulty)
+{
+	switch (InDifficulty)
+	{
+	case sc2::Difficulty::VeryEasy :
+	{
+		return "VeryEasy";
+	}
+	case sc2::Difficulty::Easy:
+	{
+		return "Easy";
+	}
+	case sc2::Difficulty::Medium:
+	{
+		return "Medium";
+	}
+	case sc2::Difficulty::MediumHard:
+	{
+		return "MediumHard";
+	}
+	case sc2::Difficulty::Hard:
+	{
+		return "Hard";
+	}
+	case sc2::Difficulty::HardVeryHard:
+	{
+		return "HardVeryHard";
+	}
+	case sc2::Difficulty::VeryHard:
+	{
+		return "VeryHard";
+	}
+	case sc2::Difficulty::CheatVision:
+	{
+		return "CheatVision";
+	}
+	case sc2::Difficulty::CheatMoney:
+	{
+		return "CheatMoney";
+	}
+	case sc2::Difficulty::CheatInsane:
+	{
+		return "CheatInsane";
+	}
+	}
+	return "Easy";
 }
 
 static std::string GetResultType(ResultType InResultType)
