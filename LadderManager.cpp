@@ -21,6 +21,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <memory>
 #include <iostream>
 #include <Windows.h>
 #include <future>
@@ -102,18 +103,17 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, std::vector<sc
 		SC2APIProtocol::Status CurrentStatus;
 		if (server->HasRequest()) {
 			const sc2::RequestData request = server->PeekRequest();
-			if(request.second->has_debug() || request.second->has_create_game())
-			{
-				// Drop these request types
-				continue;
-			}
-			else if(request.second->has_leave_game() || request.second->has_quit())
+			if( request.second->has_quit())
 			{
 				// Intercept leave game and quit requests, we want to keep game alive to save replays
 				CurrentExitCase = ExitCase::ClientRequestExit;
 				break;
 			}
-			server->SendRequest(client->connection_);
+			if (client->connection_ != nullptr)
+			{
+				server->SendRequest(client->connection_);
+
+			}
 
 			// Block for sc2's response then queue it.
 			SC2APIProtocol::Response* response = nullptr;
@@ -209,10 +209,11 @@ void StartBotProcess(std::string CommandLine)
 	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
 
 	// Create the process
-	BOOL result = CreateProcess(NULL, cmdLine,
-		NULL, NULL, FALSE,
-		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
-		NULL, NULL, &startupInfo, &processInformation);
+	BOOL result = TRUE; 
+//	BOOL result =  CreateProcess(NULL, cmdLine,
+//		NULL, NULL, FALSE,
+//		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
+//		NULL, NULL, &startupInfo, &processInformation);
 
 
 	if (!result)
@@ -267,7 +268,7 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 	return false;
 }
 
-std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort)
+std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
@@ -283,8 +284,16 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 			break;
 
 		}
+		case DefaultBot:
+		{
+
+		}
 	}
 	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 ";
+	if (CompOpp)
+	{
+		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
+	}
 	return OutCmdLine;
 
 }
@@ -340,6 +349,12 @@ sc2::GameRequestPtr CreateStartGameRequest(std::string MapName, std::vector<sc2:
 	request_create_game->set_realtime(false);
 	return request;
 }
+sc2::GameResponsePtr LadderManager::CreateErrorResponse()
+{
+	const sc2::GameResponsePtr response = std::make_shared<SC2APIProtocol::Response>(SC2APIProtocol::Response());
+	return response;
+}
+
 sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 {
 	sc2::ProtoInterface proto;
@@ -412,6 +427,106 @@ ResultType LadderManager::GetPlayerResults(sc2::Connection *client)
 	return ResultType::ProcessingReplay;
 }
 
+ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, std::string Map)
+{
+	using namespace std::chrono_literals;
+	// Setup server that mimicks sc2.
+	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, true, sc2::Race::Random, CompDifficulty);
+	if (Agent1Path == "" )
+	{
+		return ResultType::InitializationError;
+	}
+
+	sc2::Server *server = new sc2::Server;
+	server->Listen("5677", "100000", "100000", "5");
+
+	// Find game executable and run it.
+	sc2::ProcessSettings process_settings;
+	sc2::GameSettings game_settings;
+	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+	sc2::StartProcess(process_settings.process_path,
+		{ "-listen", "127.0.0.1",
+		"-port", "5679",
+		"-displayMode", "0",
+		"-dataVersion", process_settings.data_version }
+	);
+	sc2::SleepFor(10000);
+
+	// Connect to running sc2 process.
+	sc2::Connection client;
+	client.Connect("127.0.0.1", 5679, true);
+
+	std::vector<sc2::PlayerSetup> Players;
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent1.Race, nullptr, sc2::Easy));
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Computer, sc2::Race::Random, nullptr, CompDifficulty));
+	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
+	client.Send(Create_game_request.get());
+	SC2APIProtocol::Response* create_response = nullptr;
+	if (client.Receive(create_response, 100000))
+	{
+		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
+		ProcessResponse(create_response->create_game());
+	}
+	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
+	std::vector<sc2::PlayerResult> Player1Results;
+
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, server, &Player1Results);
+	ResultType CurrentResult = ResultType::InitializationError;
+	bool GameRunning = true;
+	sc2::ProtoInterface proto_1;
+
+	Sleep(10000);
+	while (GameRunning)
+	{
+
+		auto update1status = bot1UpdateThread.wait_for(1s);
+		if (update1status == std::future_status::ready)
+		{
+			ExitCase BotExitCase = bot1UpdateThread.get();
+			if (BotExitCase == ExitCase::ClientRequestExit)
+			{
+				// If Player 1 has requested exit, he has surrendered, and player 2 is awarded the win
+				CurrentResult = ResultType::Player2Win;
+			}
+			else if (BotExitCase == ExitCase::ClientTimeout)
+			{
+				CurrentResult = ResultType::Player1Crash;
+			}
+			else if (BotExitCase == ExitCase::GameTimeout)
+			{
+				CurrentResult = ResultType::Timeout;
+			}
+			else
+			{
+				CurrentResult = ResultType::ProcessingReplay;
+			}
+
+			GameRunning = false;
+			break;
+		}
+	}
+	if (CurrentResult == ResultType::ProcessingReplay)
+	{
+		CurrentResult = GetPlayerResults(&client);
+	}
+	delete server;
+
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + GetDifficultyString(CompDifficulty) + "-" + Map + ".Sc2Replay";
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
+
+	if (client.connection_ != nullptr)
+	{
+		SaveReplay(&client, ReplayFile);
+		client.Send(CreateLeaveGameRequest().get());
+
+	}
+
+	bot1ProgramThread.join();
+	return CurrentResult;
+}
+
+
 ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
 {
 
@@ -439,25 +554,30 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		"-displayMode", "0",
 		"-dataVersion", process_settings.data_version }
 	);
-
-	sc2::StartProcess(process_settings.process_path,
-	{ "-listen", "127.0.0.1",
-		"-port", "5680",
-		"-displayMode", "0",
-		"-dataVersion", process_settings.data_version }
-	);
+	if (Agent2.Type != DefaultBot)
+	{
+		sc2::StartProcess(process_settings.process_path,
+			{ "-listen", "127.0.0.1",
+			"-port", "5680",
+			"-displayMode", "0",
+			"-dataVersion", process_settings.data_version }
+		);
+	}
 	sc2::SleepFor(10000);
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
 	client.Connect("127.0.0.1", 5679);
 	sc2::Connection client2;
-	client2.Connect("127.0.0.1", 5680);
+	if (Agent2.Type != DefaultBot)
+	{
+		client2.Connect("127.0.0.1", 5680);
+	}
 
 
 	std::vector<sc2::PlayerSetup> Players;
-	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
-	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, sc2::Race::Terran, nullptr, sc2::Easy));
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent1.Race, nullptr, sc2::Easy));
+	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent2.Race, nullptr, sc2::Easy));
 	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
 	client.Send(Create_game_request.get());
 	SC2APIProtocol::Response* create_response = nullptr;
@@ -541,6 +661,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".SC2Replay";
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
+
 	if (client.connection_ != nullptr)
 	{
 		SaveReplay(&client, ReplayFile);
@@ -645,6 +767,10 @@ void LadderManager::LoadAgents()
 				std::cerr << "Unable to parse path for bot " << NewBot.Name << std::endl;
 				continue;
 			}
+			if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
+			{
+				NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
+			}
 			BotConfigs.insert(std::make_pair(std::string(NewBot.Name), NewBot));
 
 		}
@@ -669,6 +795,7 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
 	std::string ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + ThisMatch.Map + ".Sc2Replay";
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
 	CURLcode res;
@@ -746,7 +873,7 @@ void LadderManager::RunLadderManager()
 
 	GetMapList();
 	LoadAgents();
-  std::cout << "Starting with " << MapList.size() << " maps:\r\n";
+	std::cout << "Starting with " << MapList.size() << " maps:\r\n";
 	for (auto &map : MapList)
 	{
 		std::cout << "* " << map + "\r\n";
@@ -765,8 +892,28 @@ void LadderManager::RunLadderManager()
 
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
+			ResultType result = ResultType::InitializationError;
 			std::cout << "Starting " << NextMatch.Agent1.Name << " vs " << NextMatch.Agent2.Name << " on " << NextMatch.Map << " \n";
-			ResultType result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
+			{
+				if (NextMatch.Agent1.Type == DefaultBot)
+				{
+					// Swap so computer is always player 2
+					BotConfig Temp = NextMatch.Agent1;
+					NextMatch.Agent1 = NextMatch.Agent2;
+					NextMatch.Agent2 = Temp;
+				}
+				result = StartGameVsDefault(NextMatch.Agent1, NextMatch.Agent2.Race, NextMatch.Agent2.Difficulty, NextMatch.Map);
+			}
+			else
+			{
+				// Terran bug. Skip where terran is player 2
+				if (NextMatch.Agent2.Race == sc2::Race::Terran)
+				{
+					continue;
+				}
+				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+			}
 			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
@@ -776,18 +923,6 @@ void LadderManager::RunLadderManager()
 		std::cout << "Exception in game " << e.what() << " \r\n";
 		SaveError(NextMatch.Agent1.Name, NextMatch.Agent2.Name, NextMatch.Map);
 	}
-}
-
-void LadderManager::StartCoordinator()
-{
-	if (coordinator != nullptr)
-	{
-		delete coordinator;
-		Sleep(10000);
-
-	}
-	coordinator = new sc2::Coordinator();
-	coordinator->LoadSettings(CoordinatorArgc, CoordinatorArgv);
 }
 
 void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::string Map)
