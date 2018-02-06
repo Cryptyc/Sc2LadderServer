@@ -209,11 +209,7 @@ void StartBotProcess(std::string CommandLine)
 	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
 
 	// Create the process
-//	BOOL result = TRUE; 
-	BOOL result =  CreateProcess(NULL, cmdLine,
-		NULL, NULL, FALSE,
-		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
-		NULL, NULL, &startupInfo, &processInformation);
+
 
 
 	if (!result)
@@ -359,6 +355,7 @@ sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 {
 	sc2::ProtoInterface proto;
 	sc2::GameRequestPtr request = proto.MakeRequest();
+
 	request->mutable_quit();
 
 	return request;
@@ -539,6 +536,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		return ResultType::InitializationError;
 	}
 
+
 	sc2::Server *server = new sc2::Server;
 	sc2::Server *server2 = new sc2::Server;
 	server->Listen("5677", "100000", "100000", "5");
@@ -569,13 +567,11 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	sc2::Connection client;
 	client.Connect("127.0.0.1", 5679);
 	sc2::Connection client2;
-	if (Agent2.Type != DefaultBot)
-	{
-		client2.Connect("127.0.0.1", 5680);
-	}
+
 
 
 	std::vector<sc2::PlayerSetup> Players;
+
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent1.Race, nullptr, sc2::Easy));
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent2.Race, nullptr, sc2::Easy));
 	sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
@@ -591,6 +587,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	std::vector<sc2::PlayerResult> Player1Results;
 	std::vector<sc2::PlayerResult> Player2Results;
 
+
 	auto bot1UpdateThread = std::async(&GameUpdate, &client, server, &Player1Results);
 	auto bot2UpdateThread = std::async(&GameUpdate, &client2, server2, &Player2Results);
 	ResultType CurrentResult = ResultType::InitializationError;
@@ -600,6 +597,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	Sleep(10000);
 	while (GameRunning)
 	{
+
 
 		auto update1status = bot1UpdateThread.wait_for(1s);
 		auto update2status = bot2UpdateThread.wait_for(0ms);
@@ -660,6 +658,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	delete server2;
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+
 	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".SC2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 

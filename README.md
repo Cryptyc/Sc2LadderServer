@@ -5,13 +5,7 @@ New proxy interface is now implemented, the DLL instructions are out of date.  I
 
 --------
 
-Currently very early WIP.  Will pull in DLL files from a directory.  DLL libraries should have the following functions exported:
-
-    void *CreateNewAgent();  // Returns a pointer to a class deriving from sc2::Agent
-
-    const char *GetAgentName();  // Returns a string identifier for the agent name
-
-    int GetAgentRace();  // Returns the agents prefered race.  should be sc2::Race cast to int.
+This will load bots as defined in the LadderBots.json file
 
 The `./data/` directory is writable, you should create a subdirectory with your bot name if you want to write data files.
 
@@ -25,7 +19,9 @@ LadderManager will read a config file from the LadderManager.conf file with the 
 
 | Config Entry Name | Description |
 |---|---|
-| `DllDirectory`			|	Directory to read DLL files from |
+| `ErrorListFile`	    	|	Place to store games where errors have occured |
+| `BotConfigFile`	    	|	Location of the json file defining the bots |
+| `MaxGameTime`	    		|	Maximum length of game |
 | `CommandCenterDirectory`	|	Directory to read .ccbot command center config files |
 | `LocalReplayDirectory`	|	Directory to store local replays |
 | `MapListFile`				|	Location of the map list file.  Should be each map on a single line |
