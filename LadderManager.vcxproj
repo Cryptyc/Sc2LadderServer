@@ -88,7 +88,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>E:\Sc2AI\ReleaseTest\s2client-api\LadderManager\curl\include;E:\Sc2AI\ReleaseTest\s2client-api\build\generated;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\SDL-mirror\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\contrib\civetweb\include;E:\Sc2AI\ReleaseTest\s2client-api\src\..\include;E:\Sc2AI\ReleaseTest\s2client-api\contrib\protobuf\src;E:\Sc2AI\ReleaseTest\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>curl\include;..\s2client-api\build\generated;..\s2client-api\src\..\contrib\SDL-mirror\include;..\s2client-api\src\..\contrib\civetweb\include;..\s2client-api\src\..\include;..\s2client-api\contrib\protobuf\src;..\s2client-api\contrib\civetweb\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PreprocessorDefinitions>CURL_STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -96,7 +96,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>libcurl.lib;sc2api.lib;sc2lib.lib;sc2utils.lib;sc2protocol.lib;libprotobuf.lib;civetweb.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>..\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\s2client-api\build\bin\;.\curl\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
