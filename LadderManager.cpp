@@ -601,7 +601,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	while (GameRunning)
 	{
 
-		auto update1status = bot2UpdateThread.wait_for(1s);
+		auto update1status = bot1UpdateThread.wait_for(1s);
 		auto update2status = bot2UpdateThread.wait_for(0ms);
 		if (update1status == std::future_status::ready)
 		{
@@ -629,7 +629,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		}
 		if(update2status == std::future_status::ready)
 		{
-			ExitCase BotExitCase = bot1UpdateThread.get();
+			ExitCase BotExitCase = bot2UpdateThread.get();
 			if (BotExitCase == ExitCase::ClientRequestExit)
 			{
 				// If Player 2 has requested exit, he has surrendered, and player 1 is awarded the win
