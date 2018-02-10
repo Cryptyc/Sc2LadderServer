@@ -1,4 +1,5 @@
 #pragma once
+#include <memory.h>
 #define MAX_GAME_TIME 60480
 #define PORT_START 5690
 
@@ -17,8 +18,9 @@ private:
 	sc2::GameResponsePtr CreateErrorResponse();
 	sc2::GameRequestPtr CreateLeaveGameRequest();
 	sc2::GameRequestPtr CreateQuitRequest();
-	ResultType GetPlayerResults(sc2::Connection * client);
+	ResultType GetPlayerResults(sc2::Connection *client);
 	ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, std::string Map);
+	bool SendDataToConnection(sc2::Connection *Connection, const SC2APIProtocol::Request *request);
 	ResultType StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
     void LoadAgents();
     void GetMapList();
