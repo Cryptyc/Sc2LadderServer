@@ -575,7 +575,6 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	sc2::Server server2;
 	server.Listen("5677", "100000", "100000", "5");
 	server2.Listen("5678", "100000", "100000", "5");
-
 	// Find game executable and run it.
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
@@ -690,7 +689,6 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		{
 			CurrentResult = ResultType::Player2Crash;
 			GameRunning = false;
-
 		}
 
 	}
@@ -709,20 +707,24 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	SendDataToConnection(&client, CreateLeaveGameRequest().get());
 	SendDataToConnection(&client2, CreateLeaveGameRequest().get());
-	Sleep(5000);
-	KillSc2Process(Bot1ProcessId, 0);
-	KillSc2Process(Bot2ProcessId, 0);
-	Sleep(5000);
-	try
+	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
-		bot1UpdateThread.wait();
-		bot2UpdateThread.wait();
+		Sleep(5000);
+		KillSc2Process(Bot1ProcessId, 0);
+		KillSc2Process(Bot2ProcessId, 0);
+		Sleep(5000);
+		try
+		{
+			bot1UpdateThread.wait();
+			bot2UpdateThread.wait();
 
-	}
-	catch (const std::exception& e)
-	{
-		std::cout << "Unable to detect end of update thread.  Continuing";
-		return CurrentResult;
+		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Unable to detect end of update thread.  Continuing";
+			return CurrentResult;
+		}
+
 	}
 	return CurrentResult;
 }
