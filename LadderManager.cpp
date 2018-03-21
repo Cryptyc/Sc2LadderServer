@@ -492,7 +492,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
-	client.Connect("127.0.0.1", 5679, true);
+	client.Connect("127.0.0.1", 5679);
 
 	std::vector<sc2::PlayerSetup> Players;
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent1.Race, nullptr, sc2::Easy));
@@ -699,7 +699,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
-	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + Map + ".SC2Replay";
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + RemoveMapExtension(Map) + ".SC2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	if (!SaveReplay(&client, ReplayFile))
 	{
@@ -833,12 +833,18 @@ void LadderManager::GetMapList()
 
 }
 
+std::string LadderManager::RemoveMapExtension(const std::string& filename) {
+	size_t lastdot = filename.find_last_of(".");
+	if (lastdot == std::string::npos) return filename;
+	return filename.substr(0, lastdot);
+}
 
 void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 {
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
-	std::string ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + ThisMatch.Map + ".Sc2Replay";
+	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
+	std::string ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + RawMapName + ".Sc2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
@@ -878,7 +884,7 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		curl_mime_data(field, std::to_string((int)ThisMatch.Agent2.Race).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Map");
-		curl_mime_data(field, ThisMatch.Map.c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, RawMapName.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Result");
 		curl_mime_data(field, GetResultType(result).c_str(), CURL_ZERO_TERMINATED);
@@ -952,10 +958,12 @@ void LadderManager::RunLadderManager()
 			else
 			{
 				// Terran bug. Skip where terran is player 2
+				/*
 				if (NextMatch.Agent2.Race == sc2::Race::Terran)
 				{
 					continue;
 				}
+				*/
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
 			UploadMime(result, NextMatch);

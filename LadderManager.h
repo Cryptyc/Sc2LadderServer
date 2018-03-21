@@ -24,6 +24,7 @@ private:
 	ResultType StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
     void LoadAgents();
     void GetMapList();
+	std::string RemoveMapExtension(const std::string & filename);
     void UploadMime(ResultType result, Matchup ThisMatch);
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
