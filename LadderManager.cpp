@@ -591,15 +591,32 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		"-displayMode", "0",
 		"-dataVersion", process_settings.data_version }
 	);
-	sc2::SleepFor(10000);
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
-	client.Connect("127.0.0.1", 5679);
+	int connectionAttemptsClient1 = 0;
+	while (!client.Connect("127.0.0.1", 5679))
+	{
+		connectionAttemptsClient1++;
+		sc2::SleepFor(1000);
+		if (connectionAttemptsClient1 > 60)
+		{
+			std::cout << "Failed to connect client 1. BotProcessID: " << Bot1ProcessId << std::endl;
+			return ResultType::InitializationError;
+		}
+	}
 	sc2::Connection client2;
-	client2.Connect("127.0.0.1", 5680);
-
-
+	int connectionAttemptsClient2 = 0;
+	while (!client2.Connect("127.0.0.1", 5680))
+	{
+		connectionAttemptsClient2++;
+		sc2::SleepFor(1000);
+		if (connectionAttemptsClient2 > 60)
+		{
+			std::cout << "Failed to connect client 2. BotProcessID: " << Bot2ProcessId << std::endl;
+			return ResultType::InitializationError;
+		}
+	}
 
 	std::vector<sc2::PlayerSetup> Players;
 
