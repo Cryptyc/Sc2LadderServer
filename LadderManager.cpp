@@ -99,19 +99,32 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 	std::cout << "Starting proxy\n" << std::endl;
 	bool RequestFound = false;
 	clock_t LastRequest = clock();
+	std::map<SC2APIProtocol::Status, std::string> status;
+	status[SC2APIProtocol::Status::launched] = "launched";
+	status[SC2APIProtocol::Status::init_game] = "init_game";
+	status[SC2APIProtocol::Status::in_game] = "in_game";
+	status[SC2APIProtocol::Status::in_replay] = "in_replay";
+	status[SC2APIProtocol::Status::ended] = "ended";
+	status[SC2APIProtocol::Status::quit] = "quit";
+	status[SC2APIProtocol::Status::unknown] = "unknown";
 	try
 	{
 		while (CurrentExitCase == ExitCase::InProgress) {
 			SC2APIProtocol::Status CurrentStatus;
+			if (!client || !server)
+			{
+				return ExitCase::ClientTimeout;
+			}
 			if (client->connection_ == nullptr && RequestFound)
 			{
 				std::cout << "Client disconnect" << std::endl;
 				CurrentExitCase = ExitCase::ClientTimeout;
 			}
 
-			if (server->HasRequest()) {
+			if (server->HasRequest())
+			{
 				const sc2::RequestData request = server->PeekRequest();
-				if (request.second->has_quit())
+				if (request.second && request.second->has_quit()) //Really paranoid here...
 				{
 					// Intercept leave game and quit requests, we want to keep game alive to save replays
 					CurrentExitCase = ExitCase::ClientRequestExit;
@@ -129,6 +142,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 				if (response != nullptr)
 				{
 					CurrentStatus = response->status();
+					std::cout <<"Current status: "<< status.at(CurrentStatus) << std::endl;
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
 					{
 						CurrentExitCase = ExitCase::GameEnd;
@@ -628,23 +642,33 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	if (client.Receive(create_response, 100000))
 	{
 		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
-		ProcessResponse(create_response->create_game());
+		if (ProcessResponse(create_response->create_game()))
+		{
+			std::cout << "Create game successful" << std::endl << std::endl;
+		}
 	}
+	std::cout << "Starting bot: " << Agent1.Name << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
-	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
+	sc2::SleepFor(1000);
 
-
+	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
 	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server);
+	sc2::SleepFor(1000);
+
+	std::cout << std::endl << "Starting bot: " << Agent2.Name << std::endl;
+	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
+	sc2::SleepFor(1000);
+
+	std::cout << "Monitoring client of: " << Agent2.Name << std::endl;
 	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2);
+	sc2::SleepFor(1000);
+
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
-	sc2::ProtoInterface proto_1;
-
-	Sleep(10000);
+	//sc2::ProtoInterface proto_1;
+	sc2::SleepFor(10000);
 	while (GameRunning)
 	{
-
-
 		auto update1status = bot1UpdateThread.wait_for(1s);
 		auto update2status = bot2UpdateThread.wait_for(0ms);
 		auto thread1Status = bot1ProgramThread.wait_for(0ms);
