@@ -90,7 +90,7 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 }
 
 
-ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *botName)
 {
 	//    std::cout << "Sending Join game request" << std::endl;
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
@@ -142,7 +142,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server)
 				if (response != nullptr)
 				{
 					CurrentStatus = response->status();
-					std::cout <<"Current status: "<< status.at(CurrentStatus) << std::endl;
+					std::cout <<"Current status of "<<*botName<<": "<< status.at(CurrentStatus) << std::endl;
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
 					{
 						CurrentExitCase = ExitCase::GameEnd;
@@ -523,7 +523,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
 	std::vector<sc2::PlayerResult> Player1Results;
 
-	auto bot1UpdateThread = std::async(GameUpdate, &client, &server);
+	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.Name);
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
 	sc2::ProtoInterface proto_1;
@@ -649,24 +649,24 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	std::cout << "Starting bot: " << Agent1.Name << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
-	sc2::SleepFor(1000);
+	sc2::SleepFor(2000);
 
 	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server);
-	sc2::SleepFor(1000);
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.Name);
+	sc2::SleepFor(2000);
 
 	std::cout << std::endl << "Starting bot: " << Agent2.Name << std::endl;
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
-	sc2::SleepFor(1000);
+	sc2::SleepFor(2000);
 
 	std::cout << "Monitoring client of: " << Agent2.Name << std::endl;
-	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2);
-	sc2::SleepFor(1000);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.Name);
+	sc2::SleepFor(2000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
 	//sc2::ProtoInterface proto_1;
-	sc2::SleepFor(10000);
+	sc2::SleepFor(1200000);
 	while (GameRunning)
 	{
 		auto update1status = bot1UpdateThread.wait_for(1s);
