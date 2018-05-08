@@ -690,7 +690,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	sc2::SleepFor(5000);
 	while (GameRunning)
 	{
-		auto update1status = bot1UpdateThread.wait_for(1ms);
+		auto update1status = bot1UpdateThread.wait_for(1s);
 		auto update2status = bot2UpdateThread.wait_for(0ms);
 		auto thread1Status = bot1ProgramThread.wait_for(0ms);
 		auto thread2Status = bot2ProgramThread.wait_for(0ms);
