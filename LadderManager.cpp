@@ -496,17 +496,27 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
-	sc2::StartProcess(process_settings.process_path,
+	uint64_t BotProcessId = sc2::StartProcess(process_settings.process_path,
 		{ "-listen", "127.0.0.1",
 		"-port", "5679",
 		"-displayMode", "0",
 		"-dataVersion", process_settings.data_version }
 	);
-	sc2::SleepFor(10000);
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
 	client.Connect("127.0.0.1", 5679);
+	int connectionAttemptsClient = 0;
+	while (!client.Connect("127.0.0.1", 5679))
+	{
+		connectionAttemptsClient++;
+		sc2::SleepFor(1000);
+		if (connectionAttemptsClient > 60)
+		{
+			std::cout << "Failed to connect client 1. BotProcessID: " << BotProcessId << std::endl;
+			return ResultType::InitializationError;
+		}
+	}
 
 	std::vector<sc2::PlayerSetup> Players;
 	Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Participant, Agent1.Race, nullptr, sc2::Easy));
@@ -518,16 +528,24 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	if (client.Receive(create_response, 100000))
 	{
 		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
-		ProcessResponse(create_response->create_game());
+		if (ProcessResponse(create_response->create_game()))
+		{
+			std::cout << "Create game successful" << std::endl << std::endl;
+		}
 	}
-	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
-	std::vector<sc2::PlayerResult> Player1Results;
 
+	std::cout << "Starting bot: " << Agent1.Name << std::endl;
+	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
+	sc2::SleepFor(1000);
+
+	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
 	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.Name);
+	sc2::SleepFor(1000);
+
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
-	sc2::ProtoInterface proto_1;
-
+	//sc2::ProtoInterface proto_1;
+	//std::vector<sc2::PlayerResult> Player1Results;
 	Sleep(10000);
 	while (GameRunning)
 	{
@@ -568,7 +586,10 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 
 	SaveReplay(&client, ReplayFile);
-	SendDataToConnection(&client, CreateLeaveGameRequest().get());
+	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
+	{
+		std::cout << "CreateLeaveGameRequest failed" << std::endl;
+	}
 
 	bot1ProgramThread.join();
 	return CurrentResult;
@@ -649,27 +670,27 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	std::cout << "Starting bot: " << Agent1.Name << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
-	sc2::SleepFor(2000);
+	sc2::SleepFor(1000);
 
 	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
 	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.Name);
-	sc2::SleepFor(2000);
+	sc2::SleepFor(1000);
 
 	std::cout << std::endl << "Starting bot: " << Agent2.Name << std::endl;
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
-	sc2::SleepFor(2000);
+	sc2::SleepFor(1000);
 
 	std::cout << "Monitoring client of: " << Agent2.Name << std::endl;
 	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.Name);
-	sc2::SleepFor(2000);
+	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
 	//sc2::ProtoInterface proto_1;
-	sc2::SleepFor(1200000);
+	sc2::SleepFor(5000);
 	while (GameRunning)
 	{
-		auto update1status = bot1UpdateThread.wait_for(1s);
+		auto update1status = bot1UpdateThread.wait_for(1ms);
 		auto update2status = bot2UpdateThread.wait_for(0ms);
 		auto thread1Status = bot1ProgramThread.wait_for(0ms);
 		auto thread2Status = bot2ProgramThread.wait_for(0ms);
@@ -746,8 +767,14 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		SaveReplay(&client2, ReplayFile);
 	}
-	SendDataToConnection(&client, CreateLeaveGameRequest().get());
-	SendDataToConnection(&client2, CreateLeaveGameRequest().get());
+	if(SendDataToConnection(&client, CreateLeaveGameRequest().get()))
+	{
+		std::cout << "CreateLeaveGameRequest failed for bot 1." << std::endl;
+	}
+	if(SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
+	{
+		std::cout << "CreateLeaveGameRequest failed for bot 2." << std::endl;
+	}
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		Sleep(5000);
