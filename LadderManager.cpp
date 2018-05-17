@@ -312,21 +312,30 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
 	{
-		case BinaryCpp:
+	case pysc2:
+	{
+		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) +" --lan_port " + std::to_string(StartPort+2) + " --map Interloper";
+		if (CompOpp)
 		{
-			OutCmdLine = AgentConfig.Path;
-			break;
+			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 		}
-		case CommandCenter:
-		{
-			OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.Path;
-			break;
+		return OutCmdLine;
+	}
+	case BinaryCpp:
+	{
+		OutCmdLine = AgentConfig.Path;
+		break;
+	}
+	case CommandCenter:
+	{
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.Path;
+		break;
 
-		}
-		case DefaultBot:
-		{
+	}
+	case DefaultBot:
+	{
 
-		}
+	}
 	}
 	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 ";
 	if (CompOpp)
@@ -758,7 +767,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		CurrentResult = GetPlayerResults(&client);
 	}
-
+	sc2::SleepFor(1000);
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
 	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + RemoveMapExtension(Map) + ".SC2Replay";
@@ -767,20 +776,32 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		SaveReplay(&client2, ReplayFile);
 	}
+	sc2::SleepFor(1000);
 	if(SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
-		std::cout << "CreateLeaveGameRequest failed for bot 1." << std::endl;
+		std::cout << "CreateLeaveGameRequest failed for Client 1." << std::endl;
 	}
+	sc2::SleepFor(1000);
 	if(SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
 	{
-		std::cout << "CreateLeaveGameRequest failed for bot 2." << std::endl;
+		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
+	}
+	sc2::SleepFor(1000);
+	if (server.HasRequest())
+	{
+		server.SendRequest();
+	}
+	sc2::SleepFor(1000);
+	if (server2.HasRequest())
+	{
+		server2.SendRequest();
 	}
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
-		Sleep(5000);
+		sc2::SleepFor(5000);
 		KillSc2Process(Bot1ProcessId, 0);
 		KillSc2Process(Bot2ProcessId, 0);
-		Sleep(5000);
+		sc2::SleepFor(5000);
 		try
 		{
 			bot1UpdateThread.wait();
