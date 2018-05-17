@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
+#include <cctype>
 #include "types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
@@ -314,7 +315,9 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 	case pysc2:
 	{
-		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) +" --lan_port " + std::to_string(StartPort+2) + " --map Interloper";
+		std::string race = GetRaceString(AgentConfig.Race);
+		race[0] = std::tolower(race[0]);
+		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) +" --lan_port " + std::to_string(StartPort+2) + " --map Interloper --agent_race " + race;
 		if (CompOpp)
 		{
 			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
