@@ -143,7 +143,6 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 				if (response != nullptr)
 				{
 					CurrentStatus = response->status();
-					std::cout <<"Current status of "<<*botName<<": "<< status.at(CurrentStatus) << std::endl;
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
 					{
 						CurrentExitCase = ExitCase::GameEnd;
