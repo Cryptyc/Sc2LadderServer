@@ -550,7 +550,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	}
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + GetDifficultyString(CompDifficulty) + "-" + Map + ".Sc2Replay";
+	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 
 	SaveReplay(&client, ReplayFile);
@@ -844,7 +844,15 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
 	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
-	std::string ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + RawMapName + ".Sc2Replay";
+	std::string ReplayFile;
+	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
+	{
+		ReplayFile = ThisMatch.Agent1.Name + "v" + GetDifficultyString(ThisMatch.Agent2.Difficulty) + "-" + RawMapName + ".Sc2Replay";
+	}
+	else
+	{
+		ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + RawMapName + ".Sc2Replay";
+	}
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
