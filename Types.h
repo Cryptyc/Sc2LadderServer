@@ -13,6 +13,7 @@ enum BotType
     BinaryCpp,
     CommandCenter,
 	pysc2,
+	pythonSC2,
 	DefaultBot
 };
 
@@ -173,6 +174,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "pysc2")
 	{
 		return BotType::pysc2;
+	}
+	else if (type == "pythonsc2")
+	{
+		return BotType::pythonSC2;
 	}
 	return BotType::BinaryCpp;
 }

@@ -108,6 +108,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	status[SC2APIProtocol::Status::ended] = "ended";
 	status[SC2APIProtocol::Status::quit] = "quit";
 	status[SC2APIProtocol::Status::unknown] = "unknown";
+	SC2APIProtocol::Status OldStatus = SC2APIProtocol::Status::unknown;
 	try
 	{
 		while (CurrentExitCase == ExitCase::InProgress) {
@@ -143,6 +144,11 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 				if (response != nullptr)
 				{
 					CurrentStatus = response->status();
+					if (OldStatus != CurrentStatus)
+					{
+						std::cout << "Current status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+						OldStatus = CurrentStatus;
+					}
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
 					{
 						CurrentExitCase = ExitCase::GameEnd;
@@ -316,12 +322,17 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 		std::string race = GetRaceString(AgentConfig.Race);
 		race[0] = std::tolower(race[0]);
-		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) +" --lan_port " + std::to_string(StartPort+2) + " --map Interloper --agent_race " + race;
+		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) + " --lan_port " + std::to_string(StartPort + 2) + " --map Interloper --agent_race " + race;
 		if (CompOpp)
 		{
 			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 		}
 		return OutCmdLine;
+	}
+	case pythonSC2:
+	{
+		OutCmdLine = "python " + AgentConfig.Path;
+		break;
 	}
 	case BinaryCpp:
 	{
@@ -518,7 +529,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	sc2::Connection client;
 	client.Connect("127.0.0.1", 5679);
 	int connectionAttemptsClient = 0;
-	while (!client.Connect("127.0.0.1", 5679))
+	while (!client.Connect("127.0.0.1", 5679, false))
 	{
 		connectionAttemptsClient++;
 		sc2::SleepFor(1000);
@@ -641,7 +652,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	// Connect to running sc2 process.
 	sc2::Connection client;
 	int connectionAttemptsClient1 = 0;
-	while (!client.Connect("127.0.0.1", 5679))
+	while (!client.Connect("127.0.0.1", 5679, false))
 	{
 		connectionAttemptsClient1++;
 		sc2::SleepFor(1000);
@@ -653,7 +664,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	sc2::Connection client2;
 	int connectionAttemptsClient2 = 0;
-	while (!client2.Connect("127.0.0.1", 5680))
+	while (!client2.Connect("127.0.0.1", 5680, false))
 	{
 		connectionAttemptsClient2++;
 		sc2::SleepFor(1000);
@@ -679,7 +690,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	std::cout << "Starting bot: " << Agent1.Name << std::endl;
+	std::cout << "Starting bot: " << Agent1.Name << " with command:"<<std::endl;
+	std::cout << Agent1Path << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
 	sc2::SleepFor(1000);
 
@@ -687,7 +699,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.Name);
 	sc2::SleepFor(1000);
 
-	std::cout << std::endl << "Starting bot: " << Agent2.Name << std::endl;
+	std::cout << std::endl << "Starting bot: " << Agent2.Name << " with command:" << std::endl;
+	std::cout << Agent2Path << std::endl;
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
 	sc2::SleepFor(1000);
 
@@ -863,7 +876,7 @@ void LadderManager::LoadAgents()
 	bool parsingFailed = doc.Parse(BotConfigString.c_str()).HasParseError();
 	if (parsingFailed)
 	{
-		std::cerr << "Unable to parse bot config file" << std::endl;
+		std::cerr << "Unable to parse bot config file: " << BotConfigFile << std::endl;
 		return;
 	}
 	if (doc.HasMember("Bots") && doc["Bots"].IsObject())
@@ -1065,7 +1078,7 @@ void LadderManager::RunLadderManager()
 				*/
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
-			UploadMime(result, NextMatch);
+			//UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
 	
