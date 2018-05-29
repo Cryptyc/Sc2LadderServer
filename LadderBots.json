@@ -9,13 +9,13 @@
 		"TerranBot": {
 			"Race": "Terran",
 			"Type": "BinaryCpp",
-			"Path": "bot_simple.exe"
+			"Path": "bot_simple.exe",
 			"Args": "-something"
 		},
 		"ZergBot": {
 			"Race": "Zerg",
 			"Type": "pythonSC2",
-			"Path": "bot_simple/RunLadder.py"
+			"Path": "bot_simple/run.py"
 		},
 		"SimpleAgent": {
 			"Race": "Terran",
