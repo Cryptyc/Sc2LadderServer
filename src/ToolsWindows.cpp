@@ -79,4 +79,8 @@ void KillSc2Process(unsigned long pid)
 	CloseHandle(hProcess);
 }
 
+bool MoveReplayFile(char* lpExistingFileName, char* lpNewFileName) {
+	return MoveFile(lpExistingFileName, lpNewFileName);
+}
+
 #endif

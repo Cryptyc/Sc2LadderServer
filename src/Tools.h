@@ -8,4 +8,4 @@ void SleepFor(int seconds);
 
 void KillSc2Process(unsigned long pid);
 
-int MoveFile(const char* lpExistingFileName, const char* lpNewFileName);
+bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName);
