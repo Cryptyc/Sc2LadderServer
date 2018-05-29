@@ -1,3 +1,5 @@
+#ifdef _WIN32
+
 #include <Windows.h>
 
 #include "Tools.h"
@@ -76,3 +78,5 @@ void KillSc2Process(unsigned long pid)
 	TerminateProcess(hProcess, 0);
 	CloseHandle(hProcess);
 }
+
+#endif

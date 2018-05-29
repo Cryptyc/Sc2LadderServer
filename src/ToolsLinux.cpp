@@ -1,3 +1,5 @@
+#ifdef __unix__)
+
 #include <iostream>
 #include <signal.h>
 #include <stdio.h>
@@ -32,3 +34,5 @@ void KillSc2Process(unsigned long pid)
 {
     kill(pid, SIGKILL);
 }
+
+#endif

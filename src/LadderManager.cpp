@@ -16,8 +16,8 @@
 #include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
 
-#include "rapidjson/rapidjson.h"
-#include "rapidjson/document.h"
+#include "rapidjson.h"
+#include "document.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -25,7 +25,7 @@
 #include <iostream>
 #include <future>
 #include <chrono>
-#include <curl/curl.h>
+#include "curl.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
