@@ -10,6 +10,16 @@
 			"Race": "Terran",
 			"Type": "BinaryCpp",
 			"Path": "bot_simple.exe"
+		},
+		"ZergBot": {
+			"Race": "Zerg",
+			"Type": "pythonSC2",
+			"Path": "bot_simple/RunLadder.py"
+		},
+		"SimpleAgent": {
+			"Race": "Terran",
+			"Type": "pysc2",
+			"Path": "C:/Ladder/Bots/SimpleAgent/simple_agent.py"
 		}
 	}
 }

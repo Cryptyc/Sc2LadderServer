@@ -322,7 +322,8 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 		std::string race = GetRaceString(AgentConfig.Race);
 		race[0] = std::tolower(race[0]);
-		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path + " --host_port " + std::to_string(GamePort) + " --lan_port " + std::to_string(StartPort + 2) + " --map Interloper --agent_race " + race;
+		size_t lastdot = AgentConfig.Path.find_last_of(".");
+		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path.substr(0, lastdot+1) + AgentConfig.Name + " --host_port " + std::to_string(GamePort) + " --lan_port " + std::to_string(StartPort + 2) + " --map Interloper --agent_race " + race;
 		if (CompOpp)
 		{
 			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
@@ -910,6 +911,12 @@ void LadderManager::LoadAgents()
 			if (val.HasMember("Path") && val["Path"].IsString())
 			{
 				NewBot.Path = val["Path"].GetString();
+				if (NewBot.Type != DefaultBot && !sc2::DoesFileExist(NewBot.Path))
+				{
+					std::cerr << "Unable to parse bot " << NewBot.Name << std::endl;
+					std::cerr << "Is the path " << NewBot.Path << "correct?"<<std::endl;
+					continue;
+				}
 			}
 			else
 			{
@@ -920,6 +927,7 @@ void LadderManager::LoadAgents()
 			{
 				NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
 			}
+
 			BotConfigs.insert(std::make_pair(std::string(NewBot.Name), NewBot));
 
 		}
@@ -1079,7 +1087,7 @@ void LadderManager::RunLadderManager()
 				*/
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
-			//UploadMime(result, NextMatch);
+			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
 	
