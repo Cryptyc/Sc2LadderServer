@@ -2,14 +2,15 @@
 
 	"Bots": {
 		"CryptBot": {
-			"Race": "Terran",
+			"Race": "Protoss",
 			"Type": "BinaryCpp",
 			"Path": "bot_simple.exe"
 		},
-		"ProtossBot": {
+		"TerranBot": {
 			"Race": "Terran",
 			"Type": "BinaryCpp",
 			"Path": "bot_simple.exe"
+			"Args": "-something"
 		},
 		"ZergBot": {
 			"Race": "Zerg",

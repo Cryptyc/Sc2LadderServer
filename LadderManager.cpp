@@ -328,6 +328,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 		{
 			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 		}
+		OutCmdLine += " " + AgentConfig.Args;
 		return OutCmdLine;
 	}
 	case pythonSC2:
@@ -356,6 +357,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 	}
+	OutCmdLine += " " + AgentConfig.Args;
 	return OutCmdLine;
 
 }
@@ -927,7 +929,10 @@ void LadderManager::LoadAgents()
 			{
 				NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
 			}
-
+			if (val.HasMember("Args") && val["Args"].IsString())
+			{
+				NewBot.Args = val["Arg"].GetString();
+			}
 			BotConfigs.insert(std::make_pair(std::string(NewBot.Name), NewBot));
 
 		}
