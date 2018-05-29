@@ -1,4 +1,4 @@
-#ifdef __unix__)
+#ifdef __unix__
 
 #include <iostream>
 #include <signal.h>
@@ -33,6 +33,12 @@ void SleepFor(int seconds)
 void KillSc2Process(unsigned long pid)
 {
     kill(pid, SIGKILL);
+}
+
+bool MoveFile(char* lpExistingFileName, char* lpNewFileName)
+{
+	// todo
+	throw "MoveFile is not implemented for linux yet.";
 }
 
 #endif
