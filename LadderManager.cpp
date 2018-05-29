@@ -26,12 +26,12 @@
 #include <Windows.h>
 #include <future>
 #include <chrono>
-#include <curl\curl.h>
+#include <curl/curl.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
 #include <cctype>
-#include "types.h"
+#include "Types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
@@ -843,6 +843,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 {
 
 }
+
 bool LadderManager::LoadSetup()
 {
 
