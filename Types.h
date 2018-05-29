@@ -13,6 +13,7 @@ enum BotType
     BinaryCpp,
     CommandCenter,
 	pysc2,
+	pythonSC2,
 	DefaultBot
 };
 
@@ -58,13 +59,15 @@ typedef struct SBotConfig
     std::string Path;
     sc2::Race Race;
 	sc2::Difficulty Difficulty;
+	std::string Args; //Optional arguments
     SBotConfig() {}
-    SBotConfig(BotType InType, std::string InBotName, sc2::Race InBotRace, std::string InBotPath, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy)
+    SBotConfig(BotType InType, std::string InBotName, sc2::Race InBotRace, std::string InBotPath, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, std::string InArgs="")
         : Type(InType)
         , Race(InBotRace)
         , Name(InBotName)
         , Path(InBotPath)
 		, Difficulty(InDifficulty)
+		, Args(InArgs)
     {}
     bool operator ==(const SBotConfig &Other)
     {
@@ -173,6 +176,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "pysc2")
 	{
 		return BotType::pysc2;
+	}
+	else if (type == "pythonsc2")
+	{
+		return BotType::pythonSC2;
 	}
 	return BotType::BinaryCpp;
 }

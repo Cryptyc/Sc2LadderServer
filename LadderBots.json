@@ -2,14 +2,25 @@
 
 	"Bots": {
 		"CryptBot": {
-			"Race": "Terran",
+			"Race": "Protoss",
 			"Type": "BinaryCpp",
 			"Path": "bot_simple.exe"
 		},
-		"ProtossBot": {
+		"TerranBot": {
 			"Race": "Terran",
 			"Type": "BinaryCpp",
-			"Path": "bot_simple.exe"
+			"Path": "bot_simple.exe",
+			"Args": "-something"
+		},
+		"ZergBot": {
+			"Race": "Zerg",
+			"Type": "pythonSC2",
+			"Path": "bot_simple/run.py"
+		},
+		"SimpleAgent": {
+			"Race": "Terran",
+			"Type": "pysc2",
+			"Path": "C:/Ladder/Bots/SimpleAgent/simple_agent.py"
 		}
 	}
 }
