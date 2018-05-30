@@ -17,7 +17,6 @@ Requires Blizzard API files (see below).
 # Developer Install / Compile Instructions
 ## Requirements
 * [CMake](https://cmake.org/download/)
-* [s2client-api](https://github.com/Blizzard/s2client-api/tree/master) 
 * Starcraft 2 ([Windows](https://starcraft2.com/en-us/)) ([Linux](https://github.com/Blizzard/s2client-proto#linux-packages)) 
 * [Starcraft 2 Map Packs](https://github.com/Blizzard/s2client-proto#map-packs) 
 
