@@ -35,7 +35,7 @@ void KillSc2Process(unsigned long pid)
     kill(pid, SIGKILL);
 }
 
-bool MoveReplayFile(char* lpExistingFileName, char* lpNewFileName)
+bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
 {
 	// todo
 	throw "MoveFile is not implemented for linux yet.";
