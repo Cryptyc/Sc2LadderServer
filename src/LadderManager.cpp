@@ -936,7 +936,7 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		curl_mime_free(form);
 		/* free slist */
 		curl_slist_free_all(headerlist);
-		MoveFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
+		MoveReplayFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
 
 
 	}
