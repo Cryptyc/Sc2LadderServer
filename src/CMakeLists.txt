@@ -7,7 +7,7 @@ include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
     ${PROJECT_BINARY_DIR}/s2client-api/generated
     ${PROJECT_SOURCE_DIR}/rapidjson
-	if (MSVC) # Curl include for windows
+	if (WIN32) # Curl include for windows
 		include_directories(SYSTEM
 				${PROJECT_SOURCE_DIR}/curl/include/curl
 		)
@@ -17,7 +17,7 @@ include_directories(SYSTEM
 # Link directories
 link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
 
-if (MSVC) # Curl library for windows
+if (WIN32) # Curl library for windows
 	link_directories(${PROJECT_SOURCE_DIR}/curl/lib)
 endif ()
 
@@ -27,7 +27,7 @@ target_link_libraries(Sc2LadderServer
     sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf libcurl.lib
 )
 
-if (MSVC) # Curl dlls for windows
+if (WIN32) # Curl dlls for windows
 	# todo: check for debug/release and copy only relevant DLL
 	# todo: currently it copies both the debug and release DLLs regardless
 	add_custom_command(TARGET Sc2LadderServer POST_BUILD
