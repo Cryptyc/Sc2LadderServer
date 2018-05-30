@@ -779,12 +779,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		SaveReplay(&client2, ReplayFile);
 	}
 	sc2::SleepFor(1000);
-	if(SendDataToConnection(&client, CreateLeaveGameRequest().get()))
+	if(!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 1." << std::endl;
 	}
 	sc2::SleepFor(1000);
-	if(SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
+	if(!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
 	}
