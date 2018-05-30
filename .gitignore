@@ -1,0 +1,18 @@
+##
+## A good Visual Studio .gitignore reference can be found here: https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
+## I only added relevant entries to what my build produced.
+## Feel feel to add more.
+## - lladdy
+##
+
+# User-specific files
+*.suo
+*.user
+
+# Build results
+Debug/
+Release/
+x64/
+
+# Visual Studio 2015/2017 cache/options directory
+.vs/
