@@ -7,7 +7,11 @@ include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
     ${PROJECT_BINARY_DIR}/s2client-api/generated
     ${PROJECT_SOURCE_DIR}/rapidjson
-    ${PROJECT_SOURCE_DIR}/curl/include/curl
+	if (MSVC) # Curl include for windows
+		include_directories(SYSTEM
+				${PROJECT_SOURCE_DIR}/curl/include/curl
+		)
+	endif ()
 )
 
 # Link directories
