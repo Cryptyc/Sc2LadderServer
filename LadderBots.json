@@ -1,26 +1,25 @@
 {
 
 	"Bots": {
-		"CryptBot": {
-			"Race": "Protoss",
-			"Type": "BinaryCpp",
-			"Path": "bot_simple.exe"
+		"ProtossBot": {
+			"Race": "Protoss",		#Race of your bot
+			"Type": "BinaryCpp",	#Type (BinaryCpp or Python)
+			"RootPath": "C:/Ladder/Bots/",	#Path to the bot file
+			"FileName": "ProtossBot.exe",		#Name of the bot file
+			"Args": "--arg1 --arg2"			#Optional command line arguments that get passed to the bot file.
 		},
 		"TerranBot": {
 			"Race": "Terran",
 			"Type": "BinaryCpp",
-			"Path": "bot_simple.exe"
-			"Args": "-something"
+			"RootPath": "C:/Ladder/Bots/",
+			"FileName": "TerranBot.exe",
 		},
 		"ZergBot": {
 			"Race": "Zerg",
-			"Type": "pythonSC2",
-			"Path": "bot_simple/RunLadder.py"
-		},
-		"SimpleAgent": {
-			"Race": "Terran",
-			"Type": "pysc2",
-			"Path": "C:/Ladder/Bots/SimpleAgent/simple_agent.py"
+			"Type": "Python",
+			"RootPath": "C:/Ladder/Bots/ZergBot/",
+			"FileName": "run.py",
+			"Args": "--argA --argB"
 		}
 	}
 }

@@ -146,7 +146,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 					CurrentStatus = response->status();
 					if (OldStatus != CurrentStatus)
 					{
-						std::cout << "Current status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+						std::cout << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
 						OldStatus = CurrentStatus;
 					}
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
@@ -318,32 +318,19 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
 	{
-	case pysc2:
+	case Python:
 	{
-		std::string race = GetRaceString(AgentConfig.Race);
-		race[0] = std::tolower(race[0]);
-		size_t lastdot = AgentConfig.Path.find_last_of(".");
-		OutCmdLine = "python -m pysc2.bin.play_vs_agent --agent " + AgentConfig.Path.substr(0, lastdot+1) + AgentConfig.Name + " --host_port " + std::to_string(GamePort) + " --lan_port " + std::to_string(StartPort + 2) + " --map Interloper --agent_race " + race;
-		if (CompOpp)
-		{
-			OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
-		}
-		OutCmdLine += " " + AgentConfig.Args;
-		return OutCmdLine;
-	}
-	case pythonSC2:
-	{
-		OutCmdLine = "python " + AgentConfig.Path;
+		OutCmdLine = "python " + AgentConfig.RootPath+ AgentConfig.FileName;
 		break;
 	}
 	case BinaryCpp:
 	{
-		OutCmdLine = AgentConfig.Path;
+		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
 	case CommandCenter:
 	{
-		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.Path;
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.RootPath;
 		break;
 
 	}
@@ -357,9 +344,11 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 	}
-	OutCmdLine += " " + AgentConfig.Args;
+	if (AgentConfig.Args != "")
+	{
+		OutCmdLine += " " + AgentConfig.Args;
+	}
 	return OutCmdLine;
-
 }
 
 
@@ -559,12 +548,12 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 		}
 	}
 
-	std::cout << "Starting bot: " << Agent1.Name << std::endl;
+	std::cout << "Starting bot: " << Agent1.BotName << std::endl;
 	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
 	sc2::SleepFor(1000);
 
-	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
-	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.Name);
+	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
+	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.BotName);
 	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
@@ -607,7 +596,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	}
 
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
+	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 
 	SaveReplay(&client, ReplayFile);
@@ -693,22 +682,22 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	std::cout << "Starting bot: " << Agent1.Name << " with command:"<<std::endl;
+	std::cout << "Starting bot: " << Agent1.BotName << " with command:"<<std::endl;
 	std::cout << Agent1Path << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
 	sc2::SleepFor(1000);
 
-	std::cout << "Monitoring client of: " << Agent1.Name << std::endl;
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.Name);
+	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName);
 	sc2::SleepFor(1000);
 
-	std::cout << std::endl << "Starting bot: " << Agent2.Name << " with command:" << std::endl;
+	std::cout << std::endl << "Starting bot: " << Agent2.BotName << " with command:" << std::endl;
 	std::cout << Agent2Path << std::endl;
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
 	sc2::SleepFor(1000);
 
-	std::cout << "Monitoring client of: " << Agent2.Name << std::endl;
-	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.Name);
+	std::cout << "Monitoring client of: " << Agent2.BotName << std::endl;
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName);
 	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
@@ -788,7 +777,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	sc2::SleepFor(1000);
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
-	std::string ReplayFile = ReplayDir + Agent1.Name + "v" + Agent2.Name + "-" + RemoveMapExtension(Map) + ".SC2Replay";
+	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	if (!SaveReplay(&client, ReplayFile))
 	{
@@ -889,7 +878,7 @@ void LadderManager::LoadAgents()
 		for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
 		{
 			BotConfig NewBot;
-			NewBot.Name = itr->name.GetString();
+			NewBot.BotName = itr->name.GetString();
 			const rapidjson::Value &    val = itr->value;
 
 			if (val.HasMember("Race") && val["Race"].IsString())
@@ -898,7 +887,7 @@ void LadderManager::LoadAgents()
 			}
 			else
 			{
-				std::cerr << "Unable to parse race for bot " << NewBot.Name << std::endl;
+				std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
 				continue;
 			}
 			if (val.HasMember("Type") && val["Type"].IsString())
@@ -907,33 +896,52 @@ void LadderManager::LoadAgents()
 			}
 			else
 			{
-				std::cerr << "Unable to parse type for bot " << NewBot.Name << std::endl;
+				std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
 				continue;
 			}
-			if (val.HasMember("Path") && val["Path"].IsString())
+			if (NewBot.Type != DefaultBot)
 			{
-				NewBot.Path = val["Path"].GetString();
-				if (NewBot.Type != DefaultBot && !sc2::DoesFileExist(NewBot.Path))
+				if (val.HasMember("RootPath") && val["RootPath"].IsString())
 				{
-					std::cerr << "Unable to parse bot " << NewBot.Name << std::endl;
-					std::cerr << "Is the path " << NewBot.Path << "correct?"<<std::endl;
+					NewBot.RootPath = val["RootPath"].GetString();
+					if (NewBot.RootPath.back() != '/')
+					{
+						NewBot.RootPath += '/';
+					}
+				}
+				else
+				{
+					std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
 					continue;
+				}
+				if (val.HasMember("FileName") && val["FileName"].IsString())
+				{
+					NewBot.FileName = val["FileName"].GetString();
+				}
+				else
+				{
+					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
+					continue;
+				}
+				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
+				{
+					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
+					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
+					continue;
+				}
+				if (val.HasMember("Args") && val["Args"].IsString())
+				{
+					NewBot.Args = val["Arg"].GetString();
 				}
 			}
 			else
 			{
-				std::cerr << "Unable to parse path for bot " << NewBot.Name << std::endl;
-				continue;
+				if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
+				{
+					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
+				}
 			}
-			if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
-			{
-				NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
-			}
-			if (val.HasMember("Args") && val["Args"].IsString())
-			{
-				NewBot.Args = val["Arg"].GetString();
-			}
-			BotConfigs.insert(std::make_pair(std::string(NewBot.Name), NewBot));
+			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
 
 		}
 	}
@@ -965,11 +973,11 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 	std::string ReplayFile;
 	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
 	{
-		ReplayFile = ThisMatch.Agent1.Name + "v" + GetDifficultyString(ThisMatch.Agent2.Difficulty) + "-" + RawMapName + ".Sc2Replay";
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + GetDifficultyString(ThisMatch.Agent2.Difficulty) + "-" + RawMapName + ".Sc2Replay";
 	}
 	else
 	{
-		ReplayFile = ThisMatch.Agent1.Name + "v" + ThisMatch.Agent2.Name + "-" + RawMapName + ".Sc2Replay";
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + ThisMatch.Agent2.BotName + "-" + RawMapName + ".Sc2Replay";
 	}
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	std::string ReplayLoc = ReplayDir + ReplayFile;
@@ -998,13 +1006,13 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		/* Fill in the filename field */
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot1Name");
-		curl_mime_data(field, ThisMatch.Agent1.Name.c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, ThisMatch.Agent1.BotName.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot1Race");
 		curl_mime_data(field, std::to_string((int)ThisMatch.Agent1.Race).c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot2Name");
-		curl_mime_data(field, ThisMatch.Agent2.Name.c_str(), CURL_ZERO_TERMINATED);
+		curl_mime_data(field, ThisMatch.Agent2.BotName.c_str(), CURL_ZERO_TERMINATED);
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot2Race");
 		curl_mime_data(field, std::to_string((int)ThisMatch.Agent2.Race).c_str(), CURL_ZERO_TERMINATED);
@@ -1057,7 +1065,7 @@ void LadderManager::RunLadderManager()
 	std::cout << "Starting with agents: \r\n";
 	for (auto &Agent : BotConfigs)
 	{
-		std::cout << Agent.second.Name + "\r\n";
+		std::cout << Agent.second.BotName + "\r\n";
 	}
 	std::string MatchListFile = Config->GetValue("MatchupListFile");
 	MatchupList *Matchups = new MatchupList(MatchListFile);
@@ -1069,7 +1077,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			ResultType result = ResultType::InitializationError;
-			std::cout << "Starting " << NextMatch.Agent1.Name << " vs " << NextMatch.Agent2.Name << " on " << NextMatch.Map << " \n";
+			std::cout << "\nStarting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << " \n";
 			if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 			{
 				if (NextMatch.Agent1.Type == DefaultBot)
@@ -1083,16 +1091,9 @@ void LadderManager::RunLadderManager()
 			}
 			else
 			{
-				// Terran bug. Skip where terran is player 2
-				/*
-				if (NextMatch.Agent2.Race == sc2::Race::Terran)
-				{
-					continue;
-				}
-				*/
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
-			UploadMime(result, NextMatch);
+			//UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
 	
@@ -1100,7 +1101,7 @@ void LadderManager::RunLadderManager()
 	catch (const std::exception& e)
 	{
 		std::cout << "Exception in game " << e.what() << " \r\n";
-		SaveError(NextMatch.Agent1.Name, NextMatch.Agent2.Name, NextMatch.Map);
+		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
 	
 }

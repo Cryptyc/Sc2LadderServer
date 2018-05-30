@@ -12,8 +12,7 @@ enum BotType
 {
     BinaryCpp,
     CommandCenter,
-	pysc2,
-	pythonSC2,
+	Python,
 	DefaultBot
 };
 
@@ -55,23 +54,25 @@ typedef struct SGameState
 typedef struct SBotConfig
 {
     BotType Type;
-    std::string Name;
-    std::string Path;
+    std::string BotName;
+	std::string RootPath;
+	std::string FileName;
     sc2::Race Race;
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
     SBotConfig() {}
-    SBotConfig(BotType InType, std::string InBotName, sc2::Race InBotRace, std::string InBotPath, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, std::string InArgs="")
+    SBotConfig(const BotType & InType,const std::string & InBotName,const sc2::Race & InBotRace, const std::string & InBotPath, const std::string & InFileName, const sc2::Difficulty & InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs="")
         : Type(InType)
         , Race(InBotRace)
-        , Name(InBotName)
-        , Path(InBotPath)
+        , BotName(InBotName)
+        , RootPath(InBotPath)
+		, FileName(InFileName)
 		, Difficulty(InDifficulty)
 		, Args(InArgs)
     {}
     bool operator ==(const SBotConfig &Other)
     {
-        return Name == Other.Name;
+        return BotName == Other.BotName;
     }
 } BotConfig;
 
@@ -173,13 +174,9 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	{
 		return BotType::DefaultBot;
 	}
-	else if (type == "pysc2")
+	else if (type == "python")
 	{
-		return BotType::pysc2;
-	}
-	else if (type == "pythonsc2")
-	{
-		return BotType::pythonSC2;
+		return BotType::Python;
 	}
 	return BotType::BinaryCpp;
 }

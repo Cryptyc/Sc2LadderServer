@@ -75,7 +75,7 @@ bool MatchupList::SaveMatchList()
 	}
 	for (Matchup &NextMatch : Matchups)
 	{
-		ofs << "\"" + NextMatch.Agent1.Name + "\"vs\"" + NextMatch.Agent2.Name + "\" " + NextMatch.Map + "\r\n";
+		ofs << "\"" + NextMatch.Agent1.BotName + "\"vs\"" + NextMatch.Agent2.BotName + "\" " + NextMatch.Map + "\r\n";
 	}
 	ofs.close();
 	return true;
