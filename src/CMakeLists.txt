@@ -24,8 +24,14 @@ endif ()
 # Create the executable.
 add_executable(Sc2LadderServer ${SOURCES_SC2LADDERSERVER})
 target_link_libraries(Sc2LadderServer
-    sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf libcurl.lib
+    sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
 )
+if (WIN32) # Platform specific curl library
+	target_link_libraries(Sc2LadderServer libcurl.lib)
+elseif (UNIX)
+	target_link_libraries(Sc2LadderServer curl)
+endif ()
+
 
 if (WIN32) # Curl dlls for windows
 	# todo: check for debug/release and copy only relevant DLL
