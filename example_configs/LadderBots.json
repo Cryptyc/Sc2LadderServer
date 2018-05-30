@@ -1,0 +1,15 @@
+{
+
+  "Bots": {
+    "CryptBot": {
+      "Race": "Protoss",
+      "Type": "binarycpp",
+      "Path": "path/to/bot/exe"
+    },
+    "5minBot": {
+      "Race": "Terran",
+      "Type": "binarycpp",
+      "Path": "path/to/bot/exe"
+    }
+  }
+}
