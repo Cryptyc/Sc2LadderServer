@@ -97,7 +97,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
 	//    Client->Send(Create_game_request.get());
 	ExitCase CurrentExitCase = ExitCase::InProgress;
-	std::cout << "Starting proxy\n" << std::endl;
+	std::cout << "Starting proxy for " << *botName << std::endl;
 	bool RequestFound = false;
 	clock_t LastRequest = clock();
 	std::map<SC2APIProtocol::Status, std::string> status;
@@ -320,7 +320,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 	case Python:
 	{
-		OutCmdLine = "python " + AgentConfig.RootPath+ AgentConfig.FileName;
+		OutCmdLine = "python " + AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
 	case BinaryCpp:
@@ -1057,15 +1057,15 @@ void LadderManager::RunLadderManager()
 
 	GetMapList();
 	LoadAgents();
-	std::cout << "Starting with " << MapList.size() << " maps:\r\n";
+	std::cout << "Starting with " << MapList.size() << " maps:" << std::endl;
 	for (auto &map : MapList)
 	{
-		std::cout << "* " << map + "\r\n";
+		std::cout << "* " << map << std::endl;
 	}
-	std::cout << "Starting with agents: \r\n";
+	std::cout << "Starting with agents: " << std::endl;
 	for (auto &Agent : BotConfigs)
 	{
-		std::cout << Agent.second.BotName + "\r\n";
+		std::cout << Agent.second.BotName << std::endl;
 	}
 	std::string MatchListFile = Config->GetValue("MatchupListFile");
 	MatchupList *Matchups = new MatchupList(MatchListFile);
@@ -1077,7 +1077,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			ResultType result = ResultType::InitializationError;
-			std::cout << "\nStarting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << " \n";
+			std::cout << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
 			if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 			{
 				if (NextMatch.Agent1.Type == DefaultBot)
@@ -1093,14 +1093,14 @@ void LadderManager::RunLadderManager()
 			{
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
-			//UploadMime(result, NextMatch);
+			UploadMime(result, NextMatch);
 			Matchups->SaveMatchList();
 		}
 	
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << "Exception in game " << e.what() << " \r\n";
+		std::cout << "Exception in game " << e.what() << std::endl;
 		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
 	
@@ -1118,7 +1118,7 @@ void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::strin
 	{
 		return;
 	}
-	ofs << "\"" + Agent1 + "\"vs\"" + Agent2 + "\" " + Map + "\r\n";
+	ofs << "\"" + Agent1 + "\"vs\"" + Agent2 + "\" " + Map << std::endl;
 	ofs.close();
 }
 

@@ -1,11 +1,11 @@
 {
 	"Bots": {
 		"ProtossBot": {
-			"Race": "Protoss",		#Race of your bot
-			"Type": "BinaryCpp",	#Type (BinaryCpp or Python)
-			"RootPath": "C:/Ladder/Bots/",	#Path to the bot file
-			"FileName": "ProtossBot.exe",		#Name of the bot file
-			"Args": "--arg1 --arg2"			#Optional command line arguments that gets passed to the bot file.
+			"Race": "Protoss",		//Race of your bot
+			"Type": "BinaryCpp",	//Type (BinaryCpp or Python)
+			"RootPath": "C:/Ladder/Bots/",	//Path to the bot file
+			"FileName": "ProtossBot.exe",		//Name of the bot file
+			"Args": "--arg1 --arg2"			//Optional command line arguments that gets passed to the bot file.
 		},
 		"TerranBot": {
 			"Race": "Terran",

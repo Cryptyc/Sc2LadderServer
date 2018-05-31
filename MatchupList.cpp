@@ -26,7 +26,7 @@ bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::
 	Matchups.clear();
 	if (!LoadMatchupList(Agents))
 	{
-		std::cout << "Could not load MatchupList from file. Generating new one..\r\n";
+		std::cout << "Could not load MatchupList from file. Generating new one.." << std::endl;
 		for (int i = 0; i < 2; i++)
 		{
 			for (const auto &Agent1 : Agents)
@@ -50,7 +50,7 @@ bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::
 		return true;
 	}
 	else {
-		std::cout << "MatchupList loaded from file with " << Matchups.size() << " matches to go.\r\n";
+		std::cout << "MatchupList loaded from file with " << Matchups.size() << " matches to go." << std::endl;
 	}
 	return true;
 }
@@ -75,7 +75,7 @@ bool MatchupList::SaveMatchList()
 	}
 	for (Matchup &NextMatch : Matchups)
 	{
-		ofs << "\"" + NextMatch.Agent1.BotName + "\"vs\"" + NextMatch.Agent2.BotName + "\" " + NextMatch.Map + "\r\n";
+		ofs << "\"" + NextMatch.Agent1.BotName + "\"vs\"" + NextMatch.Agent2.BotName + "\" " + NextMatch.Map << std::endl;
 	}
 	ofs.close();
 	return true;
@@ -108,17 +108,17 @@ bool MatchupList::LoadMatchupList(std::map<std::string, BotConfig> Agents)
 		p = line.find_last_not_of(" \t\r\n");
 		std::string Map = line.substr(0, p + 1);
 		auto search = Agents.find(FirstAgent);
-		std::cout << "Creating match: " + FirstAgent + " vs " + SecondAgent + " on " + Map + "\r\n";
+		std::cout << "Creating match: " + FirstAgent + " vs " + SecondAgent + " on " + Map << std::endl;
 		if (search == Agents.end())
 		{
-			std::cout << "Unable to find agent: " + FirstAgent << "\r\n";
+			std::cout << "Unable to find agent: " + FirstAgent << std::endl;
 			continue;
 		}
 		BotConfig Agent1 = search->second;
 		search = Agents.find(SecondAgent);
 		if (search == Agents.end())
 		{
-			std::cout << "Unable to find agent: " + SecondAgent << "\r\n";
+			std::cout << "Unable to find agent: " + SecondAgent << std::endl;
 			continue;
 		}
 		BotConfig Agent2 = search->second;
