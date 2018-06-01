@@ -61,7 +61,7 @@ typedef struct SBotConfig
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
     SBotConfig() {}
-    SBotConfig(const BotType & InType,const std::string & InBotName,const sc2::Race & InBotRace, const std::string & InBotPath, const std::string & InFileName, const sc2::Difficulty & InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs="")
+    SBotConfig(BotType InType,const std::string & InBotName,sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs="")
         : Type(InType)
         , Race(InBotRace)
         , BotName(InBotName)

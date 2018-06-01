@@ -685,25 +685,18 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	std::cout << "Starting bot: " << Agent1.BotName << " with command:"<<std::endl;
 	std::cout << Agent1Path << std::endl;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
-	sc2::SleepFor(1000);
-
-	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName);
-	sc2::SleepFor(1000);
-
-	std::cout << std::endl << "Starting bot: " << Agent2.BotName << " with command:" << std::endl;
+	std::cout << "Starting bot: " << Agent2.BotName << " with command:" << std::endl;
 	std::cout << Agent2Path << std::endl;
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
 	sc2::SleepFor(1000);
 
-	std::cout << "Monitoring client of: " << Agent2.BotName << std::endl;
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName);
 	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName);
 	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
 	bool GameRunning = true;
 	//sc2::ProtoInterface proto_1;
-	sc2::SleepFor(5000);
 	while (GameRunning)
 	{
 		auto update1status = bot1UpdateThread.wait_for(1s);
