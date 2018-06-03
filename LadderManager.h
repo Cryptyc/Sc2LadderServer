@@ -7,7 +7,8 @@
 class LadderManager
 {
 public:
-    LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
+	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
+	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile);
     bool LoadSetup();
 	void RunLadderManager();
 
@@ -33,6 +34,7 @@ private:
 
     int CoordinatorArgc;
     char **CoordinatorArgv;
+	char *ConfigFile;
 
     int32_t MaxGameTime;
     bool Sc2Launched;

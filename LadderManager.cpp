@@ -36,8 +36,6 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 
-const static char *ConfigFile = "LadderManager.conf";
-
 
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 {
@@ -827,8 +825,20 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
 	, MaxGameTime(0)
+	, ConfigFile("LadderManager.conf")
 {
 
+}
+
+// Used for tests
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile)
+
+	: coordinator(nullptr)
+	, CoordinatorArgc(InCoordinatorArgc)
+	, CoordinatorArgv(inCoordinatorArgv)
+	, MaxGameTime(0)
+{
+	this->ConfigFile = ConfigFile;
 }
 
 bool LadderManager::LoadSetup()
