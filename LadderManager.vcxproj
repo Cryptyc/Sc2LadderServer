@@ -28,6 +28,7 @@
     <ClInclude Include="LadderConfig.h" />
     <ClInclude Include="LadderManager.h" />
     <ClInclude Include="MatchupList.h" />
+    <ClInclude Include="Tests.h" />
     <ClInclude Include="Types.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

@@ -41,5 +41,3 @@ private:
     sc2::Coordinator *coordinator;
     LadderConfig *Config;
 };
-
-LadderManager *LadderMan;

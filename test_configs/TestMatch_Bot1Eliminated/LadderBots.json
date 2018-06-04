@@ -1,0 +1,15 @@
+{
+
+  "Bots": {
+    "DebugBot1": {
+      "Race": "Terran",
+      "Type": "binarycpp",
+      "Path": "DebugBot.exe"
+    },
+    "DebugBot2": {
+      "Race": "Terran",
+      "Type": "binarycpp",
+      "Path": "DebugBot.exe"
+    }
+  }
+}
