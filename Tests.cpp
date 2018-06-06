@@ -44,10 +44,10 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 		myfile.close();
 
 		// Run LadderManager
-		LadderManager *LadderMan = new LadderManager(argc, argv, "./test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
-		if (LadderMan->LoadSetup())
+		LadderManager LadderMan(argc, argv, "./test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
+		if (LadderMan.LoadSetup())
 		{
-			LadderMan->RunLadderManager();
+			LadderMan.RunLadderManager();
 		}
 		return true;
 	}

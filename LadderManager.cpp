@@ -1110,12 +1110,11 @@ inline void DoLadderManager(int argc, char** argv)
 {
 	std::cout << "LadderManager started." << std::endl;
 
-	LadderManager* LadderMan = new LadderManager(argc, argv);
-	if (LadderMan->LoadSetup())
+	LadderManager LadderMan(argc, argv);
+	if (LadderMan.LoadSetup())
 	{
-		LadderMan->RunLadderManager();
+		LadderMan.RunLadderManager();
 	}
-	delete LadderMan;
 
 	std::cout << "Finished." << std::endl;
 }
