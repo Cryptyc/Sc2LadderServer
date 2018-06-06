@@ -35,8 +35,7 @@
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
-
-const static char *ConfigFile = "LadderManager.conf";
+#include "Tests.h"
 
 
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
@@ -825,8 +824,20 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
 	, MaxGameTime(0)
+	, ConfigFile("LadderManager.conf")
 {
 
+}
+
+// Used for tests
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile)
+
+	: coordinator(nullptr)
+	, CoordinatorArgc(InCoordinatorArgc)
+	, CoordinatorArgv(inCoordinatorArgv)
+	, MaxGameTime(0)
+{
+	this->ConfigFile = ConfigFile;
 }
 
 bool LadderManager::LoadSetup()
@@ -1115,15 +1126,23 @@ void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::strin
 	ofs.close();
 }
 
-int main(int argc, char** argv)
+inline void DoLadderManager(int argc, char** argv)
 {
 	std::cout << "LadderManager started." << std::endl;
 
-	LadderMan = new LadderManager(argc, argv);
-	if (LadderMan->LoadSetup())
+	LadderManager LadderMan(argc, argv);
+	if (LadderMan.LoadSetup())
 	{
-		LadderMan->RunLadderManager();
+		LadderMan.RunLadderManager();
 	}
 
 	std::cout << "Finished." << std::endl;
+}
+
+int main(int argc, char** argv)
+{
+	// Uncomment to run tests
+	//return RunTests(argc, argv);
+
+	DoLadderManager(argc, argv);
 }
