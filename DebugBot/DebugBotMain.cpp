@@ -1,9 +1,12 @@
-#include <iostream>
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_args.h"
 #include "sc2lib/sc2_lib.h"
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_arg_parser.h"
+
+#include <Windows.h>
+#include <iostream>
+#include <experimental/filesystem>
 
 #include "LadderInterface.h"
 
@@ -12,6 +15,10 @@ public:
 	virtual void OnGameStart() final {
 		const sc2::ObservationInterface* observation = Observation();
 		std::cout << "I am player number " << observation->GetPlayerID() << std::endl;
+		std::cout << "Executable: " << GetExecutableFullFileName() << std::endl;
+		// if the following statement gives anyone trouble, it might be
+		// that current_path() is a C++17 function.
+		std::cout << "Working directory: " << std::experimental::filesystem::current_path() << std::endl;
 	};
 
 	virtual void OnStep() final {
@@ -37,6 +44,15 @@ public:
 	};
 
 private:
+	std::string GetExecutableFullFileName()
+	{
+		char buf[MAX_PATH];
+		int bytes = GetModuleFileName(NULL, buf, MAX_PATH);
+		if (bytes == 0)
+			return "Error: Could not retrieve executable file name.";
+		else
+			return std::string(buf);
+	}
 };
 
 int main(int argc, char* argv[])
