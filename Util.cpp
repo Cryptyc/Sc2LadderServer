@@ -57,6 +57,8 @@ std::string GetExecutableDirectory()
 
 std::string GetWorkingDirectory()
 {
+	// if the following statement gives anyone trouble, it might be
+	// that current_path() is a C++17 function.
 	return std::experimental::filesystem::current_path().generic_string();
 }
 
