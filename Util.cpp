@@ -41,18 +41,17 @@ std::string GetExecutableFullFilename()
 	auto bytes = GetModuleFileName(NULL, buf, MAX_PATH);
 	if (bytes == 0)
 		throw "Error: Could not retrieve executable file name.";
-	else
-		return std::string(buf);
+	return std::string(buf);
 }
 
 std::string GetExecutableDirectory()
 {
 	auto executableFile = GetExecutableFullFilename();
 	auto found = executableFile.find_last_of('\\');
-	if (found != std::string::npos) // strip out the executable filename at the end
-		return executableFile.substr(0, found);
-	else
-		"Expected backslash in executableFile, but none was present.";
+	if (found == std::string::npos)
+		throw "Expected backslash in executableFile, but none was present.";
+	// strip out the executable filename at the end
+	return executableFile.substr(0, found);
 }
 
 std::string GetWorkingDirectory()
@@ -64,23 +63,32 @@ std::string GetWorkingDirectory()
 
 bool FileExistsInExecutableDirectory(std::string filename)
 {
-	if (std::ifstream(GetExecutableDirectory() + "\\" + filename).good())
-		return true;
-	return false;
+	return std::ifstream(GetExecutableDirectory() + "\\" + filename).good();
 }
 
 bool FileExistsInWorkingDirectory(std::string filename)
 {
-	if (std::ifstream(
-		GetWorkingDirectory() + "\\" + filename
-	).good())
-		return true;
-	return false;
+	return std::ifstream(GetWorkingDirectory() + "\\" + filename).good();
+}
+
+bool FileExists(std::string filename)
+{
+	return std::ifstream(filename).good();
 }
 
 bool CanFindFileInEnvironment(std::string filename)
 {
-	return FileExistsInExecutableDirectory(filename)
+	// If filename contains directories, only check it against
+	// the an absolute reference or the working directory.
+	// Only straight commands such as "Bot.exe" (i.e. no directory)
+	// will successfully run a program found in the executable's
+	// directory or the env path
+	return filename.find('\\') != std::string::npos
+		|| filename.find('/') != std::string::npos
+		? FileExists(filename)
+		|| FileExistsInWorkingDirectory(filename)
+		: FileExists(filename)
+		|| FileExistsInExecutableDirectory(filename)
 		|| FileExistsInWorkingDirectory(filename)
 		|| FileExistsInEnvironmentPath(filename);
 }

@@ -929,8 +929,7 @@ void LadderManager::LoadAgents()
 					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
 					continue;
 				}
-				if (!(sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName)
-					|| CanFindFileInEnvironment(NewBot.RootPath + NewBot.FileName)))
+				if (!(CanFindFileInEnvironment(NewBot.RootPath + NewBot.FileName)))
 				{
 					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
 					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
