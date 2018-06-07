@@ -49,6 +49,11 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 		{
 			LadderMan.RunLadderManager();
 		}
+
+		// clean up matchuplist
+		if(!remove("./test_configs/TestMatch_Bot1Eliminated/matchuplist"))
+			std::cerr << "Warning: Unable to remove matchuplist file after TestMatch Bot1Eliminated!" << std::endl;
+
 		return true;
 	}
 	catch (const std::exception& e)
