@@ -23,6 +23,7 @@
     <ClCompile Include="LadderManager.cpp" />
     <ClCompile Include="MatchupList.cpp" />
     <ClCompile Include="Tests.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LadderConfig.h" />
@@ -30,6 +31,7 @@
     <ClInclude Include="MatchupList.h" />
     <ClInclude Include="Tests.h" />
     <ClInclude Include="Types.h" />
+    <ClInclude Include="Util.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
