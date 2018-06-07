@@ -910,7 +910,7 @@ void LadderManager::LoadAgents()
 				if (val.HasMember("RootPath") && val["RootPath"].IsString())
 				{
 					NewBot.RootPath = val["RootPath"].GetString();
-					if (NewBot.RootPath.back() != '/' && NewBot.RootPath.back() != '\\')
+					if (!NewBot.RootPath.empty() && NewBot.RootPath.back() != '/' && NewBot.RootPath.back() != '\\')
 					{
 						NewBot.RootPath += '/';
 					}
