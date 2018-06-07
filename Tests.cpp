@@ -31,8 +31,10 @@
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
-
+#include "Util.h"
 #include "Tests.h"
+
+
 
 bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	try
@@ -76,6 +78,9 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
     }
 
 int RunTests(int argc, char** argv) {
+	std::cout << "Executable: " << GetExecutableFullFilename() << std::endl;
+	std::cout << "Working directory: " << GetWorkingDirectory() << std::endl;
+
 	bool success = true;
 
 	TEST(TestMatch_Bot1Eliminated);
