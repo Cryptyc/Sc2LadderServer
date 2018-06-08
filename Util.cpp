@@ -7,7 +7,7 @@
 
 #include "util.h"
 
-std::vector<std::string> SplitStringByCharacter(std::string string, char splitter)
+std::vector<std::string> SplitStringByCharacter(const std::string& string, const char splitter)
 {
 	std::string segment;
 	std::vector<std::string> segments;
@@ -20,7 +20,7 @@ std::vector<std::string> SplitStringByCharacter(std::string string, char splitte
 	return segments;
 }
 
-bool FileExistsInEnvironmentPath(std::string filename)
+bool FileExistsInEnvironmentPath(const std::string& filename)
 {
 	// 65535 - longest windows path var
 	DWORD buffSize = 65535;
@@ -61,22 +61,22 @@ std::string GetWorkingDirectory()
 	return std::experimental::filesystem::current_path().generic_string();
 }
 
-bool FileExistsInExecutableDirectory(std::string filename)
+bool FileExistsInExecutableDirectory(const std::string& filename)
 {
 	return std::ifstream(GetExecutableDirectory() + "\\" + filename).good();
 }
 
-bool FileExistsInWorkingDirectory(std::string filename)
+bool FileExistsInWorkingDirectory(const std::string& filename)
 {
 	return std::ifstream(GetWorkingDirectory() + "\\" + filename).good();
 }
 
-bool FileExists(std::string filename)
+bool FileExists(const std::string& filename)
 {
 	return std::ifstream(filename).good();
 }
 
-bool CanFindFileInEnvironment(std::string filename)
+bool CanFindFileInEnvironment(const std::string& filename)
 {
 	// If filename contains directories, only check it against
 	// the an absolute reference or the working directory.
