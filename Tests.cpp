@@ -40,10 +40,10 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	try
 	{
 		// Write out the matchup file before launching LadderManager so we can dictate the bot load order
-		std::ofstream myfile;
-		myfile.open("./test_configs/TestMatch_Bot1Eliminated/matchuplist");
-		myfile << "\"DebugBot1\" \"DebugBot2\" InterloperLE.SC2Map";
-		myfile.close();
+		std::ofstream matchuplist;
+		matchuplist.open("./test_configs/TestMatch_Bot1Eliminated/matchuplist");
+		matchuplist << "\"DebugBot1\" \"DebugBot2\" InterloperLE.SC2Map";
+		matchuplist.close();
 
 		// Run LadderManager
 		LadderManager LadderMan(argc, argv, "./test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
@@ -53,7 +53,7 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 		}
 
 		// clean up matchuplist
-		if(!remove("./test_configs/TestMatch_Bot1Eliminated/matchuplist"))
+		if(remove("./test_configs/TestMatch_Bot1Eliminated/matchuplist"))
 			std::cerr << "Warning: Unable to remove matchuplist file after TestMatch Bot1Eliminated!" << std::endl;
 
 		return true;
