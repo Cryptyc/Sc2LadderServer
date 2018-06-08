@@ -37,8 +37,8 @@ bool FileExistsInEnvironmentPath(const std::string& filename)
 
 std::string GetExecutableFullFilename()
 {
-	char buf[MAX_PATH];
-	auto bytes = GetModuleFileName(NULL, buf, MAX_PATH);
+	char buf[MAX_PATH + 1];
+	auto bytes = GetModuleFileName(NULL, buf, MAX_PATH + 1);
 	if (bytes == 0)
 		throw "Error: Could not retrieve executable file name.";
 	return std::string(buf);
