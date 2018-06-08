@@ -6,7 +6,6 @@
 
 #include <Windows.h>
 #include <iostream>
-#include <experimental/filesystem>
 
 #include "LadderInterface.h"
 
@@ -16,9 +15,7 @@ public:
 		const sc2::ObservationInterface* observation = Observation();
 		std::cout << "I am player number " << observation->GetPlayerID() << std::endl;
 		std::cout << "Executable: " << GetExecutableFullFileName() << std::endl;
-		// if the following statement gives anyone trouble, it might be
-		// that current_path() is a C++17 function.
-		std::cout << "Working directory: " << std::experimental::filesystem::current_path() << std::endl;
+		std::cout << "Working directory: " << GetWorkingDirectory() << std::endl;
 	};
 
 	virtual void OnStep() final {
@@ -44,6 +41,8 @@ public:
 	};
 
 private:
+	// These are copies of functions found in the main LadderManager project
+	// Ideally they could be moved to a common library eventually to avoid duplcation.
 	std::string GetExecutableFullFileName()
 	{
 		char buf[MAX_PATH];
@@ -52,6 +51,14 @@ private:
 			return "Error: Could not retrieve executable file name.";
 		else
 			return std::string(buf);
+	}
+	std::string GetWorkingDirectory()
+	{
+		char buf[MAX_PATH + 1];
+		if (GetCurrentDirectory(MAX_PATH + 1, buf))
+			return buf;
+		else
+			throw "Unable to get working directory: call to GetCurrentDirectory() returned nothing.";
 	}
 };
 

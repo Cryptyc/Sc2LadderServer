@@ -3,7 +3,6 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <experimental/filesystem>
 
 #include "util.h"
 
@@ -56,9 +55,11 @@ std::string GetExecutableDirectory()
 
 std::string GetWorkingDirectory()
 {
-	// if the following statement gives anyone trouble, it might be
-	// that current_path() is a C++17 function.
-	return std::experimental::filesystem::current_path().generic_string();
+	char buf[MAX_PATH + 1];
+	if (GetCurrentDirectory(MAX_PATH + 1, buf))
+		return buf;
+	else
+		throw "Unable to get working directory: call to GetCurrentDirectory() returned nothing.";
 }
 
 bool FileExistsInExecutableDirectory(const std::string& filename)
