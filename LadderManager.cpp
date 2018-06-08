@@ -36,6 +36,7 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tests.h"
+#include "Util.h"
 
 
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
@@ -225,7 +226,6 @@ bool LadderManager::SaveReplay(sc2::Connection *client, const std::string& path)
 	return true;
 }
 
-
 void StartBotProcess(std::string CommandLine)
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,11 +249,13 @@ void StartBotProcess(std::string CommandLine)
 	{
 		// CreateProcess() failed
 		// Get the error from the system
-		LPVOID lpMsgBuf;
+		LPTSTR lpMsgBuf = NULL;
 		DWORD dw = GetLastError();
 		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
 
+		// wcerr output gibberish, so using wcout for now until it's resolved.
+		std::wcout << lpMsgBuf;
 
 		// Free resources created by the system
 		LocalFree(lpMsgBuf);
@@ -908,7 +910,7 @@ void LadderManager::LoadAgents()
 				if (val.HasMember("RootPath") && val["RootPath"].IsString())
 				{
 					NewBot.RootPath = val["RootPath"].GetString();
-					if (NewBot.RootPath.back() != '/')
+					if (!NewBot.RootPath.empty() && NewBot.RootPath.back() != '/' && NewBot.RootPath.back() != '\\')
 					{
 						NewBot.RootPath += '/';
 					}
@@ -927,7 +929,7 @@ void LadderManager::LoadAgents()
 					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
 					continue;
 				}
-				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
+				if (!(CanFindFileInEnvironment(NewBot.RootPath + NewBot.FileName)))
 				{
 					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
 					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
