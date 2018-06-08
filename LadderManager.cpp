@@ -247,7 +247,7 @@ void StartBotProcess(BotConfig Agent, std::string CommandLine)
 
 	PROCESS_INFORMATION processInformation;
 	STARTUPINFO startupInfo;
-	DWORD flags = NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW;
+	DWORD flags = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE; //CREATE_NO_WINDOW <-- also possible, but we don't see easily if bot is still running.
 
 	ZeroMemory(&processInformation, sizeof(PROCESS_INFORMATION));
 	ZeroMemory(&startupInfo, sizeof(STARTUPINFO));
@@ -255,7 +255,7 @@ void StartBotProcess(BotConfig Agent, std::string CommandLine)
 	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
 	startupInfo.hStdInput = INVALID_HANDLE_VALUE;
 	startupInfo.hStdError = h;
-	startupInfo.hStdOutput = INVALID_HANDLE_VALUE;
+	startupInfo.hStdOutput = NULL;
 
 	DWORD exitCode;
 	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
@@ -365,7 +365,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	}
 	case CommandCenter:
 	{
-		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.RootPath;
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
 		break;
 
 	}
@@ -718,7 +718,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	}
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path);
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path);
-	sc2::SleepFor(1000);
+	sc2::SleepFor(500);
+	sc2::SleepFor(500);
 
 	//toDo check here already if the bots crashed.
 
