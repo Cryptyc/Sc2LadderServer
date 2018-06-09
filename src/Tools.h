@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string>
+#include "Types.h"
 
-void StartBotProcess(const std::string& CommandLine);
+void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine);
 
 void SleepFor(int seconds);
 

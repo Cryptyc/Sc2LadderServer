@@ -1,8 +1,28 @@
 #pragma once
 #include <memory.h>
+#include <sstream>
+#include <mutex>
+#include <iostream>
+#include <sc2api/sc2_api.h>
+#include "LadderConfig.h"
 #define MAX_GAME_TIME 60480
 #define PORT_START 5690
 
+
+class PrintThread : public std::ostringstream
+{
+public:
+	PrintThread() = default;
+
+	~PrintThread()
+	{
+		std::lock_guard<std::mutex> guard(_mutexPrint);
+		std::cout << this->str();
+	}
+
+private:
+	static std::mutex _mutexPrint;
+};
 
 class LadderManager
 {

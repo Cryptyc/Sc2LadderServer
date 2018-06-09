@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <sc2api/sc2_api.h>
 typedef void* (*GetAgentFunction)();
 typedef char* (*GetAgentNameFunction)();
 typedef int(*GetAgentRaceFunction)();
