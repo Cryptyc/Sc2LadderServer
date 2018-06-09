@@ -38,6 +38,8 @@
 #include "Tests.h"
 
 
+std::mutex PrintThread::_mutexPrint{};
+
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 {
 	bool success = true;
@@ -96,7 +98,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
 	//    Client->Send(Create_game_request.get());
 	ExitCase CurrentExitCase = ExitCase::InProgress;
-	std::cout << "Starting proxy for " << *botName << std::endl;
+	PrintThread{} << "Starting proxy for " << *botName << std::endl;
 	bool RequestFound = false;
 	clock_t LastRequest = clock();
 	std::map<SC2APIProtocol::Status, std::string> status;
@@ -118,7 +120,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 			}
 			if (client->connection_ == nullptr && RequestFound)
 			{
-				std::cout << "Client disconnect" << std::endl;
+				PrintThread{} << "Client disconnect (" << *botName << ")" << std::endl;
 				CurrentExitCase = ExitCase::ClientTimeout;
 			}
 
@@ -145,7 +147,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 					CurrentStatus = response->status();
 					if (OldStatus != CurrentStatus)
 					{
-						std::cout << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+						PrintThread{} << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
 						OldStatus = CurrentStatus;
 					}
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
@@ -183,7 +185,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 			{
 				if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
 				{
-					std::cout << "Client timeout(" << *botName <<")" << std::endl;
+					PrintThread{} << "Client timeout (" << *botName <<")" << std::endl;
 					CurrentExitCase = ExitCase::ClientTimeout;
 				}
 			}
@@ -274,31 +276,16 @@ void StartBotProcess(BotConfig Agent, std::string CommandLine)
 		DWORD dw = GetLastError();
 		size_t size = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-
 		std::string message(lpMsgBuf, size);
-		{
-			static std::mutex m;
-			std::lock_guard<std::mutex> mylock(m);
-			std::cout << "Starting bot: " << Agent.BotName << " with command:" << std::endl;
-			std::cout << CommandLine << std::endl;
-			std::cout << "...failed" << std::endl;
-			std::cout << "Error " << dw << " : " << message << std::endl;
-		}
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...failed" << std::endl << "Error " << dw << " : " << message << std::endl;
 		// Free resources created by the system
 		LocalFree(lpMsgBuf);
-
 		// We failed.
 		exitCode = -1;
 	}
 	else
 	{
-		{
-			static std::mutex m;
-			std::lock_guard<std::mutex> mylock(m);
-			std::cout << "Starting bot: " << Agent.BotName << " with command:" << std::endl;
-			std::cout << CommandLine << std::endl;
-			std::cout << "...success!" << std::endl;
-		}
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...success!" << std::endl;
 		// Successfully created the process.  Wait for it to finish.
 		WaitForSingleObject(processInformation.hProcess, INFINITE);
 
@@ -810,12 +797,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		SaveReplay(&client2, ReplayFile);
 	}
 	sc2::SleepFor(1000);
-	if(!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
+	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 1." << std::endl;
 	}
 	sc2::SleepFor(1000);
-	if(!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
+	if (!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
 	}
@@ -829,6 +816,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		server2.SendRequest();
 	}
+	
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
