@@ -5,9 +5,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include "Types.h"
+
 #include "Tools.h"
 
-void StartBotProcess(const std::string& CommandLine)
+void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine)
 {
     FILE* pipe = popen(CommandLine.c_str(), "r");
     if (!pipe)
