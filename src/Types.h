@@ -2,30 +2,24 @@
 
 #include <string>
 #include <sc2api/sc2_api.h>
-typedef void* (*GetAgentFunction)();
-typedef char* (*GetAgentNameFunction)();
-typedef int(*GetAgentRaceFunction)();
-typedef void* (*CCGetAgentFunction)(const char*);
-typedef char* (*CCGetAgentNameFunction)(const char*);
-typedef int(*CCGetAgentRaceFunction)(const char*);
 
 enum BotType
 {
-    BinaryCpp,
-    CommandCenter,
+	BinaryCpp,
+	CommandCenter,
 	Python,
 	DefaultBot
 };
 
 enum ResultType
 {
-    InitializationError,
-    Timeout,
-    ProcessingReplay,
-    Player1Win,
-    Player1Crash,
-    Player2Win,
-    Player2Crash,
+	InitializationError,
+	Timeout,
+	ProcessingReplay,
+	Player1Win,
+	Player1Crash,
+	Player2Win,
+	Player2Crash,
 	Tie,
 	Error
 };
@@ -39,106 +33,85 @@ enum ExitCase
 	GameTimeout
 };
 
-typedef struct SGameState
+struct GameState
 {
-    bool IsInGame;
-    int GameLoop;
-    float Score;
-    SGameState()
-        : IsInGame(true)
-        , GameLoop(-1)
-        , Score(-1)
-    {}
+	bool IsInGame;
+	int GameLoop;
+	float Score;
+	GameState()
+		: IsInGame(true)
+		, GameLoop(-1)
+		, Score(-1)
+	{}
 
-} GameState;
+};
 
-typedef struct SBotConfig
+struct BotConfig
 {
-    BotType Type;
-    std::string BotName;
+	BotType Type;
+	std::string BotName;
 	std::string RootPath;
 	std::string FileName;
-    sc2::Race Race;
+	sc2::Race Race;
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
-    SBotConfig() {}
-    SBotConfig(BotType InType,const std::string & InBotName,sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs="")
-        : Type(InType)
-        , Race(InBotRace)
-        , BotName(InBotName)
-        , RootPath(InBotPath)
+	BotConfig() {}
+	BotConfig(BotType InType, const std::string & InBotName, sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs = "")
+		: Type(InType)
+		, Race(InBotRace)
+		, BotName(InBotName)
+		, RootPath(InBotPath)
 		, FileName(InFileName)
 		, Difficulty(InDifficulty)
 		, Args(InArgs)
-    {}
-    bool operator ==(const SBotConfig &Other)
-    {
-        return BotName == Other.BotName;
-    }
-} BotConfig;
+	{}
+	bool operator ==(const BotConfig &Other)
+	{
+		return BotName == Other.BotName;
+	}
+};
 
-
-typedef struct SAgentInfo
+struct Matchup
 {
-    GetAgentFunction AgentFunction;
-    sc2::Race AgentRace;
-    std::string AgentName;
-    std::string DllFile;
-    SAgentInfo() {}
-    SAgentInfo(GetAgentFunction InAgentFunction, sc2::Race InAgentRace, std::string InAgentName, std::string InDllFile)
-        : AgentFunction(InAgentFunction)
-        , AgentRace(InAgentRace)
-        , AgentName(InAgentName)
-        , DllFile(InDllFile)
-    {}
-    bool operator ==(const SAgentInfo &Other)
-    {
-        return AgentName == Other.AgentName;
-    }
-} AgentInfo;
+	BotConfig Agent1;
+	BotConfig Agent2;
+	std::string Map;
+	Matchup() {}
+	Matchup(BotConfig InAgent1, BotConfig InAgent2, std::string InMap)
+		: Agent1(InAgent1),
+		Agent2(InAgent2),
+		Map(InMap)
+	{
+
+	}
 
 
-typedef struct SMatchup
-{
-    BotConfig Agent1;
-    BotConfig Agent2;
-    std::string Map;
-    SMatchup() {}
-    SMatchup(BotConfig InAgent1, BotConfig InAgent2, std::string InMap)
-        : Agent1(InAgent1),
-        Agent2(InAgent2),
-        Map(InMap)
-    {
-
-    }
-
-
-} Matchup;
+};
 
 
 static sc2::Race GetRaceFromString(const std::string & RaceIn)
 {
-    std::string race(RaceIn);
-    std::transform(race.begin(), race.end(), race.begin(), ::tolower);
+	std::string race(RaceIn);
+	std::transform(race.begin(), race.end(), race.begin(), ::tolower);
 
-    if (race == "terran")
-    {
-        return sc2::Race::Terran;
-    }
-    else if (race == "protoss")
-    {
-        return sc2::Race::Protoss;
-    }
-    else if (race == "zerg")
-    {
-        return sc2::Race::Zerg;
-    }
-    else if (race == "random")
-    {
-        return sc2::Race::Random;
-    }
+	if (race == "terran")
+	{
+		return sc2::Race::Terran;
+	}
+	else if (race == "protoss")
+	{
+		return sc2::Race::Protoss;
+	}
+	else if (race == "zerg")
+	{
+		return sc2::Race::Zerg;
+	}
+	else if (race == "random")
+	{
+		return sc2::Race::Random;
+	}
 
-    return sc2::Race::Random;
+	return sc2::Race::Random;
 }
 
 static std::string GetRaceString(const sc2::Race RaceIn)
@@ -161,16 +134,16 @@ static std::string GetRaceString(const sc2::Race RaceIn)
 
 static BotType GetTypeFromString(const std::string &TypeIn)
 {
-    std::string type(TypeIn);
-    std::transform(type.begin(), type.end(), type.begin(), ::tolower);
-    if (type == "binarycpp")
-    {
-        return BotType::BinaryCpp;
-    }
-    else if (type == "commandcenter")
-    {
-        return BotType::CommandCenter;
-    }
+	std::string type(TypeIn);
+	std::transform(type.begin(), type.end(), type.begin(), ::tolower);
+	if (type == "binarycpp")
+	{
+		return BotType::BinaryCpp;
+	}
+	else if (type == "commandcenter")
+	{
+		return BotType::CommandCenter;
+	}
 	else if (type == "computer")
 	{
 		return BotType::DefaultBot;
@@ -231,7 +204,7 @@ static std::string GetDifficultyString(sc2::Difficulty InDifficulty)
 {
 	switch (InDifficulty)
 	{
-	case sc2::Difficulty::VeryEasy :
+	case sc2::Difficulty::VeryEasy:
 	{
 		return "VeryEasy";
 	}
@@ -281,26 +254,26 @@ static std::string GetResultType(ResultType InResultType)
 	{
 	case InitializationError:
 		return "InitializationError";
-		
-	case Timeout :
+
+	case Timeout:
 		return "Timeout";
 
-	case ProcessingReplay :
+	case ProcessingReplay:
 		return "ProcessingReplay";
 
-	case Player1Win :
+	case Player1Win:
 		return "Player1Win";
 
-	case Player1Crash :
+	case Player1Crash:
 		return "Player1Crash";
 
-	case Player2Win :
+	case Player2Win:
 		return "Player2Win";
 
-	case Player2Crash :
+	case Player2Crash:
 		return "Player2Crash";
 
-	case Tie :
+	case Tie:
 		return "Tie";
 
 	default:
