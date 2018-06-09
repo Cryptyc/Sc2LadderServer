@@ -38,6 +38,8 @@
 #include "Tests.h"
 
 
+std::mutex PrintThread::_mutexPrint{};
+
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 {
 	bool success = true;
@@ -96,7 +98,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
 	//    Client->Send(Create_game_request.get());
 	ExitCase CurrentExitCase = ExitCase::InProgress;
-	std::cout << "Starting proxy for " << *botName << std::endl;
+	PrintThread{} << "Starting proxy for " << *botName << std::endl;
 	bool RequestFound = false;
 	clock_t LastRequest = clock();
 	std::map<SC2APIProtocol::Status, std::string> status;
@@ -118,7 +120,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 			}
 			if (client->connection_ == nullptr && RequestFound)
 			{
-				std::cout << "Client disconnect" << std::endl;
+				PrintThread{} << "Client disconnect (" << *botName << ")" << std::endl;
 				CurrentExitCase = ExitCase::ClientTimeout;
 			}
 
@@ -145,7 +147,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 					CurrentStatus = response->status();
 					if (OldStatus != CurrentStatus)
 					{
-						std::cout << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+						PrintThread{} << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
 						OldStatus = CurrentStatus;
 					}
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
@@ -167,7 +169,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 				}
 
 				// Send the response back to the client.
-				if (server->connections_.size() > 0)
+				if (server->connections_.size() > 0 && client->connection_ != NULL)
 				{
 					server->QueueResponse(client->connection_, response);
 					server->SendResponse();
@@ -183,7 +185,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 			{
 				if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
 				{
-					std::cout << "Client timeout" << std::endl;
+					PrintThread{} << "Client timeout (" << *botName <<")" << std::endl;
 					CurrentExitCase = ExitCase::ClientTimeout;
 				}
 			}
@@ -226,43 +228,64 @@ bool LadderManager::SaveReplay(sc2::Connection *client, const std::string& path)
 }
 
 
-void StartBotProcess(std::string CommandLine)
+void StartBotProcess(BotConfig Agent, std::string CommandLine)
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Executes the given command using CreateProcess() and WaitForSingleObject().
 	// Returns FALSE if the command could not be executed or if the exit code could not be determined.
-	PROCESS_INFORMATION processInformation = { 0 };
-	STARTUPINFO startupInfo = { 0 };
-	DWORD exitCode;
-	startupInfo.cb = sizeof(startupInfo);
-	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
 
+	SECURITY_ATTRIBUTES securityAttributes;
+	securityAttributes.nLength = sizeof(securityAttributes);
+	securityAttributes.lpSecurityDescriptor = NULL;
+	securityAttributes.bInheritHandle = TRUE;
+	std::string logFile = Agent.RootPath + "/stderr.log";
+	HANDLE h = CreateFile(logFile.c_str(),
+		FILE_APPEND_DATA,
+		FILE_SHARE_WRITE | FILE_SHARE_READ,
+		&securityAttributes,
+		OPEN_ALWAYS,
+		FILE_ATTRIBUTE_NORMAL,
+		NULL);
+
+	PROCESS_INFORMATION processInformation;
+	STARTUPINFO startupInfo;
+	DWORD flags = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE; //CREATE_NO_WINDOW <-- also possible, but we don't see easily if bot is still running.
+
+	ZeroMemory(&processInformation, sizeof(PROCESS_INFORMATION));
+	ZeroMemory(&startupInfo, sizeof(STARTUPINFO));
+	startupInfo.cb = sizeof(STARTUPINFO);
+	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
+	startupInfo.hStdInput = INVALID_HANDLE_VALUE;
+	startupInfo.hStdError = h;
+	startupInfo.hStdOutput = NULL;
+
+	DWORD exitCode;
+	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
 	// Create the process
 
 	BOOL result = CreateProcess(NULL, cmdLine,
-		NULL, NULL, FALSE,
-		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
-		NULL, NULL, &startupInfo, &processInformation);
+		NULL, NULL, TRUE,
+		flags,
+		NULL, Agent.RootPath.c_str(), &startupInfo, &processInformation);
 
 
 	if (!result)
 	{
-		// CreateProcess() failed
 		// Get the error from the system
-		LPVOID lpMsgBuf;
+		LPSTR lpMsgBuf;
 		DWORD dw = GetLastError();
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		size_t size = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-
-
+		std::string message(lpMsgBuf, size);
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...failed" << std::endl << "Error " << dw << " : " << message << std::endl;
 		// Free resources created by the system
 		LocalFree(lpMsgBuf);
-
 		// We failed.
 		exitCode = -1;
 	}
 	else
 	{
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...success!" << std::endl;
 		// Successfully created the process.  Wait for it to finish.
 		WaitForSingleObject(processInformation.hProcess, INFINITE);
 
@@ -279,9 +302,9 @@ void StartBotProcess(std::string CommandLine)
 			exitCode = -1;
 		}
 
-
 		// We succeeded.
 	}
+	CloseHandle(h);
 }
 
 BOOL KillSc2Process(DWORD dwProcessId, UINT uExitCode)
@@ -319,7 +342,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	{
 	case Python:
 	{
-		OutCmdLine = "python " + AgentConfig.RootPath + AgentConfig.FileName;
+		OutCmdLine = "python " + AgentConfig.FileName;
 		break;
 	}
 	case BinaryCpp:
@@ -329,7 +352,7 @@ std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort
 	}
 	case CommandCenter:
 	{
-		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.RootPath;
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
 		break;
 
 	}
@@ -547,8 +570,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 		}
 	}
 
-	std::cout << "Starting bot: " << Agent1.BotName << std::endl;
-	auto bot1ProgramThread = std::thread(StartBotProcess, Agent1Path);
+	auto bot1ProgramThread = std::thread(StartBotProcess,Agent1,Agent1Path);
 	sc2::SleepFor(1000);
 
 	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
@@ -681,13 +703,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	std::cout << "Starting bot: " << Agent1.BotName << " with command:"<<std::endl;
-	std::cout << Agent1Path << std::endl;
-	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1Path);
-	std::cout << "Starting bot: " << Agent2.BotName << " with command:" << std::endl;
-	std::cout << Agent2Path << std::endl;
-	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2Path);
-	sc2::SleepFor(1000);
+	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path);
+	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path);
+	sc2::SleepFor(500);
+	sc2::SleepFor(500);
+
+	//toDo check here already if the bots crashed.
 
 	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName);
 	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName);
@@ -776,12 +797,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		SaveReplay(&client2, ReplayFile);
 	}
 	sc2::SleepFor(1000);
-	if(!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
+	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 1." << std::endl;
 	}
 	sc2::SleepFor(1000);
-	if(!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
+	if (!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
 	{
 		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
 	}
@@ -795,6 +816,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	{
 		server2.SendRequest();
 	}
+	
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
