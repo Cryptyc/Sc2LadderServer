@@ -16,17 +16,16 @@
 #include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
 
-#include "rapidjson/rapidjson.h"
-#include "rapidjson/document.h"
+#include "rapidjson.h"
+#include "document.h"
 #include <fstream>
 #include <string>
 #include <vector>
 #include <memory>
 #include <iostream>
-#include <Windows.h>
 #include <future>
 #include <chrono>
-#include <curl/curl.h>
+#include "curl.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
@@ -36,6 +35,7 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tests.h"
+#include "Tools.h"
 
 
 bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
@@ -223,80 +223,6 @@ bool LadderManager::SaveReplay(sc2::Connection *client, const std::string& path)
 
 	file.write(&response_replay.data()[0], response_replay.data().size());
 	return true;
-}
-
-
-void StartBotProcess(std::string CommandLine)
-{
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	// Executes the given command using CreateProcess() and WaitForSingleObject().
-	// Returns FALSE if the command could not be executed or if the exit code could not be determined.
-	PROCESS_INFORMATION processInformation = { 0 };
-	STARTUPINFO startupInfo = { 0 };
-	DWORD exitCode;
-	startupInfo.cb = sizeof(startupInfo);
-	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
-
-	// Create the process
-
-	BOOL result = CreateProcess(NULL, cmdLine,
-		NULL, NULL, FALSE,
-		NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE,
-		NULL, NULL, &startupInfo, &processInformation);
-
-
-	if (!result)
-	{
-		// CreateProcess() failed
-		// Get the error from the system
-		LPVOID lpMsgBuf;
-		DWORD dw = GetLastError();
-		FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
-
-
-		// Free resources created by the system
-		LocalFree(lpMsgBuf);
-
-		// We failed.
-		exitCode = -1;
-	}
-	else
-	{
-		// Successfully created the process.  Wait for it to finish.
-		WaitForSingleObject(processInformation.hProcess, INFINITE);
-
-		// Get the exit code.
-		result = GetExitCodeProcess(processInformation.hProcess, &exitCode);
-
-		// Close the handles.
-		CloseHandle(processInformation.hProcess);
-		CloseHandle(processInformation.hThread);
-
-		if (!result)
-		{
-			// Could not get exit code.
-			exitCode = -1;
-		}
-
-
-		// We succeeded.
-	}
-}
-
-BOOL KillSc2Process(DWORD dwProcessId, UINT uExitCode)
-{
-	DWORD dwDesiredAccess = PROCESS_TERMINATE;
-	BOOL  bInheritHandle = FALSE;
-	HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, dwProcessId);
-	if (hProcess == NULL)
-		return FALSE;
-
-	BOOL result = TerminateProcess(hProcess, uExitCode);
-
-	CloseHandle(hProcess);
-
-	return result;
 }
 
 bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult> *PlayerResults)
@@ -559,7 +485,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	bool GameRunning = true;
 	//sc2::ProtoInterface proto_1;
 	//std::vector<sc2::PlayerResult> Player1Results;
-	Sleep(10000);
+	SleepFor(10000);
 	while (GameRunning)
 	{
 
@@ -798,8 +724,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
-		KillSc2Process(Bot1ProcessId, 0);
-		KillSc2Process(Bot2ProcessId, 0);
+		KillSc2Process(Bot1ProcessId);
+		KillSc2Process(Bot2ProcessId);
 		sc2::SleepFor(5000);
 		try
 		{
@@ -1048,7 +974,7 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		curl_mime_free(form);
 		/* free slist */
 		curl_slist_free_all(headerlist);
-		MoveFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
+		MoveReplayFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
 
 
 	}

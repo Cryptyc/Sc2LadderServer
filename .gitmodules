@@ -1,0 +1,3 @@
+[submodule "s2client-api"]
+	path = s2client-api
+	url = https://github.com/Blizzard/s2client-api.git
