@@ -240,7 +240,7 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 	return false;
 }
 
-std::string LadderManager::GetBotCommandLine(BotConfig AgentConfig, int GamePort, int StartPort, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
+std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
@@ -474,8 +474,8 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-
-	auto bot1ProgramThread = std::thread(StartBotProcess,Agent1,Agent1Path);
+	void *ProcessId;
+	auto bot1ProgramThread = std::thread(StartBotProcess,Agent1, Agent1Path, &ProcessId);
 	sc2::SleepFor(1000);
 
 	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
@@ -608,8 +608,10 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path);
-	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path);
+	void *Bot1ThreadId = NULL;
+	void *Bot2ThreadId = NULL;
+	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path, &Bot1ThreadId);
+	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path, &Bot2ThreadId);
 	sc2::SleepFor(500);
 	sc2::SleepFor(500);
 
@@ -740,6 +742,29 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			return CurrentResult;
 		}
 
+	}
+	std::future_status bot1ProgStatus, bot2ProgStatus;
+	auto start = std::chrono::system_clock::now();
+	std::chrono::duration<double> elapsed_seconds;
+	while (elapsed_seconds.count() < 20)
+	{
+		bot1ProgStatus = bot1ProgramThread.wait_for(50ms);
+		bot2ProgStatus = bot2ProgramThread.wait_for(50ms);
+		if (bot1ProgStatus == std::future_status::ready && bot2ProgStatus == std::future_status::ready)
+		{
+			break;
+		}
+		elapsed_seconds = std::chrono::system_clock::now() - start;
+	}
+	if (bot1ProgStatus != std::future_status::ready)
+	{
+		std::cout << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
+		KillBotProcess(Bot1ThreadId);
+	}
+	if (bot2ProgStatus != std::future_status::ready)
+	{
+		std::cout << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
+		KillBotProcess(Bot2ThreadId);
 	}
 	return CurrentResult;
 }
@@ -1037,7 +1062,7 @@ void LadderManager::RunLadderManager()
 	
 }
 
-void LadderManager::SaveError(std::string Agent1, std::string Agent2, std::string Map)
+void LadderManager::SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map)
 {
 	std::string ErrorListFile = Config->GetValue("ErrorListFile");
 	if (ErrorListFile == "")

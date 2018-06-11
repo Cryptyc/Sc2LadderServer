@@ -35,7 +35,7 @@ public:
 private:
 	bool SaveReplay(sc2::Connection *client, const std::string & path);
 	bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult>* PlayerResults);
-	std::string GetBotCommandLine(BotConfig Config, int GamePort, int StartPort, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
+	std::string GetBotCommandLine(const BotConfig &Config, int GamePort, int StartPort, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
 	sc2::GameResponsePtr CreateErrorResponse();
 	sc2::GameRequestPtr CreateLeaveGameRequest();
 	sc2::GameRequestPtr CreateQuitRequest();
@@ -50,7 +50,7 @@ private:
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
 
-	void SaveError(std::string Agent1, std::string Agent2, std::string Map);
+	void SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map);
 
     int CoordinatorArgc;
     char **CoordinatorArgv;

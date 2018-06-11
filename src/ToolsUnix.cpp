@@ -9,7 +9,7 @@
 
 #include "Tools.h"
 
-void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine)
+void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine, void **ProcessId)
 {
     FILE* pipe = popen(CommandLine.c_str(), "r");
     if (!pipe)
@@ -18,7 +18,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine)
             CommandLine << "'" << std::endl;
         return;
     }
-
+	*ProcessId = pipe;
     int returnCode = pclose(pipe);
     if (returnCode != 0)
     {
@@ -41,6 +41,11 @@ bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
 {
 	// todo
 	throw "MoveFile is not implemented for linux yet.";
+}
+
+void KillBotProcess(void *ProcessStruct);
+{
+	// This needs to be implemented
 }
 
 #endif
