@@ -110,6 +110,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	status[SC2APIProtocol::Status::quit] = "quit";
 	status[SC2APIProtocol::Status::unknown] = "unknown";
 	SC2APIProtocol::Status OldStatus = SC2APIProtocol::Status::unknown;
+	bool AlreadyWarned = false;
 	try
 	{
 		while (CurrentExitCase == ExitCase::InProgress) {
@@ -127,11 +128,19 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 			if (server->HasRequest())
 			{
 				const sc2::RequestData request = server->PeekRequest();
-				if (request.second && request.second->has_quit()) //Really paranoid here...
+				if (request.second)
 				{
-					// Intercept leave game and quit requests, we want to keep game alive to save replays
-					CurrentExitCase = ExitCase::ClientRequestExit;
-					break;
+					if (request.second->has_quit()) //Really paranoid here...
+					{
+						// Intercept leave game and quit requests, we want to keep game alive to save replays
+						CurrentExitCase = ExitCase::ClientRequestExit;
+						break;
+					}
+					else if (request.second->has_debug() && !AlreadyWarned)
+					{
+						std::cout << *botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
+						AlreadyWarned = true;
+					}
 				}
 				if (client->connection_ != nullptr)
 				{
@@ -714,12 +723,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
 	}
 	sc2::SleepFor(1000);
-	if (server.HasRequest())
+	if (server.HasRequest() && server.connections_.size() > 0)
 	{
 		server.SendRequest();
 	}
 	sc2::SleepFor(1000);
-	if (server2.HasRequest())
+	if (server2.HasRequest() && server.connections_.size() > 0)
 	{
 		server2.SendRequest();
 	}
