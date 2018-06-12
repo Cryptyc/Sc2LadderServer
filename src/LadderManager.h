@@ -56,6 +56,7 @@ private:
     char **CoordinatorArgv;
 	char *ConfigFile;
 
+	bool EnableReplayUploads;
     int32_t MaxGameTime;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;

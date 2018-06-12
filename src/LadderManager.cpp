@@ -329,6 +329,7 @@ sc2::GameRequestPtr CreateStartGameRequest(std::string MapName, std::vector<sc2:
 	request_create_game->set_realtime(false);
 	return request;
 }
+
 sc2::GameResponsePtr LadderManager::CreateErrorResponse()
 {
 	const sc2::GameResponsePtr response = std::make_shared<SC2APIProtocol::Response>(SC2APIProtocol::Response());
@@ -353,7 +354,6 @@ sc2::GameRequestPtr LadderManager::CreateQuitRequest()
 
 	return request;
 }
-
 
 ResultType LadderManager::GetPlayerResults(sc2::Connection *client)
 {
@@ -777,6 +777,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, CoordinatorArgv(inCoordinatorArgv)
 	, MaxGameTime(0)
 	, ConfigFile("LadderManager.conf")
+	, EnableReplayUploads(false)
 {
 
 }
@@ -807,6 +808,12 @@ bool LadderManager::LoadSetup()
 	{
 		MaxGameTime = std::stoi(MaxGameTimeString);
 	}
+	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
+	if (EnableReplayUploadString == "True")
+	{
+		EnableReplayUploads = true;
+	}
+
 	return true;
 }
 
@@ -1049,7 +1056,10 @@ void LadderManager::RunLadderManager()
 			{
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
-			UploadMime(result, NextMatch);
+			if (EnableReplayUploads)
+			{
+				UploadMime(result, NextMatch);
+			}
 			Matchups->SaveMatchList();
 		}
 	
