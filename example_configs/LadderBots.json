@@ -1,15 +1,24 @@
 {
-
-  "Bots": {
-    "CryptBot": {
-      "Race": "Protoss",
-      "Type": "binarycpp",
-      "Path": "path/to/bot/exe"
+	"Bots": {
+    "ProtossBot": {
+      "Race": "Protoss", //Race of your bot
+      "Type": "BinaryCpp", //Type (BinaryCpp or Python)
+      "RootPath": "C:/Ladder/Bots/", //Path to the bot file
+      "FileName": "ProtossBot.exe", //Name of the bot file
+      "Args": "--arg1 --arg2" //Optional command line arguments that gets passed to the bot file.
     },
-    "5minBot": {
-      "Race": "Terran",
-      "Type": "binarycpp",
-      "Path": "path/to/bot/exe"
-    }
-  }
+		"TerranBot": {
+			"Race": "Terran",
+			"Type": "BinaryCpp",
+			"RootPath": "C:/Ladder/Bots/",
+			"FileName": "TerranBot.exe",
+		},
+		"ZergBot": {
+			"Race": "Zerg",
+			"Type": "Python",
+			"RootPath": "C:/Ladder/Bots/ZergBot/",
+			"FileName": "run.py",
+			"Args": "--argA --argB"
+		}
+	}
 }
