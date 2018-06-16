@@ -1094,21 +1094,3 @@ void LadderManager::SaveError(const std::string &Agent1, const std::string &Agen
 	ofs << "\"" + Agent1 + "\"vs\"" + Agent2 + "\" " + Map << std::endl;
 	ofs.close();
 }
-
-inline void DoLadderManager(int argc, char** argv)
-{
-	std::cout << "LadderManager started." << std::endl;
-
-	LadderManager LadderMan(argc, argv);
-	if (LadderMan.LoadSetup())
-	{
-		LadderMan.RunLadderManager();
-	}
-
-	std::cout << "Finished." << std::endl;
-}
-
-int main(int argc, char** argv)
-{
-	DoLadderManager(argc, argv);
-}
