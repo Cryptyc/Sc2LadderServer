@@ -34,9 +34,7 @@
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
-#include "Tests.h"
 #include "Tools.h"
-
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -1112,8 +1110,5 @@ inline void DoLadderManager(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	// Uncomment to run tests
-	//return RunTests(argc, argv);
-
 	DoLadderManager(argc, argv);
 }
