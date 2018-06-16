@@ -57,6 +57,13 @@ $ start Sc2LadderServer.sln
  # Build.
  $ make
  ```
+
+### Submodules
+If you don't initially do a `--recursive` clone (in which case, submodule folders will be left empty), you can download any submodules later like so:
+```
+git submodule update --init --recursive
+```
+Alternatively, you could opt to symlink the folder of the submodule in question to an existing copy already on your computer. However, note that you will very likely be using a different version of the submodule to that which would otherwise be downloaded in this repository, which could cause issues (but it's probably not too likely). 
  
 ## Configuration
 
@@ -88,4 +95,4 @@ Create the `MapListFile` as a plain text file. For each map you want the bots to
 CommandCenter bots are supported. Just add the json config file in the command center directory with the .ccbot extension.   
    
 ## Debugging
-[IQuitBot](https://github.com/lladdy/IQuitBot) can be used for debugging if you don't want to wait around for real bots to fight it out.
+DebugBot (included in this repo) can be used for debugging if you don't want to wait around for real bots to fight it out.
