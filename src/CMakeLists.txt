@@ -17,8 +17,7 @@ include_directories(SYSTEM
 )
 
 # Link directories
-link_directories(${PROJECT_BINARY_DIR})
-link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
+link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
 
 if (WIN32) # Curl library for windows
 	link_directories(${PROJECT_SOURCE_DIR}/curl/lib)
