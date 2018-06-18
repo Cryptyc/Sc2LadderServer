@@ -1,6 +1,6 @@
 # Source files
 file(GLOB SOURCES_SC2LADDERSERVER "Sc2LadderServer/*.cpp" "Sc2LadderServer/*.h")
-file(GLOB SOURCES_SC2LADDERSERVER_CORE "core/*.cpp" "core/*.h")
+file(GLOB SOURCES_SC2LADDERCORE "core/*.cpp" "core/*.h")
 
 # Include directories
 include_directories(SYSTEM
@@ -26,7 +26,7 @@ endif ()
 
 # Create the executable.
 add_executable(Sc2LadderServer ${SOURCES_SC2LADDERSERVER})
-add_library(Sc2LadderCore ${SOURCES_SC2LADDERSERVER_CORE})
+add_library(Sc2LadderCore ${SOURCES_SC2LADDERCORE})
 target_link_libraries(Sc2LadderServer
     Sc2LadderCore
 )
