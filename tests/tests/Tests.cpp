@@ -70,7 +70,7 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
         std::cerr << "Test: " << #X << " failed!" << std::endl;     \
     }
 
-int RunTests(int argc, char** argv) {
+int main(int argc, char** argv) {
 	bool success = true;
 
 	TEST(TestMatch_Bot1Eliminated);
