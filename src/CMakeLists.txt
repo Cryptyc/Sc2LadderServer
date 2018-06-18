@@ -1,5 +1,5 @@
 # Source files
-file(GLOB SOURCES_SC2LADDERSERVER "Sc2LadderServer/*.cpp" "Sc2LadderServer/*.h")
+file(GLOB SOURCES_SC2LADDERSERVER "sc2ladderserver/*.cpp" "sc2ladderserver/*.h")
 file(GLOB SOURCES_SC2LADDERCORE "core/*.cpp" "core/*.h")
 
 # Include directories
