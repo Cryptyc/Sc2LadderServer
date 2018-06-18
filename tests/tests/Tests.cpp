@@ -39,12 +39,12 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	{
 		// Write out the matchup file before launching LadderManager so we can dictate the bot load order
 		std::ofstream myfile;
-		myfile.open("./test_configs/TestMatch_Bot1Eliminated/matchuplist");
+		myfile.open("./tests/tests/test_configs/TestMatch_Bot1Eliminated/matchuplist");
 		myfile << "\"DebugBot1\" \"DebugBot2\" Ladder2017Season3/InterloperLE.SC2Map";
 		myfile.close();
 
 		// Run LadderManager
-		LadderManager LadderMan(argc, argv, "./test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
+		LadderManager LadderMan(argc, argv, "./tests/tests/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
 		if (LadderMan.LoadSetup())
 		{
 			LadderMan.RunLadderManager();
