@@ -1065,6 +1065,7 @@ void LadderManager::RunLadderManager()
 			{
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 			}
+			std::cout << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
 			if (EnableReplayUploads)
 			{
 				UploadMime(result, NextMatch);
