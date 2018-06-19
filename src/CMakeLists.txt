@@ -1,10 +1,10 @@
 # Source files
 file(GLOB SOURCES_SC2LADDERSERVER "sc2ladderserver/*.cpp" "sc2ladderserver/*.h")
-file(GLOB SOURCES_SC2LADDERCORE "core/*.cpp" "core/*.h")
+file(GLOB SOURCES_SC2LADDERCORE "sc2laddercore/*.cpp" "sc2laddercore/*.h")
 
 # Include directories
 include_directories(SYSTEM
-    ${PROJECT_SOURCE_DIR}/src/core
+    ${PROJECT_SOURCE_DIR}/src/sc2laddercore
     ${PROJECT_SOURCE_DIR}/s2client-api/include
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
     ${PROJECT_BINARY_DIR}/s2client-api/generated

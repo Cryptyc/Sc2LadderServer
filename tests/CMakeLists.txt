@@ -8,7 +8,7 @@ file(GLOB SOURCES_SC2LADDERSERVER_DEBUGBOT "debugbot/*.cpp" "debugbot/*.h")
 include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/tests/tests
     ${PROJECT_SOURCE_DIR}/tests/debugbot
-    ${PROJECT_SOURCE_DIR}/src/core
+    ${PROJECT_SOURCE_DIR}/src/sc2laddercore
     ${PROJECT_SOURCE_DIR}/s2client-api/include
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
     ${PROJECT_BINARY_DIR}/s2client-api/generated
