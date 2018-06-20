@@ -19,6 +19,7 @@ set(BUILD_API_TESTS OFF CACHE INTERNAL "" FORCE)
 
 add_subdirectory("s2client-api")
 add_subdirectory("src")
+add_subdirectory("tests")
 
 # set Sc2LadderServer as startup project
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Sc2LadderServer)

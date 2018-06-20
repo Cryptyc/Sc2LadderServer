@@ -1,8 +1,10 @@
 # Source files
-file(GLOB_RECURSE SOURCES_SC2LADDERSERVER "*.cpp" "*.h")
+file(GLOB SOURCES_SC2LADDERSERVER "sc2ladderserver/*.cpp" "sc2ladderserver/*.h")
+file(GLOB SOURCES_SC2LADDERCORE "sc2laddercore/*.cpp" "sc2laddercore/*.h")
 
 # Include directories
 include_directories(SYSTEM
+    ${PROJECT_SOURCE_DIR}/src/sc2laddercore
     ${PROJECT_SOURCE_DIR}/s2client-api/include
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
     ${PROJECT_BINARY_DIR}/s2client-api/generated
@@ -15,7 +17,7 @@ include_directories(SYSTEM
 )
 
 # Link directories
-link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
+link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
 
 if (WIN32) # Curl library for windows
 	link_directories(${PROJECT_SOURCE_DIR}/curl/lib)
@@ -23,13 +25,17 @@ endif ()
 
 # Create the executable.
 add_executable(Sc2LadderServer ${SOURCES_SC2LADDERSERVER})
+add_library(Sc2LadderCore ${SOURCES_SC2LADDERCORE})
 target_link_libraries(Sc2LadderServer
+    Sc2LadderCore
+)
+target_link_libraries(Sc2LadderCore
     sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
 )
 if (WIN32) # Platform specific curl library
-	target_link_libraries(Sc2LadderServer libcurl.lib)
+	target_link_libraries(Sc2LadderCore libcurl.lib)
 elseif (UNIX)
-	target_link_libraries(Sc2LadderServer curl)
+	target_link_libraries(Sc2LadderCore curl)
 endif ()
 
 

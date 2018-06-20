@@ -34,9 +34,7 @@
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
-#include "Tests.h"
 #include "Tools.h"
-
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -1096,25 +1094,4 @@ void LadderManager::SaveError(const std::string &Agent1, const std::string &Agen
 	}
 	ofs << "\"" + Agent1 + "\"vs\"" + Agent2 + "\" " + Map << std::endl;
 	ofs.close();
-}
-
-inline void DoLadderManager(int argc, char** argv)
-{
-	std::cout << "LadderManager started." << std::endl;
-
-	LadderManager LadderMan(argc, argv);
-	if (LadderMan.LoadSetup())
-	{
-		LadderMan.RunLadderManager();
-	}
-
-	std::cout << "Finished." << std::endl;
-}
-
-int main(int argc, char** argv)
-{
-	// Uncomment to run tests
-	//return RunTests(argc, argv);
-
-	DoLadderManager(argc, argv);
 }
