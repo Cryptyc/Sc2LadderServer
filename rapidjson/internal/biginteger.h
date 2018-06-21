@@ -17,8 +17,9 @@
 
 #include "../rapidjson.h"
 
-#if defined(_MSC_VER) && defined(_M_AMD64)
+#if defined(_MSC_VER) && !__INTEL_COMPILER && defined(_M_AMD64)
 #include <intrin.h> // for _umul128
+#pragma intrinsic(_umul128)
 #endif
 
 RAPIDJSON_NAMESPACE_BEGIN
@@ -50,7 +51,16 @@ public:
         if (length > 0)
             AppendDecimal64(decimals + i, decimals + i + length);
     }
-
+    
+    BigInteger& operator=(const BigInteger &rhs)
+    {
+        if (this != &rhs) {
+            count_ = rhs.count_;
+            std::memcpy(digits_, rhs.digits_, count_ * sizeof(Type));
+        }
+        return *this;
+    }
+    
     BigInteger& operator=(uint64_t u) {
         digits_[0] = u;            
         count_ = 1;
@@ -123,7 +133,7 @@ public:
         RAPIDJSON_ASSERT(count_ + offset <= kCapacity);
 
         if (interShift == 0) {
-            std::memmove(&digits_[count_ - 1 + offset], &digits_[count_ - 1], count_ * sizeof(Type));
+            std::memmove(digits_ + offset, digits_, count_ * sizeof(Type));
             count_ += offset;
         }
         else {
@@ -230,7 +240,7 @@ private:
         uint64_t r = 0;
         for (const char* p = begin; p != end; ++p) {
             RAPIDJSON_ASSERT(*p >= '0' && *p <= '9');
-            r = r * 10 + (*p - '0');
+            r = r * 10u + static_cast<unsigned>(*p - '0');
         }
         return r;
     }
