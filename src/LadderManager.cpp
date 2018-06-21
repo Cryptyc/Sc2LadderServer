@@ -917,18 +917,14 @@ void LadderManager::LoadAgents()
 
 		}
 	}
-}
-
-void LadderManager::GetMapList()
-{
-	std::string MapListFile = Config->GetValue("MapListFile");
-	std::ifstream file(MapListFile);
-	std::string str;
-	while (std::getline(file, str))
+	if (doc.HasMember("Maps") && doc["Maps"].IsArray())
 	{
-		MapList.push_back(str);
+		const rapidjson::Value & Maps = doc["Maps"];
+		for (auto itr = Maps.Begin(); itr != Maps.End(); ++itr)
+		{
+			MapList.push_back(itr->GetString());
+		}
 	}
-
 }
 
 std::string LadderManager::RemoveMapExtension(const std::string& filename) {
@@ -1027,7 +1023,6 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 void LadderManager::RunLadderManager()
 {
 
-	GetMapList();
 	LoadAgents();
 	std::cout << "Starting with " << MapList.size() << " maps:" << std::endl;
 	for (auto &map : MapList)
