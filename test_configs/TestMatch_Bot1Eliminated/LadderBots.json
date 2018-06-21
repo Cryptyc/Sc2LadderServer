@@ -11,5 +11,8 @@
       "Type": "binarycpp",
       "Path": "DebugBot.exe"
     }
-  }
+  },
+  "Maps": [
+		"Ladder2017Season3/InterloperLE.SC2Map"
+	]
 }

@@ -20,5 +20,10 @@
 			"FileName": "run.py",
 			"Args": "--argA --argB"
 		}
-	}
+	},
+	,
+	"Maps": [
+		"InterloperLE.SC2Map",
+		"BelShirVestigeLE.SC2Map"
+	]
 }
