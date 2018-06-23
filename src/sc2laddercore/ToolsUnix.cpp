@@ -43,7 +43,7 @@ bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
 	throw "MoveFile is not implemented for linux yet.";
 }
 
-void KillBotProcess(void *ProcessStruct);
+void KillBotProcess(void *ProcessStruct)
 {
 	// This needs to be implemented
 }
