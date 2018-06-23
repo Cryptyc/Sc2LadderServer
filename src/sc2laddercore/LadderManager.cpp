@@ -844,9 +844,8 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 		if (!parsingFailed && OriginalResults.HasMember("Results"))
 		{
 			const rapidjson::Value & Results = OriginalResults["Results"];
-			for (const auto& val : Results.GetArray()) //	for (auto itr = Results.MemberBegin(); itr != Results.MemberEnd(); ++itr)
+			for (const auto& val : Results.GetArray())
 			{
-//				const rapidjson::Value &val = itr->value;
 				rapidjson::Value NewVal;
 				NewVal.CopyFrom(val, alloc);
 				ResultsArray.PushBack(NewVal, alloc);
