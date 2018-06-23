@@ -83,7 +83,9 @@ Create a file called `LadderManager.conf` with entries as described in the table
 | `CommandCenterDirectory`	|	Directory to read .ccbot command center config files |
 | `LocalReplayDirectory`	|	Directory to store local replays |
 | `MapListFile`				|	Location of the map list file.  Should be each map on a single line |
+| `EnableReplayUpload`	|	True/False if replays and results should be uploaded |
 | `UploadResultLocation`	|	Location of remote server to store results |
+| `ResultsLogFile`	|	Local file to store results in json format |
 
 ##### BotConfigFile.json
 Create a `BotConfigFile.json`  file that will describe the roster of bots and their required attributes.
