@@ -22,6 +22,7 @@
 #include "document.h"
 #include "ostreamwrapper.h"
 #include "writer.h"
+#include "prettywriter.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -883,7 +884,7 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	ResultsDoc.AddMember("Results", ResultsArray, alloc);
 	std::ofstream ofs(ResultsLogFile.c_str());
 	rapidjson::OStreamWrapper osw(ofs);
-	rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+	rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
 	ResultsDoc.Accept(writer);
 }
 
