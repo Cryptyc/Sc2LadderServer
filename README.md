@@ -87,10 +87,7 @@ Create a file called `LadderManager.conf` with entries as described in the table
 | `ResultsLogFile`	|	Local file to store results in json format |
 
 ##### BotConfigFile.json
-Create a `BotConfigFile.json`  file that will describe the roster of bots and their required attributes.
-
-##### MapListFile.json
-Create the `MapListFile` as a plain text file. For each map you want the bots to play on, add its name into this file, **including** the `.SC2Map` file ending. Each map comes in its own line.
+Create a `BotConfigFile.json`  file that will describe the roster of bots and their required attributes.  It should also contain an array of maps to be used.  For each map you want the bots to play on, add its name into this array, **including** the `.SC2Map` file ending.
 
 ## CommandCenter
 CommandCenter bots are supported. Just add the json config file in the command center directory with the .ccbot extension.   
