@@ -30,6 +30,7 @@ public:
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile);
     bool LoadSetup();
+	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, ResultType Result, int32_t GameTime);
 	void RunLadderManager();
 
 private:
@@ -48,6 +49,7 @@ private:
     void UploadMime(ResultType result, Matchup ThisMatch);
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
+	std::string ResultsLogFile;
 
 	void SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map);
 

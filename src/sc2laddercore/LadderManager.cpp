@@ -16,8 +16,12 @@
 #include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
 
+#define RAPIDJSON_HAS_STDSTRING 1
+
 #include "rapidjson.h"
 #include "document.h"
+#include "ostreamwrapper.h"
+#include "writer.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -820,9 +824,70 @@ bool LadderManager::LoadSetup()
 	{
 		EnableReplayUploads = true;
 	}
-
+	ResultsLogFile = Config->GetValue("ResultsLogFile");
 	return true;
 }
+
+void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2, const std::string  &Map, ResultType Result, int32_t GameTime)
+{
+	rapidjson::Document ResultsDoc;
+	rapidjson::Document OriginalResults;
+	rapidjson::Document::AllocatorType& alloc = ResultsDoc.GetAllocator();
+	ResultsDoc.SetObject();
+	rapidjson::Value ResultsArray(rapidjson::kArrayType);
+	std::ifstream ifs(ResultsLogFile.c_str());
+	if (ifs)
+	{
+		std::stringstream buffer;
+		buffer << ifs.rdbuf();
+		bool parsingFailed = OriginalResults.Parse(buffer.str()).HasParseError();
+		if (!parsingFailed && OriginalResults.HasMember("Results"))
+		{
+			const rapidjson::Value & Results = OriginalResults["Results"];
+			for (const auto& val : Results.GetArray()) //	for (auto itr = Results.MemberBegin(); itr != Results.MemberEnd(); ++itr)
+			{
+//				const rapidjson::Value &val = itr->value;
+				rapidjson::Value NewVal;
+				NewVal.CopyFrom(val, alloc);
+				ResultsArray.PushBack(NewVal, alloc);
+			}
+		}
+	}
+
+	rapidjson::Value NewResult(rapidjson::kObjectType);
+	NewResult.AddMember("Bot1", Bot1.BotName, ResultsDoc.GetAllocator());
+	NewResult.AddMember("Bot2", Bot2.BotName, alloc);
+	switch (Result)
+	{
+	case Player1Win:
+	case Player2Crash:
+		NewResult.AddMember("Winner", Bot1.BotName, alloc);
+		break;
+	case Player2Win:
+	case Player1Crash:
+		NewResult.AddMember("Winner", Bot2.BotName, alloc);
+		break;
+	case Tie:
+	case Timeout:
+		NewResult.AddMember("Winner", "Tie", alloc);
+		break;
+	case InitializationError:
+	case Error:
+	case ProcessingReplay:
+		NewResult.AddMember("Winner", "Error", alloc);
+		break;
+	}
+
+	NewResult.AddMember("Result", GetResultType(Result), alloc);
+	NewResult.AddMember("GameTime", GameTime, alloc);
+	ResultsArray.PushBack(NewResult, alloc);
+	ResultsDoc.AddMember("Results", ResultsArray, alloc);
+	std::ofstream ofs(ResultsLogFile.c_str());
+	rapidjson::OStreamWrapper osw(ofs);
+	rapidjson::Writer<rapidjson::OStreamWrapper> writer(osw);
+	ResultsDoc.Accept(writer);
+}
+
 
 void LadderManager::LoadAgents()
 {
@@ -849,7 +914,7 @@ void LadderManager::LoadAgents()
 		{
 			BotConfig NewBot;
 			NewBot.BotName = itr->name.GetString();
-			const rapidjson::Value &    val = itr->value;
+			const rapidjson::Value &val = itr->value;
 
 			if (val.HasMember("Race") && val["Race"].IsString())
 			{
@@ -1062,6 +1127,10 @@ void LadderManager::RunLadderManager()
 			if (EnableReplayUploads)
 			{
 				UploadMime(result, NextMatch);
+			}
+			if (ResultsLogFile.size() > 0)
+			{
+				SaveJsonResult(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map, result, 0);
 			}
 			Matchups->SaveMatchList();
 		}
