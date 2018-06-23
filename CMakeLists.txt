@@ -32,13 +32,16 @@ set_target_properties(sc2lib PROPERTIES FOLDER sc2api)
 set_target_properties(sc2protocol PROPERTIES FOLDER sc2api)
 set_target_properties(sc2utils PROPERTIES FOLDER sc2api)
 
-set_target_properties(sc2renderer PROPERTIES FOLDER sc2api/utilities)
-
 set_target_properties(civetweb-c-library PROPERTIES FOLDER sc2api/contrib)
 set_target_properties(libprotobuf PROPERTIES FOLDER sc2api/contrib)
 set_target_properties(libprotobuf-lite PROPERTIES FOLDER sc2api/contrib)
 set_target_properties(libprotoc PROPERTIES FOLDER sc2api/contrib)
 set_target_properties(protoc PROPERTIES FOLDER sc2api/contrib)
-set_target_properties(ipv6-parse PROPERTIES FOLDER sc2api/contrib)
-set_target_properties(SDL2main PROPERTIES FOLDER sc2api/contrib)
-set_target_properties(SDL2-static PROPERTIES FOLDER sc2api/contrib)
+
+# SC2 API doesn't build SDL and ipv6 libs on OS X.
+if (NOT APPLE)
+    set_target_properties(sc2renderer PROPERTIES FOLDER sc2api/utilities)
+    set_target_properties(ipv6-parse PROPERTIES FOLDER sc2api/contrib)
+    set_target_properties(SDL2main PROPERTIES FOLDER sc2api/contrib)
+    set_target_properties(SDL2-static PROPERTIES FOLDER sc2api/contrib)
+endif ()
