@@ -45,7 +45,7 @@ private:
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
     void LoadAgents();
 	std::string RemoveMapExtension(const std::string & filename);
-    void UploadMime(ResultType result, Matchup ThisMatch);
+    bool UploadMime(ResultType result, const Matchup &ThisMatch);
 	bool LoginToServer();
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;

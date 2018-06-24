@@ -1011,7 +1011,7 @@ std::string LadderManager::RemoveMapExtension(const std::string& filename) {
 	return filename.substr(0, lastdot);
 }
 
-void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
+bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
@@ -1096,9 +1096,9 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		curl_slist_free_all(headerlist);
 		MoveReplayFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
 
-
+		return true;
 	}
-
+	return false;
 }
 
 bool LadderManager::LoginToServer()
