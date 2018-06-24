@@ -5,7 +5,7 @@
 #include <Windows.h>
 
 
-void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, void **ProcessId)
+void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, unsigned long *ProcessId)
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// Executes the given command using CreateProcess() and WaitForSingleObject().
@@ -64,7 +64,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, voi
 	{
 		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...success!" << std::endl;
 		// Successfully created the process.  Wait for it to finish.
-		*ProcessId = &processInformation;
+		*ProcessId = processInformation.dwProcessId;
 		WaitForSingleObject(processInformation.hProcess, INFINITE);
 
 		// Get the exit code.
@@ -88,12 +88,6 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, voi
 void SleepFor(int seconds)
 {
 	Sleep(seconds * 1000);
-}
-
-void KillBotProcess(void *ProcessStruct)
-{
-	PROCESS_INFORMATION *ProcInfo = (PROCESS_INFORMATION *)ProcessStruct;
-	TerminateProcess(ProcInfo->hProcess, -1);
 }
 
 void KillSc2Process(unsigned long pid)

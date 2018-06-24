@@ -5,7 +5,6 @@
 #include <iostream>
 #include <sc2api/sc2_api.h>
 #include "LadderConfig.h"
-#define MAX_GAME_TIME 60480
 #define PORT_START 5690
 
 
@@ -41,12 +40,13 @@ private:
 	sc2::GameRequestPtr CreateLeaveGameRequest();
 	sc2::GameRequestPtr CreateQuitRequest();
 	ResultType GetPlayerResults(sc2::Connection *client);
-	ResultType StartGameVsDefault(BotConfig Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, std::string Map);
+	ResultType StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop);
 	bool SendDataToConnection(sc2::Connection *Connection, const SC2APIProtocol::Request *request);
-	ResultType StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map);
+	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
     void LoadAgents();
 	std::string RemoveMapExtension(const std::string & filename);
     void UploadMime(ResultType result, Matchup ThisMatch);
+	bool LoginToServer();
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
 	std::string ResultsLogFile;
@@ -58,7 +58,11 @@ private:
 	char *ConfigFile;
 
 	bool EnableReplayUploads;
-    int32_t MaxGameTime;
+	bool EnableServerLogin;
+	std::string ServerUsername;
+	std::string ServerPassword;
+	std::string ServerLoginAddress;
+	uint32_t MaxGameTime;
     bool Sc2Launched;
     sc2::Coordinator *coordinator;
     LadderConfig *Config;

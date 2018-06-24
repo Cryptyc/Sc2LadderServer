@@ -95,7 +95,7 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 }
 
 
-ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *botName)
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime)
 {
 	//    std::cout << "Sending Join game request" << std::endl;
 	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
@@ -171,7 +171,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 						const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
 						const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
 						uint32_t currentGameLoop = ActualObservation.game_loop();
-						if (currentGameLoop > MAX_GAME_TIME)
+						if (currentGameLoop > MaxGameTime)
 						{
 							CurrentExitCase = ExitCase::GameTimeout;
 						}
@@ -207,6 +207,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server,std::string *bo
 	}
 	catch (const std::exception& e)
 	{
+		std::cout << e.what() << std::endl;
 		return ExitCase::ClientTimeout;
 	}
 }
@@ -431,7 +432,7 @@ bool LadderManager::SendDataToConnection(sc2::Connection *Connection, const SC2A
 	return false;
 }
 
-ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, std::string Map)
+ResultType LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop)
 {
 	using namespace std::chrono_literals;
 	// Setup server that mimicks sc2.
@@ -486,12 +487,12 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	void *ProcessId;
+	unsigned long ProcessId;
 	auto bot1ProgramThread = std::thread(StartBotProcess,Agent1, Agent1Path, &ProcessId);
 	sc2::SleepFor(1000);
 
 	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
-	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.BotName);
+	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.BotName, MaxGameTime);
 	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
@@ -547,7 +548,7 @@ ResultType LadderManager::StartGameVsDefault(BotConfig Agent1, sc2::Race CompRac
 	return CurrentResult;
 }
 
-ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::string Map)
+ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop)
 {
 	
 	using namespace std::chrono_literals;
@@ -620,8 +621,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 			std::cout << "Create game successful" << std::endl << std::endl;
 		}
 	}
-	void *Bot1ThreadId = NULL;
-	void *Bot2ThreadId = NULL;
+	unsigned long Bot1ThreadId = 0;
+	unsigned long Bot2ThreadId = 0;
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path, &Bot1ThreadId);
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path, &Bot2ThreadId);
 	sc2::SleepFor(500);
@@ -629,8 +630,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 
 	//toDo check here already if the bots crashed.
 
-	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName);
-	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName);
+	auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName, MaxGameTime);
+	auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName, MaxGameTime);
 	sc2::SleepFor(1000);
 
 	ResultType CurrentResult = ResultType::InitializationError;
@@ -739,8 +740,8 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
-		KillSc2Process(Bot1ProcessId);
-		KillSc2Process(Bot2ProcessId);
+		KillSc2Process((unsigned long)Bot1ProcessId);
+		KillSc2Process((unsigned long)Bot2ProcessId);
 		sc2::SleepFor(5000);
 		try
 		{
@@ -750,7 +751,7 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 		}
 		catch (const std::exception& e)
 		{
-			std::cout << "Unable to detect end of update thread.  Continuing";
+			std::cout << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
 			return CurrentResult;
 		}
 
@@ -771,12 +772,12 @@ ResultType LadderManager::StartGame(BotConfig Agent1, BotConfig Agent2, std::str
 	if (bot1ProgStatus != std::future_status::ready)
 	{
 		std::cout << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
-		KillBotProcess(Bot1ThreadId);
+		KillSc2Process(Bot1ThreadId);
 	}
 	if (bot2ProgStatus != std::future_status::ready)
 	{
 		std::cout << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
-		KillBotProcess(Bot2ThreadId);
+		KillSc2Process(Bot2ThreadId);
 	}
 	return CurrentResult;
 }
@@ -790,6 +791,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, MaxGameTime(0)
 	, ConfigFile("LadderManager.conf")
 	, EnableReplayUploads(false)
+	, EnableServerLogin(false)
 {
 
 }
@@ -820,12 +822,24 @@ bool LadderManager::LoadSetup()
 	{
 		MaxGameTime = std::stoi(MaxGameTimeString);
 	}
+
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
 		EnableReplayUploads = true;
 	}
+
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
+
+	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
+	if (EnableServerLoginString == "True")
+	{
+		EnableServerLogin = true;
+		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
+		ServerUsername = Config->GetValue("ServerUsername");
+		ServerPassword = Config->GetValue("ServerPassword");
+	}
+
 	return true;
 }
 
@@ -878,6 +892,7 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 		break;
 	}
 
+	NewResult.AddMember("Map", Map, alloc);
 	NewResult.AddMember("Result", GetResultType(Result), alloc);
 	NewResult.AddMember("GameTime", GameTime, alloc);
 	ResultsArray.PushBack(NewResult, alloc);
@@ -1034,6 +1049,8 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 			curl_mime_name(field, "replayfile");
 			curl_mime_filedata(field, ReplayLoc.c_str());
 		}
+		curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "cookies.txt");
+		curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "cookies.txt");
 		/* Fill in the filename field */
 		field = curl_mime_addpart(form);
 		curl_mime_name(field, "Bot1Name");
@@ -1065,8 +1082,10 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 		res = curl_easy_perform(curl);
 		/* Check for errors */
 		if (res != CURLE_OK)
-			fprintf(stderr, "curl_easy_perform() failed: %s\n",
-				curl_easy_strerror(res));
+		{
+			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+			return false;
+		}
 
 		/* always cleanup */
 		curl_easy_cleanup(curl);
@@ -1080,6 +1099,62 @@ void LadderManager::UploadMime(ResultType result, Matchup ThisMatch)
 
 	}
 
+}
+
+bool LadderManager::LoginToServer()
+{
+	CURL *curl;
+	CURLcode res;
+
+	curl_mime *form = NULL;
+	curl_mimepart *field = NULL;
+	struct curl_slist *headerlist = NULL;
+	static const char buf[] = "Expect:";
+
+	curl_global_init(CURL_GLOBAL_ALL);
+
+	curl = curl_easy_init();
+	if (curl) {
+		/* Create the form */
+		form = curl_mime_init(curl);
+		curl_easy_setopt(curl, CURLOPT_COOKIEFILE, "cookies.txt");
+		curl_easy_setopt(curl, CURLOPT_COOKIEJAR, "cookies.txt");
+		/* Fill in the filename field */
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "username");
+		curl_mime_data(field, ServerUsername.c_str(), CURL_ZERO_TERMINATED);
+		field = curl_mime_addpart(form);
+		curl_mime_name(field, "password");
+		curl_mime_data(field, ServerPassword.c_str(), CURL_ZERO_TERMINATED);
+
+		/* initialize custom header list (stating that Expect: 100-continue is not
+		wanted */
+		headerlist = curl_slist_append(headerlist, buf);
+		/* what URL that receives this POST */
+		curl_easy_setopt(curl, CURLOPT_URL, ServerLoginAddress.c_str());
+
+		curl_easy_setopt(curl, CURLOPT_MIMEPOST, form);
+
+		/* Perform the request, res will get the return code */
+		res = curl_easy_perform(curl);
+		/* Check for errors */
+		if (res != CURLE_OK)
+		{
+			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+			return false;
+		}
+				
+
+		/* always cleanup */
+		curl_easy_cleanup(curl);
+
+		/* then cleanup the form */
+		curl_mime_free(form);
+		/* free slist */
+		curl_slist_free_all(headerlist);
+		return true;
+	}
+	return false;
 }
 
 
@@ -1103,11 +1178,15 @@ void LadderManager::RunLadderManager()
 	Matchup NextMatch;
 	try
 	{
-
+		if (EnableServerLogin)
+		{
+			LoginToServer();
+		}
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			ResultType result = ResultType::InitializationError;
 			std::cout << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+			int32_t CurrentGameLoop = 0;
 			if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 			{
 				if (NextMatch.Agent1.Type == DefaultBot)
@@ -1117,11 +1196,11 @@ void LadderManager::RunLadderManager()
 					NextMatch.Agent1 = NextMatch.Agent2;
 					NextMatch.Agent2 = Temp;
 				}
-				result = StartGameVsDefault(NextMatch.Agent1, NextMatch.Agent2.Race, NextMatch.Agent2.Difficulty, NextMatch.Map);
+				result = StartGameVsDefault(NextMatch.Agent1, NextMatch.Agent2.Race, NextMatch.Agent2.Difficulty, NextMatch.Map, CurrentGameLoop);
 			}
 			else
 			{
-				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map, CurrentGameLoop);
 			}
 			std::cout << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
 			if (EnableReplayUploads)
