@@ -253,7 +253,7 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 	return false;
 }
 
-std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
+std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
@@ -279,7 +279,7 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 
 	}
 	}
-	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 ";
+	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId=" + OpponentId;
 	if (CompOpp)
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
@@ -436,7 +436,7 @@ ResultType LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 {
 	using namespace std::chrono_literals;
 	// Setup server that mimicks sc2.
-	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, true, sc2::Race::Random, CompDifficulty);
+	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, "", true, sc2::Race::Random, CompDifficulty);
 	if (Agent1Path == "" )
 	{
 		return ResultType::InitializationError;
@@ -553,8 +553,8 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	
 	using namespace std::chrono_literals;
 	// Setup server that mimicks sc2.
-	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START);
-	std::string Agent2Path = GetBotCommandLine(Agent2, 5678, PORT_START);
+	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, Agent2.PlayerId);
+	std::string Agent2Path = GetBotCommandLine(Agent2, 5678, PORT_START, Agent1.PlayerId);
 	if (Agent1Path == "" || Agent2Path == "")
 	{
 		return ResultType::InitializationError;
@@ -792,6 +792,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, ConfigFile("LadderManager.conf")
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
+	, EnablePlayerIds(false)
 {
 
 }
@@ -807,6 +808,24 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, ch
 	this->ConfigFile = ConfigFile;
 }
 
+std::string LadderManager::GerneratePlayerId(size_t Length)
+{
+	static const char hexdigit[16] = { '0', '1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
+	std::string outstring;
+	char buf[1024];
+	if (Length < 1)
+	{
+		return outstring;
+
+	}
+	--Length;
+	for (int i = 0; i < Length; ++i)
+	{
+		outstring.append(1, hexdigit[rand() % sizeof hexdigit]);
+	}
+	return outstring;
+}
+
 bool LadderManager::LoadSetup()
 {
 
@@ -815,6 +834,13 @@ bool LadderManager::LoadSetup()
 	{
 		std::cout << "No valid config found at " << ConfigFile << std::endl;
 		return false;
+	}
+
+	std::string PlayerIdFile = Config->GetValue("PlayerIdFile");
+	if (PlayerIdFile.length() > 0)
+	{
+		PlayerIds = new LadderConfig(PlayerIdFile);
+		EnablePlayerIds = true;
 	}
 
 	std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
@@ -989,6 +1015,16 @@ void LadderManager::LoadAgents()
 				if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
 				{
 					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
+				}
+			}
+			if (EnablePlayerIds)
+			{
+				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
+				if (NewBot.PlayerId.empty())
+				{
+					NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
+					PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
+					PlayerIds->WriteConfig();
 				}
 			}
 			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));

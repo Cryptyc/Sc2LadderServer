@@ -6,6 +6,7 @@
 #include <sc2api/sc2_api.h>
 #include "LadderConfig.h"
 #define PORT_START 5690
+#define PLAYER_ID_LENGTH 16
 
 
 class PrintThread : public std::ostringstream
@@ -28,6 +29,7 @@ class LadderManager
 public:
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile);
+	std::string GerneratePlayerId(size_t Length);
     bool LoadSetup();
 	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, ResultType Result, int32_t GameTime);
 	void RunLadderManager();
@@ -35,7 +37,7 @@ public:
 private:
 	bool SaveReplay(sc2::Connection *client, const std::string & path);
 	bool ProcessObservationResponse(SC2APIProtocol::ResponseObservation Response, std::vector<sc2::PlayerResult>* PlayerResults);
-	std::string GetBotCommandLine(const BotConfig &Config, int GamePort, int StartPort, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
+	std::string GetBotCommandLine(const BotConfig &Config, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
 	sc2::GameResponsePtr CreateErrorResponse();
 	sc2::GameRequestPtr CreateLeaveGameRequest();
 	sc2::GameRequestPtr CreateQuitRequest();
@@ -50,6 +52,7 @@ private:
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
 	std::string ResultsLogFile;
+	LadderConfig *PlayerIds;
 
 	void SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map);
 
@@ -59,6 +62,7 @@ private:
 
 	bool EnableReplayUploads;
 	bool EnableServerLogin;
+	bool EnablePlayerIds;
 	std::string ServerUsername;
 	std::string ServerPassword;
 	std::string ServerLoginAddress;

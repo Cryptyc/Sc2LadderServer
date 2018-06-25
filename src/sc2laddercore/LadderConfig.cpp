@@ -38,6 +38,17 @@ bool LadderConfig::ParseConfig()
 	return true;
 }
 
+bool LadderConfig::WriteConfig()
+{
+	std::ofstream outfile(ConfigFileLocation, std::ofstream::binary);
+	for (const auto& setting : options)
+	{
+		outfile << setting.first << "=" << setting.second << std::endl;
+	}
+	outfile.close();
+	return true;
+}
+
 std::string LadderConfig::GetValue(std::string RequestedValue)
 {
 	auto search = options.find(RequestedValue);
@@ -57,4 +68,9 @@ void LadderConfig::TrimString(std::string &Str)
 	{
 		Str.erase(p + 1);
 	}
+}
+
+void LadderConfig::AddValue(const std::string &Index, const std::string &Value)
+{
+	options.insert(std::make_pair(Index, Value));
 }
