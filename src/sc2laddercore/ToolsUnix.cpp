@@ -85,7 +85,12 @@ void SleepFor(int seconds)
 
 void KillSc2Process(unsigned long pid)
 {
-    kill(pid, SIGKILL);
+    int ret = kill(pid, SIGKILL);
+    if (ret < 0)
+    {
+        std::cerr << std::string("Failed to send SIGKILL, error:") +
+            strerror(errno) << std::endl;
+    }
 }
 
 bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
