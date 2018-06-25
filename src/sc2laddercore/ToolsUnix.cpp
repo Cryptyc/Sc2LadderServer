@@ -67,6 +67,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
     }
 
     // parent
+    *ProcessId = pID;
+
     int exit_status = 0;
     int ret = waitpid(pID, &exit_status, 0);
     if (ret < 0) {
