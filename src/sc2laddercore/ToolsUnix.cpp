@@ -7,6 +7,7 @@
 
 #include <signal.h>
 #include <stdio.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "Tools.h"
@@ -66,6 +67,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
     }
 
     // parent
+    *ProcessId = pID;
+
     int exit_status = 0;
     int ret = waitpid(pID, &exit_status, 0);
     if (ret < 0) {
@@ -82,7 +85,12 @@ void SleepFor(int seconds)
 
 void KillSc2Process(unsigned long pid)
 {
-    kill(pid, SIGKILL);
+    int ret = kill(pid, SIGKILL);
+    if (ret < 0)
+    {
+        std::cerr << std::string("Failed to send SIGKILL, error:") +
+            strerror(errno) << std::endl;
+    }
 }
 
 bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
