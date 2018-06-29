@@ -15,7 +15,7 @@
 
 #include "MatchupList.h"
 
-MatchupList::MatchupList(std::string inMatchupListFile)
+MatchupList::MatchupList(const std::string &inMatchupListFile)
 	: MatchupListFile(inMatchupListFile)
 {
 

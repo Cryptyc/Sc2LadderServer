@@ -66,7 +66,7 @@ struct BotConfig
 		, Difficulty(InDifficulty)
 		, Args(InArgs)
 	{}
-	bool operator ==(const BotConfig &Other)
+	bool operator ==(const BotConfig &Other) const
 	{
 		return BotName == Other.BotName;
 	}
@@ -78,7 +78,7 @@ struct Matchup
 	BotConfig Agent2;
 	std::string Map;
 	Matchup() {}
-	Matchup(BotConfig InAgent1, BotConfig InAgent2, std::string InMap)
+	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)
 		: Agent1(InAgent1),
 		Agent2(InAgent2),
 		Map(InMap)

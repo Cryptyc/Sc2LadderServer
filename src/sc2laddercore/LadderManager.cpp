@@ -102,7 +102,6 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	//    Client->Send(Create_game_request.get());
 	ExitCase CurrentExitCase = ExitCase::InProgress;
 	PrintThread{} << "Starting proxy for " << *botName << std::endl;
-	bool RequestFound = false;
 	clock_t LastRequest = clock();
 	std::map<SC2APIProtocol::Status, std::string> status;
 	status[SC2APIProtocol::Status::launched] = "launched";
@@ -113,9 +112,10 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	status[SC2APIProtocol::Status::quit] = "quit";
 	status[SC2APIProtocol::Status::unknown] = "unknown";
 	SC2APIProtocol::Status OldStatus = SC2APIProtocol::Status::unknown;
-	bool AlreadyWarned = false;
 	try
 	{
+		bool RequestFound = false;
+		bool AlreadyWarned = false;
 		while (CurrentExitCase == ExitCase::InProgress) {
 			SC2APIProtocol::Status CurrentStatus;
 			if (!client || !server)
@@ -324,7 +324,7 @@ void ResolveMap(const std::string& map_name, SC2APIProtocol::RequestCreateGame* 
 	local_map->set_map_path(map_name);
 }
 
-sc2::GameRequestPtr CreateStartGameRequest(std::string MapName, std::vector<sc2::PlayerSetup> players, sc2::ProcessSettings process_settings)
+sc2::GameRequestPtr CreateStartGameRequest(const std::string &MapName, std::vector<sc2::PlayerSetup> players, sc2::ProcessSettings process_settings)
 {
 	sc2::ProtoInterface proto;
 	sc2::GameRequestPtr request = proto.MakeRequest();
@@ -812,7 +812,6 @@ std::string LadderManager::GerneratePlayerId(size_t Length)
 {
 	static const char hexdigit[16] = { '0', '1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
 	std::string outstring;
-	char buf[1024];
 	if (Length < 1)
 	{
 		return outstring;
@@ -1070,15 +1069,17 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 	CURL *curl;
 	CURLcode res;
 
-	curl_mime *form = NULL;
-	curl_mimepart *field = NULL;
-	struct curl_slist *headerlist = NULL;
-	static const char buf[] = "Expect:";
+
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
 	curl = curl_easy_init();
 	if (curl) {
+		curl_mime *form = NULL;
+		curl_mimepart *field = NULL;
+		struct curl_slist *headerlist = NULL;
+		static const char buf[] = "Expect:";
+
 		/* Create the form */
 		form = curl_mime_init(curl);
 

@@ -1,4 +1,4 @@
-static sc2::Difficulty GetDifficultyFromString(std::string InDifficulty)
+static sc2::Difficulty GetDifficultyFromString(const std::string &InDifficulty)
 {
 	if (InDifficulty == "VeryEasy")
 	{

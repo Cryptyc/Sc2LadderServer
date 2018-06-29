@@ -5,7 +5,7 @@
 #include <fstream>      
 #include "LadderConfig.h"
 
-LadderConfig::LadderConfig(std::string InConfigFile)
+LadderConfig::LadderConfig(const std::string &InConfigFile)
 	:ConfigFileLocation(InConfigFile)
 {
 }
