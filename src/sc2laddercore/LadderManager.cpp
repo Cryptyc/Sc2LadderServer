@@ -1047,8 +1047,12 @@ std::string LadderManager::RemoveMapExtension(const std::string& filename) {
 	return filename.substr(0, lastdot);
 }
 
+
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
+#ifdef DISABLE_CURL
+	return true;
+#else
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
 	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
@@ -1130,15 +1134,19 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 		curl_mime_free(form);
 		/* free slist */
 		curl_slist_free_all(headerlist);
-		MoveReplayFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded\\" + ReplayFile.c_str()).c_str());
+		MoveReplayFile(ReplayLoc.c_str(), std::string(ReplayDir + "Uploaded/" + ReplayFile.c_str()).c_str());
 
 		return true;
 	}
 	return false;
+#endif
 }
 
 bool LadderManager::LoginToServer()
 {
+#ifdef DISABLE_CURL
+	return true;
+#else
 	CURL *curl;
 	CURLcode res;
 
@@ -1191,6 +1199,7 @@ bool LadderManager::LoginToServer()
 		return true;
 	}
 	return false;
+#endif
 }
 
 
