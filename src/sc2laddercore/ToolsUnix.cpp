@@ -95,8 +95,14 @@ void KillSc2Process(unsigned long pid)
 
 bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
 {
-	// todo
-	throw "MoveFile is not implemented for linux yet.";
+    int ret = rename(lpExistingFileName, lpNewFileName);
+    if (ret < 0)
+    {
+        std::cerr << std::string("Failed to move a replay file, error:") +
+            strerror(errno) << std::endl;
+    }
+
+    return ret == 0;
 }
 
 #endif
