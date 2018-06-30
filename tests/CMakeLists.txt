@@ -32,6 +32,3 @@ add_executable(DebugBot ${SOURCES_SC2LADDERSERVER_DEBUGBOT})
 target_link_libraries(DebugBot
     Sc2LadderCore
 )
-
-# Set working directory as the project root
-set_target_properties(Sc2LadderTests PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
