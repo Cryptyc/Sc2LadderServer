@@ -32,8 +32,6 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 
-#include "Tests.h"
-
 bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	try
 	{
