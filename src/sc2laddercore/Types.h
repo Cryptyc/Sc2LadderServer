@@ -56,7 +56,11 @@ struct BotConfig
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
 	std::string PlayerId;
-	BotConfig() {}
+	BotConfig() 
+		: Type(BotType::BinaryCpp)
+		, Race(sc2::Race::Random)
+		, Difficulty(sc2::Difficulty::Easy)
+	{}
 	BotConfig(BotType InType, const std::string & InBotName, sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs = "")
 		: Type(InType)
 		, Race(InBotRace)

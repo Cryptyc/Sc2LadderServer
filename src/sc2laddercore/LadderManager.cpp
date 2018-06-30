@@ -793,19 +793,25 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
 	, EnablePlayerIds(false)
+	, Sc2Launched(false)
+	, Config(nullptr)
 {
-
 }
 
 // Used for tests
-LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile)
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *InConfigFile)
 
 	: coordinator(nullptr)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
 	, MaxGameTime(0)
+	, ConfigFile(InConfigFile)
+	, EnableReplayUploads(false)
+	, EnableServerLogin(false)
+	, EnablePlayerIds(false)
+	, Sc2Launched(false)
+	, Config(nullptr) 
 {
-	this->ConfigFile = ConfigFile;
 }
 
 std::string LadderManager::GerneratePlayerId(size_t Length)
@@ -827,7 +833,7 @@ std::string LadderManager::GerneratePlayerId(size_t Length)
 
 bool LadderManager::LoadSetup()
 {
-
+	delete Config;
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{

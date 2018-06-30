@@ -28,7 +28,7 @@ class LadderManager
 {
 public:
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
-	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *ConfigFile);
+	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *InConfigFile);
 	std::string GerneratePlayerId(size_t Length);
     bool LoadSetup();
 	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, ResultType Result, int32_t GameTime);
