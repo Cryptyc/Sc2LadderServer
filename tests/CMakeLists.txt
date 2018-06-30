@@ -1,6 +1,12 @@
 # Test source files
 file(GLOB SOURCES_SC2LADDERSERVER_TESTS "tests/*.cpp" "tests/*.h")
 
+# copy test data/configs
+configure_file(${CMAKE_CURRENT_LIST_DIR}/tests/test_configs/TestMatch_Bot1Eliminated/LadderBots.json
+    ${PROJECT_BINARY_DIR}/test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/tests/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf
+    ${PROJECT_BINARY_DIR}/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf COPYONLY)
+
 # Debug Bot source files
 file(GLOB SOURCES_SC2LADDERSERVER_DEBUGBOT "debugbot/*.cpp" "debugbot/*.h")
 
