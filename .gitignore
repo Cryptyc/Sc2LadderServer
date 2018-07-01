@@ -17,3 +17,7 @@ x64/
 # Directories for building into
 build/
 build_*/
+
+# CLion
+.idea/
+cmake-build-*/
