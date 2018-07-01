@@ -1,6 +1,12 @@
 # Test source files
 file(GLOB SOURCES_SC2LADDERSERVER_TESTS "tests/*.cpp" "tests/*.h")
 
+# copy test data/configs
+configure_file(${CMAKE_CURRENT_LIST_DIR}/tests/test_configs/TestMatch_Bot1Eliminated/LadderBots.json
+    ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
+configure_file(${CMAKE_CURRENT_LIST_DIR}/tests/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf
+    ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf COPYONLY)
+
 # Debug Bot source files
 file(GLOB SOURCES_SC2LADDERSERVER_DEBUGBOT "debugbot/*.cpp" "debugbot/*.h")
 
@@ -33,5 +39,5 @@ target_link_libraries(DebugBot
     Sc2LadderCore
 )
 
-# Set working directory as the project root
-set_target_properties(Sc2LadderTests PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+# Set working directory as the tests binary directory
+set_target_properties(Sc2LadderTests PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${EXECUTABLE_OUTPUT_PATH}")
