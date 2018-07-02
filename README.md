@@ -35,6 +35,8 @@ $ cd build
 
 :: Generate VS solution.
 $ cmake ../ -G "Visual Studio 15 2017 Win64"
+:: Or to disable curl (recommended for most users):
+$ cmake -DDISABLE_CURL=ON ../ -G "Visual Studio 15 2017 Win64"
 
 :: Build the project using Visual Studio.
 $ start Sc2LadderServer.sln
@@ -53,6 +55,8 @@ $ start Sc2LadderServer.sln
  
  # Generate a Makefile.
  $ cmake ../
+ # Or to disable curl (recommended for most users):
+ $ cmake -DDISABLE_CURL=ON ../
  
  # Build.
  $ make
