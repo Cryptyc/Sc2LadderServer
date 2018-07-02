@@ -30,7 +30,6 @@
 #include <iostream>
 #include <future>
 #include <chrono>
-#include "curl.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
@@ -40,6 +39,10 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
+
+#ifndef DISABLE_CURL
+#include "curl.h"
+#endif
 
 std::mutex PrintThread::_mutexPrint{};
 

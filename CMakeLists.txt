@@ -2,6 +2,12 @@ cmake_minimum_required(VERSION 3.6)
 
 project(Sc2LadderServer)
 
+# Allow option to disable curl via cmake option
+OPTION(DISABLE_CURL "Disable Curl" OFF)
+IF(DISABLE_CURL)
+    ADD_DEFINITIONS(-DDISABLE_CURL)
+ENDIF(DISABLE_CURL)
+
 # Use bin as the directory for all executables.
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
