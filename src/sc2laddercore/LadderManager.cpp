@@ -862,8 +862,9 @@ bool LadderManager::LoadSetup()
 	if (EnableReplayUploadString == "True")
 	{
 #ifdef DISABLE_CURL
-        throw std::logic_error(
-                "ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!");
+		throw std::logic_error(
+				"ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!"
+				" Either set EnableReplayUpload to False in the ladder configuration or run CMake with DISABLE_CURL set to OFF");
 #else
         EnableReplayUploads = true;
 #endif
@@ -875,8 +876,9 @@ bool LadderManager::LoadSetup()
 	if (EnableServerLoginString == "True")
 	{
 #ifdef DISABLE_CURL
-        throw std::logic_error(
-                "ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableServerLoginString=True!");
+		throw std::logic_error(
+				"ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableServerLogin=True!"
+				" Either set EnableServerLogin to False in the ladder configuration or run CMake with DISABLE_CURL set to OFF");
 #else
         EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
