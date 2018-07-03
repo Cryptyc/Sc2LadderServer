@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.6)
 project(Sc2LadderServer)
 
 # Allow option to disable curl via cmake option
-OPTION(DISABLE_CURL "Disable Curl" OFF)
+OPTION(DISABLE_CURL "Disable Curl" ON)
 IF(DISABLE_CURL)
     ADD_DEFINITIONS(-DDISABLE_CURL)
 ENDIF(DISABLE_CURL)
