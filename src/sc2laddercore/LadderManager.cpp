@@ -874,10 +874,15 @@ bool LadderManager::LoadSetup()
 	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
-		EnableServerLogin = true;
+#ifdef DISABLE_CURL
+        throw std::logic_error(
+                "ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableServerLoginString=True!");
+#else
+        EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
 		ServerUsername = Config->GetValue("ServerUsername");
 		ServerPassword = Config->GetValue("ServerPassword");
+#endif
 	}
 
 	return true;
