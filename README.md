@@ -35,8 +35,6 @@ $ cd build
 
 :: Generate VS solution.
 $ cmake ../ -G "Visual Studio 15 2017 Win64"
-:: Or to disable curl (recommended for most users):
-$ cmake -DDISABLE_CURL=ON ../ -G "Visual Studio 15 2017 Win64"
 
 :: Build the project using Visual Studio.
 $ start Sc2LadderServer.sln
@@ -55,8 +53,6 @@ $ start Sc2LadderServer.sln
  
  # Generate a Makefile.
  $ cmake ../
- # Or to disable curl (recommended for most users):
- $ cmake -DDISABLE_CURL=ON ../
  
  # Build.
  $ make
@@ -69,6 +65,12 @@ git submodule update --init --recursive
 ```
 Alternatively, you could opt to symlink the folder of the submodule in question to an existing copy already on your computer. However, note that you will very likely be using a different version of the submodule to that which would otherwise be downloaded in this repository, which could cause issues (but it's probably not too likely). 
  
+### CMake options
+
+| Option | Default | Description |
+|---|---|---|
+| `DISABLE_CURL`	    	| ON |	Disable curl reliant features. e.g. website connectivity. |
+
 ## Configuration
 
 ### Maps
