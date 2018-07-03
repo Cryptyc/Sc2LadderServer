@@ -861,11 +861,12 @@ bool LadderManager::LoadSetup()
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
-	    #ifdef DISABLE_CURL
-	    throw std::logic_error("ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!");
-        #else
+#ifdef DISABLE_CURL
+        throw std::logic_error(
+                "ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!");
+#else
         EnableReplayUploads = true;
-        #endif
+#endif
 	}
 
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
