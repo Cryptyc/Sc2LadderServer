@@ -15,6 +15,7 @@
 #include "sc2api/sc2_client.h"
 #include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
+#include <exception>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 
@@ -860,7 +861,11 @@ bool LadderManager::LoadSetup()
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
-		EnableReplayUploads = true;
+	    #ifdef DISABLE_CURL
+	    throw std::logic_error("ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!");
+        #else
+        EnableReplayUploads = true;
+        #endif
 	}
 
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
