@@ -14,7 +14,7 @@ include_directories(SYSTEM
 # Link directories
 link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
 
-if(NOT DISABLE_CURL AND WIN32) # Curl library for windows
+if(ENABLE_CURL AND WIN32) # Curl library for windows
     include_directories(SYSTEM
             ${PROJECT_SOURCE_DIR}/curl/include/curl
     )
@@ -31,7 +31,7 @@ target_link_libraries(Sc2LadderCore
     sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
 )
 
-if(NOT DISABLE_CURL)
+if(ENABLE_CURL)
     if (WIN32) # Platform specific curl library
         target_link_libraries(Sc2LadderCore libcurl.lib)
         # todo: check for debug/release and copy only relevant DLL

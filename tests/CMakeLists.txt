@@ -23,7 +23,7 @@ include_directories(SYSTEM
 # Link directories
 link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
 
-if (NOT DISABLE_CURL AND WIN32) # Curl library for windows
+if (ENABLE_CURL AND WIN32) # Curl library for windows
 	link_directories(${PROJECT_SOURCE_DIR}/curl/lib)
 endif ()
 

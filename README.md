@@ -69,7 +69,7 @@ Alternatively, you could opt to symlink the folder of the submodule in question 
 
 | Option | Default | Description |
 |---|---|---|
-| `DISABLE_CURL`	    	| ON |	Disable curl reliant features. e.g. website connectivity. |
+| `ENABLE_CURL`	    	| OFF |	Enable curl reliant features. e.g. website connectivity. |
 
 ## Configuration
 

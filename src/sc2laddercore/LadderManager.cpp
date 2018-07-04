@@ -41,7 +41,7 @@
 #include "MatchupList.h"
 #include "Tools.h"
 
-#ifndef DISABLE_CURL
+#ifdef ENABLE_CURL
 #include "curl.h"
 #endif
 
@@ -861,10 +861,10 @@ bool LadderManager::LoadSetup()
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 		throw std::logic_error(
-				"ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableReplayUpload=True!"
-				" Either set EnableReplayUpload to False in the ladder configuration or run CMake with DISABLE_CURL set to OFF");
+				"ERROR: Project was compiled without ENABLE_CURL but ladder manager is configured with EnableReplayUpload=True!"
+				" Either set EnableReplayUpload to False in the ladder configuration or run CMake without ENABLE_CURL set to OFF");
 #else
         EnableReplayUploads = true;
 #endif
@@ -875,10 +875,10 @@ bool LadderManager::LoadSetup()
 	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 		throw std::logic_error(
-				"ERROR: Project was compiled with DISABLE_CURL but ladder manager is configured with EnableServerLogin=True!"
-				" Either set EnableServerLogin to False in the ladder configuration or run CMake with DISABLE_CURL set to OFF");
+				"ERROR: Project was compiled without ENABLE_CURL but ladder manager is configured with EnableServerLogin=True!"
+				" Either set EnableServerLogin to False in the ladder configuration or run CMake with ENABLE_CURL set to ON");
 #else
         EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
@@ -1071,7 +1071,7 @@ std::string LadderManager::RemoveMapExtension(const std::string& filename) {
 
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 	return true;
 #else
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
@@ -1167,7 +1167,7 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 
 bool LadderManager::LoginToServer()
 {
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 	return true;
 #else
 	CURL *curl;
