@@ -80,7 +80,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
 void StartExternalProcess(const std::string CommandLine)
 {
-	execve(CommandLine.c_str());
+	execve(CommandLine.c_str(), NULL, NULL);
 }
 
 void SleepFor(int seconds)
