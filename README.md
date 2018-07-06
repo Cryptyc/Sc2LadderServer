@@ -65,6 +65,12 @@ git submodule update --init --recursive
 ```
 Alternatively, you could opt to symlink the folder of the submodule in question to an existing copy already on your computer. However, note that you will very likely be using a different version of the submodule to that which would otherwise be downloaded in this repository, which could cause issues (but it's probably not too likely). 
  
+### CMake options
+
+| Option | Default | Description |
+|---|---|---|
+| `ENABLE_CURL`	    	| OFF |	Enable curl reliant features. e.g. website connectivity. |
+
 ## Configuration
 
 ### Maps

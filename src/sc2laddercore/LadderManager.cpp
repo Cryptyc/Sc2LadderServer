@@ -15,6 +15,7 @@
 #include "sc2api/sc2_client.h"
 #include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
+#include <exception>
 
 #define RAPIDJSON_HAS_STDSTRING 1
 
@@ -30,7 +31,6 @@
 #include <iostream>
 #include <future>
 #include <chrono>
-#include "curl.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sstream>   
@@ -40,6 +40,10 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
+
+#ifdef ENABLE_CURL
+#include "curl.h"
+#endif
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -864,7 +868,13 @@ bool LadderManager::LoadSetup()
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
-		EnableReplayUploads = true;
+#ifndef ENABLE_CURL
+		throw std::logic_error(
+				"ERROR: Project was compiled without ENABLE_CURL but ladder manager is configured with EnableReplayUpload=True!"
+				" Either set EnableReplayUpload to False in the ladder configuration or run CMake without ENABLE_CURL set to OFF");
+#else
+        EnableReplayUploads = true;
+#endif
 	}
 
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
@@ -872,10 +882,16 @@ bool LadderManager::LoadSetup()
 	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
-		EnableServerLogin = true;
+#ifndef ENABLE_CURL
+		throw std::logic_error(
+				"ERROR: Project was compiled without ENABLE_CURL but ladder manager is configured with EnableServerLogin=True!"
+				" Either set EnableServerLogin to False in the ladder configuration or run CMake with ENABLE_CURL set to ON");
+#else
+        EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
 		ServerUsername = Config->GetValue("ServerUsername");
 		ServerPassword = Config->GetValue("ServerPassword");
+#endif
 	}
 
 	return true;
@@ -1071,7 +1087,7 @@ void LadderManager::ChangeBotNames(const std::string ReplayFile, const std::stri
 
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 	return true;
 #else
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
@@ -1167,7 +1183,7 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 
 bool LadderManager::LoginToServer()
 {
-#ifdef DISABLE_CURL
+#ifndef ENABLE_CURL
 	return true;
 #else
 	CURL *curl;
