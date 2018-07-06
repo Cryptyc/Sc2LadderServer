@@ -707,6 +707,10 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	{
 		CurrentResult = GetPlayerResults(&client);
 	}
+	if (CurrentResult == ResultType::ProcessingReplay)
+	{
+		CurrentResult = GetPlayerResults(&client2);
+	}
 	sc2::SleepFor(1000);
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
 
@@ -736,7 +740,8 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	{
 		server2.SendRequest();
 	}
-	
+	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
+
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
@@ -795,6 +800,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, EnablePlayerIds(false)
 	, Sc2Launched(false)
 	, Config(nullptr)
+	, PlayerIds(nullptr)
 {
 }
 
@@ -811,6 +817,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, ch
 	, EnablePlayerIds(false)
 	, Sc2Launched(false)
 	, Config(nullptr) 
+	, PlayerIds(nullptr)
 {
 }
 
@@ -1052,6 +1059,15 @@ std::string LadderManager::RemoveMapExtension(const std::string& filename) {
 	return filename.substr(0, lastdot);
 }
 
+void LadderManager::ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name)
+{
+	std::string CmdLine = Config->GetValue("ReplayBotRenameProgram");
+	if (CmdLine.size() > 0)
+	{
+		CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
+		StartExternalProcess(CmdLine);
+	}
+}
 
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {

@@ -85,6 +85,28 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	CloseHandle(h);
 }
 
+void StartExternalProcess(const std::string CommandLine)
+{
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+
+	// set the size of the structures
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());
+	// Create the process
+
+	BOOL result = CreateProcess(NULL, cmdLine,
+		NULL, NULL, TRUE,
+		0,
+		NULL, NULL, &si, &pi);
+
+	// Close process and thread handles. 
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+}
+
 void SleepFor(int seconds)
 {
 	Sleep(seconds * 1000);

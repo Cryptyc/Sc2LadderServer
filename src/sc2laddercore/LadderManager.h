@@ -7,6 +7,8 @@
 #include "LadderConfig.h"
 #define PORT_START 5690
 #define PLAYER_ID_LENGTH 16
+#define FIRST_PLAYER_NAME "foo5679"
+#define SECOND_PLAYER_NAME "foo5680"
 
 
 class PrintThread : public std::ostringstream
@@ -47,6 +49,8 @@ private:
 	ResultType GetPlayerResults(sc2::Connection *client);
 	ResultType StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop);
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
+	void ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
+
 	void LoadAgents();
 	bool UploadMime(ResultType result, const Matchup &ThisMatch);
 	bool LoginToServer();
