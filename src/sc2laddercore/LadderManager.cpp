@@ -267,6 +267,11 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		OutCmdLine = "python " + AgentConfig.FileName;
 		break;
 	}
+	case Wine:
+	{
+		OutCmdLine = "wine " + AgentConfig.FileName;
+		break;
+	}
 	case BinaryCpp:
 	{
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
