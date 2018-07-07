@@ -265,34 +265,39 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 	case Python:
 	{
 		OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case Wine:
 	{
-		OutCmdLine = "wine " + AgentConfig.FileName;
+		OutCmdLine = "wine \"" + AgentConfig.FileName + "\"";
+		OutCmdLine += " \"--GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId + "\"";
 		break;
 	}
 	case BinaryCpp:
 	{
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case CommandCenter:
 	{
 		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 
 	}
 	case DefaultBot:
 	{
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+	}
+	}
 
-	}
-	}
-	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 	if (CompOpp)
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
 	}
+
 	if (AgentConfig.Args != "")
 	{
 		OutCmdLine += " " + AgentConfig.Args;
