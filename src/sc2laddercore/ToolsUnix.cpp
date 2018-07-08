@@ -55,7 +55,13 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
         unix_cmd.push_back(NULL);
 
-        ret = execv(unix_cmd.front(), &unix_cmd.front());
+        // NOTE (alkurbatov): For the Python bots we need to search in the PATH
+        // for the interpreter.
+        if (Agent.Type == Python)
+            ret = execvp(unix_cmd.front(), &unix_cmd.front());
+        else
+            ret = execv(unix_cmd.front(), &unix_cmd.front());
+
         if (ret < 0)
         {
             std::cerr << Agent.BotName + ": Failed to execute '" + CommandLine +
