@@ -59,6 +59,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 		// for the interpreter.
 		if (Agent.Type == Python)
 			ret = execvp(unix_cmd.front(), &unix_cmd.front());
+		else if (Agent.Type == Wine)
+			ret = execvp(unix_cmd.front(), &unix_cmd.front());
 		else
 			ret = execv(unix_cmd.front(), &unix_cmd.front());
 
