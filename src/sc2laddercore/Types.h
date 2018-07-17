@@ -9,6 +9,7 @@ enum BotType
 	CommandCenter,
 	Python,
 	Wine,
+	Mono,
 	DefaultBot
 };
 
@@ -161,6 +162,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "wine")
 	{
 		return BotType::Wine;
+	}
+	else if (type == "mono")
+	{
+		return BotType::Mono;
 	}
 	return BotType::BinaryCpp;
 }
