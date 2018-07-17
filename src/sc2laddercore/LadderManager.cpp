@@ -270,8 +270,8 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 	}
 	case Wine:
 	{
-		OutCmdLine = "wine \"" + AgentConfig.FileName + "\"";
-		OutCmdLine += " \"--GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId + "\"";
+		OutCmdLine = "wine " + AgentConfig.RootPath + AgentConfig.FileName;
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case BinaryCpp:
