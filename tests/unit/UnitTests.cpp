@@ -15,7 +15,7 @@ bool UnitTest_Dummy(int argc, char** argv) {
 
 // Handy macro from: s2client-api/tests/all_tests.cc
 #define TEST(X)                                                     \
-    std::cout << "Running unit test: " << #X << std::endl;               \
+    std::cout << "Running unit test: " << #X << std::endl;          \
     if (X(argc, argv)) {                                            \
         std::cout << "Test: " << #X << " succeeded." << std::endl;  \
     }                                                               \
