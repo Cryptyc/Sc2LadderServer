@@ -29,13 +29,6 @@ int main(int argc, char** argv) {
 	bool success = true;
 
 	TEST(UnitTest_Dummy);
-	//TEST(TestMatch_Bot2Eliminated);
-	//TEST(sc2ai::TestMatch_Bot1Leave);
-	//TEST(sc2ai::TestMatch_Bot2Leave);
-	//TEST(sc2ai::TestMatch_Bot1Quit);
-	//TEST(sc2ai::TestMatch_Bot2Quit);
-	//TEST(sc2ai::TestMatch_BotVerseBlizzardAI);
-	//TEST(sc2ai::TestMatch_BotBinaryVerseBotPython);
 	// Add more tests here...
 
 	if (success)
