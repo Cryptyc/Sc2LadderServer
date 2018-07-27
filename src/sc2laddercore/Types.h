@@ -10,6 +10,7 @@ enum BotType
 	Python,
 	Wine,
 	Mono,
+    DotNetLinux,
 	DefaultBot
 };
 
@@ -159,10 +160,14 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	{
 		return BotType::Python;
 	}
-	else if (type == "wine")
-	{
-		return BotType::Wine;
-	}
+    else if (type == "wine")
+    {
+        return BotType::Wine;
+    }
+    else if (type == "dotnetlinux")
+    {
+        return BotType::DotNetLinux;
+    }
 	else if (type == "mono")
 	{
 		return BotType::Mono;

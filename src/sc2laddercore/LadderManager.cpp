@@ -274,12 +274,18 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
-	case Mono:
-	{
-		OutCmdLine = "mono " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
-		break;
-	}
+    case Mono:
+    {
+        OutCmdLine = "mono " + AgentConfig.FileName;
+        OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+        break;
+    }
+    case DotNetLinux:
+    {
+        OutCmdLine = "dotnet " + AgentConfig.FileName;
+        OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+        break;
+    }
 	case BinaryCpp:
 	{
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
