@@ -5,12 +5,12 @@ bool UnitTest_Dummy(int argc, char** argv) {
 		// do unit test
 		return true;
 	}
-//	catch (const std::exception& e)
-//	{
-//		std::cerr << "Exception in UnitTest_Dummy" << std::endl;
-//		std::cerr << e.what() << std::endl;
-//		return false;
-//	}
+	catch (const std::exception& e)
+	{
+		std::cerr << "Exception in UnitTest_Dummy" << std::endl;
+		std::cerr << e.what() << std::endl;
+		return false;
+	}
 }
 
 // Handy macro from: s2client-api/tests/all_tests.cc
