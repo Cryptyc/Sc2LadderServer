@@ -1,11 +1,11 @@
 # Test source files
-file(GLOB SOURCES_SC2LADDERSERVER_TESTS "*.cpp" "*.h")
+file(GLOB SOURCES_SC2LADDERSERVER_INTEGRATION_TESTS "*.cpp" "*.h")
 
 # copy test data/configs
 configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json
-    ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
+    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
 configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.conf
-    ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf COPYONLY)
+    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.conf COPYONLY)
 
 # Include directories
 include_directories(SYSTEM
@@ -24,10 +24,10 @@ if (ENABLE_CURL AND WIN32) # Curl library for windows
 endif ()
 
 # Create the executable.
-add_executable(Sc2LadderTests ${SOURCES_SC2LADDERSERVER_TESTS})
-target_link_libraries(Sc2LadderTests
+add_executable(Sc2LadderIntegrationTests ${SOURCES_SC2LADDERSERVER_INTEGRATION_TESTS})
+target_link_libraries(Sc2LadderIntegrationTests
     Sc2LadderCore
 )
 
 # Set working directory as the tests binary directory
-set_target_properties(Sc2LadderTests PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${EXECUTABLE_OUTPUT_PATH}")
+set_target_properties(Sc2LadderIntegrationTests PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${EXECUTABLE_OUTPUT_PATH}")
