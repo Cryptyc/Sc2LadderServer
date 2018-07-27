@@ -2,14 +2,14 @@
 file(GLOB SOURCES_SC2LADDERSERVER_TESTS "*.cpp" "*.h")
 
 # copy test data/configs
-configure_file(${CMAKE_CURRENT_LIST_DIR}/test_configs/TestMatch_Bot1Eliminated/LadderBots.json
+configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json
     ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
-configure_file(${CMAKE_CURRENT_LIST_DIR}/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf
+configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.conf
     ${EXECUTABLE_OUTPUT_PATH}/test_configs/TestMatch_Bot1Eliminated/LadderManager.conf COPYONLY)
 
 # Include directories
 include_directories(SYSTEM
-    ${PROJECT_SOURCE_DIR}/tests/tests
+    ${PROJECT_SOURCE_DIR}/tests/integration
     ${PROJECT_SOURCE_DIR}/src/sc2laddercore
     ${PROJECT_SOURCE_DIR}/s2client-api/include
     ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
