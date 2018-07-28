@@ -10,8 +10,8 @@ enum BotType
 	Python,
 	Wine,
 	Mono,
-        DotNetLinux,
-        CommandCenterLinux,
+    DotNetLinux,
+    CommandCenterLinux,
 	DefaultBot
 };
 
