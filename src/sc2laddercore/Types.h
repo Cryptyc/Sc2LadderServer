@@ -11,6 +11,7 @@ enum BotType
 	Wine,
 	Mono,
     DotNetLinux,
+    CommandCenterLinux,
 	DefaultBot
 };
 
@@ -167,6 +168,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
     else if (type == "dotnetlinux")
     {
         return BotType::DotNetLinux;
+    }
+    else if (type == "commandcenterlinux")
+    {
+        return BotType::CommandCenterLinux;
     }
 	else if (type == "mono")
 	{
