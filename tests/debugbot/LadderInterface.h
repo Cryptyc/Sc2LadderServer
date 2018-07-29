@@ -131,9 +131,6 @@ static void RunBot(int argc, char *argv[], sc2::Agent *Agent,sc2::Race race)
 	ParseArguments(argc, argv, Options);
 
 	sc2::Coordinator coordinator;
-	if (!coordinator.LoadSettings(argc, argv)) {
-		return;
-	}
 
 	// Add the custom bot, it will control the players.
 	int num_agents;
