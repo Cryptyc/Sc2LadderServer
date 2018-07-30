@@ -57,7 +57,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
         // NOTE (alkurbatov): For the Python bots we need to search in the PATH
         // for the interpreter.
-        if (Agent.Type == Python || Agent.Type == Wine || Agent.Type == Mono || Agent.Type == DotNetLinux || Agent.Type == CommandCenterLinux)
+        if (Agent.Type == Python || Agent.Type == Wine || Agent.Type == Mono || Agent.Type == DotNetCore || Agent.Type == CommandCenterLinux)
             ret = execvp(unix_cmd.front(), &unix_cmd.front());
         else
             ret = execv(unix_cmd.front(), &unix_cmd.front());
