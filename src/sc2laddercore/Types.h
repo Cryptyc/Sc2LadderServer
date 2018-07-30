@@ -161,7 +161,7 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	{
 		return BotType::Python;
 	}
-		else if (type == "wine")
+	else if (type == "wine")
 	{
 		return BotType::Wine;
 	}

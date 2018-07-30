@@ -307,9 +307,9 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 	}
 	case DefaultBot:
 	{
-        OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
-    }
-    }
+		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+	}
+	}
 
 	if (CompOpp)
 	{
