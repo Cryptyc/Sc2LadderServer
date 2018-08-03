@@ -11,7 +11,6 @@ enum BotType
 	Wine,
 	Mono,
 	DotNetCore,
-	CommandCenterLinux,
 	DefaultBot
 };
 
@@ -60,7 +59,7 @@ struct BotConfig
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
 	std::string PlayerId;
-	BotConfig() 
+	BotConfig()
 		: Type(BotType::BinaryCpp)
 		, Race(sc2::Race::Random)
 		, Difficulty(sc2::Difficulty::Easy)
@@ -168,10 +167,6 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "dotnetcore")
 	{
 		return BotType::DotNetCore;
-	}
-	else if (type == "commandcenterlinux")
-	{
-		return BotType::CommandCenterLinux;
 	}
 	else if (type == "mono")
 	{
