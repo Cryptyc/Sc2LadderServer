@@ -259,51 +259,45 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 
 std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
+	// Add bot type specific command line needs
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
 	{
 	case Python:
 	{
 		OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case Wine:
 	{
 		OutCmdLine = "wine " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case Mono:
 	{
 		OutCmdLine = "mono " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case DotNetCore:
 	{
 		OutCmdLine = "dotnet " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
-		break;
-	}
-	case BinaryCpp:
-	{
-		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
 	}
 	case CommandCenter:
 	{
 		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 		break;
-
 	}
+	case BinaryCpp:
 	case DefaultBot:
 	{
-		OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
+		break;
 	}
 	}
+
+	// Add universal arguments
+	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
 
 	if (CompOpp)
 	{
