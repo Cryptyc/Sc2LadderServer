@@ -27,6 +27,36 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 
+// If we mock the filesystem, we can move this into the unit tests
+bool TestLadderConfig(int argc, char** argv) {
+
+	// Use separate config instances to make sure we don't accidentally
+	// succeed due to the values sticking around between file access.
+
+	char *configFile = "./integration_test_configs/TestConfig.json",
+		*item1 = "Just a general string",
+		*item2 = "./a/path\\like\\string.exe",
+		*item3 = "http://127.0.0.1/web_address.php";
+
+	// Just in case the config file already exists, we try delete it
+	// otherwise it could cause a false positive
+	remove(configFile);
+
+	// Write out a config
+	LadderConfig writeConfig(configFile);
+	writeConfig.AddValue("Item1", item1);
+	writeConfig.AddValue("Item2", item2);
+	writeConfig.AddValue("Item3", item3);
+	writeConfig.WriteConfig();
+
+	// Check the config values come back as expected
+	LadderConfig readConfig(configFile);
+	readConfig.ParseConfig();
+	return readConfig.GetValue("Item1") == item1
+		&& readConfig.GetValue("Item2") == item2
+		&& readConfig.GetValue("Item3") == item3;
+}
+
 bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	try
 	{
@@ -65,6 +95,8 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 
 int main(int argc, char** argv) {
 	bool success = true;
+
+	TEST(TestLadderConfig);
 
 	TEST(TestMatch_Bot1Eliminated);
 	//TEST(TestMatch_Bot2Eliminated);
