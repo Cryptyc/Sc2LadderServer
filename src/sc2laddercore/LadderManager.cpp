@@ -740,7 +740,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		server.SendRequest();
 	}
 	sc2::SleepFor(1000);
-	if (server2.HasRequest() && server.connections_.size() > 0)
+	if (server2.HasRequest() && server2.connections_.size() > 0)
 	{
 		server2.SendRequest();
 	}
