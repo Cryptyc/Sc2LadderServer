@@ -37,7 +37,7 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 		myfile.close();
 
 		// Run LadderManager
-		LadderManager LadderMan(argc, argv, "./integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
+		LadderManager LadderMan(argc, argv, "./integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.json");
 		if (LadderMan.LoadSetup())
 		{
 			LadderMan.RunLadderManager();
@@ -54,7 +54,7 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 
 // Handy macro from: s2client-api/tests/all_tests.cc
 #define TEST(X)                                                     \
-    std::cout << "Running integration test: " << #X << std::endl;               \
+    std::cout << "Running integration test: " << #X << std::endl;   \
     if (X(argc, argv)) {                                            \
         std::cout << "Test: " << #X << " succeeded." << std::endl;  \
     }                                                               \

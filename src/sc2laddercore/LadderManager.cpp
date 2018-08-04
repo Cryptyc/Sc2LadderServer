@@ -798,7 +798,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, CoordinatorArgc(InCoordinatorArgc)
 	, CoordinatorArgv(inCoordinatorArgv)
 	, MaxGameTime(0)
-	, ConfigFile("LadderManager.conf")
+	, ConfigFile("LadderManager.json")
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
 	, EnablePlayerIds(false)
@@ -848,7 +848,7 @@ bool LadderManager::LoadSetup()
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{
-		std::cout << "No valid config found at " << ConfigFile << std::endl;
+		std::cout << "Unable to parse config (not found or not valid): " << ConfigFile << std::endl;
 		return false;
 	}
 

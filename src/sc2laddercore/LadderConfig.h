@@ -1,5 +1,12 @@
 #pragma once
 
+#define RAPIDJSON_HAS_STDSTRING 1
+#include "rapidjson.h"
+#include "document.h"
+
+#include <string>
+#include <map>
+
 class LadderConfig
 {
 public:
@@ -9,9 +16,6 @@ public:
     std::string GetValue(std::string RequestedValue);
 	void AddValue(const std::string &Index, const std::string &Value);
 private:
-    static void TrimString(std::string &Str);
     const std::string ConfigFileLocation;
-    std::map<std::string, std::string> options; 
-
-
+    rapidjson::Document doc;
 };
