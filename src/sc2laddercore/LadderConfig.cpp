@@ -16,6 +16,8 @@
 LadderConfig::LadderConfig(const std::string &ConfigFile)
 	:ConfigFileLocation(ConfigFile)
 {
+	// Doing this allows us to write values to the doc
+	// straight off instead of loading from file
 	this->doc.SetObject();
 }
 
