@@ -1,4 +1,8 @@
 #pragma once
+
+#include <string>
+#include <map>
+
 class LegacyLadderConfig
 {
 public:
