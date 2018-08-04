@@ -289,11 +289,11 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		break;
 	}
 	case BinaryCpp:
-	case DefaultBot:
 	{
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
+	case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
 	}
 
 	// Add universal arguments
