@@ -1,8 +1,3 @@
-
-// Tests.cpp
-// These tests execute some basic scenarios that should be useful for regression testing.
-// Run manually for now
-
 #include "sc2lib/sc2_lib.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_interfaces.h"
@@ -37,12 +32,12 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 	{
 		// Write out the matchup file before launching LadderManager so we can dictate the bot load order
 		std::ofstream myfile;
-		myfile.open("./test_configs/TestMatch_Bot1Eliminated/matchuplist");
+		myfile.open("./integration_test_configs/TestMatch_Bot1Eliminated/matchuplist");
 		myfile << "\"DebugBot1\" \"DebugBot2\" InterloperLE.SC2Map";
 		myfile.close();
 
 		// Run LadderManager
-		LadderManager LadderMan(argc, argv, "./test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
+		LadderManager LadderMan(argc, argv, "./integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.conf");
 		if (LadderMan.LoadSetup())
 		{
 			LadderMan.RunLadderManager();
@@ -59,7 +54,7 @@ bool TestMatch_Bot1Eliminated(int argc, char** argv) {
 
 // Handy macro from: s2client-api/tests/all_tests.cc
 #define TEST(X)                                                     \
-    std::cout << "Running test: " << #X << std::endl;               \
+    std::cout << "Running integration test: " << #X << std::endl;               \
     if (X(argc, argv)) {                                            \
         std::cout << "Test: " << #X << " succeeded." << std::endl;  \
     }                                                               \
@@ -82,13 +77,9 @@ int main(int argc, char** argv) {
 	// Add more tests here...
 
 	if (success)
-		std::cout << "All tests succeeded!" << std::endl;
+		std::cout << "All integration tests succeeded!" << std::endl;
 	else
-		std::cerr << "Some tests failed!" << std::endl;
-
-	// Prevent the console from disappearing before it can be read.
-	std::cout << "Hit any key to exit..." << std::endl;
-	while (!sc2::PollKeyPress());
+		std::cerr << "Some integration tests failed!" << std::endl;
 
 	return success ? 0 : -1;
 }
