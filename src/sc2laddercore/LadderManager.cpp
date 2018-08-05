@@ -1338,7 +1338,7 @@ void LadderManager::RunLadderManager()
 			PrintThread{} << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
 			if (EnableReplayUploads)
 			{
-				UploadCurlExe(result, NextMatch);
+				UploadCmdLine(result, NextMatch);
 			}
 			if (ResultsLogFile.size() > 0)
 			{
