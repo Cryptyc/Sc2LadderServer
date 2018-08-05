@@ -261,12 +261,33 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 
 std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
+	// Add bot type specific command line needs
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
 	{
 	case Python:
 	{
-		OutCmdLine = "python " + AgentConfig.FileName;
+		OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
+		break;
+	}
+	case Wine:
+	{
+		OutCmdLine = "wine " + AgentConfig.FileName;
+		break;
+	}
+	case Mono:
+	{
+		OutCmdLine = "mono " + AgentConfig.FileName;
+		break;
+	}
+	case DotNetCore:
+	{
+		OutCmdLine = "dotnet " + AgentConfig.FileName;
+		break;
+	}
+	case CommandCenter:
+	{
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
 		break;
 	}
 	case BinaryCpp:
@@ -274,18 +295,12 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
-	case CommandCenter:
-	{
-		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
-		break;
+	case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
+	}
 
-	}
-	case DefaultBot:
-	{
-
-	}
-	}
+	// Add universal arguments
 	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+
 	if (CompOpp)
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
@@ -742,7 +757,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		server.SendRequest();
 	}
 	sc2::SleepFor(1000);
-	if (server2.HasRequest() && server.connections_.size() > 0)
+	if (server2.HasRequest() && server2.connections_.size() > 0)
 	{
 		server2.SendRequest();
 	}
