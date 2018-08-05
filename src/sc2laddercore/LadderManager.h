@@ -55,6 +55,8 @@ private:
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
 	void ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
 
+	bool UploadCurlExe(ResultType result, const Matchup &ThisMatch);
+
 	void LoadAgents();
 	bool UploadMime(ResultType result, const Matchup &ThisMatch);
 	bool LoginToServer();

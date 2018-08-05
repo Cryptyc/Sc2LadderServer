@@ -1087,6 +1087,40 @@ void LadderManager::ChangeBotNames(const std::string ReplayFile, const std::stri
 	}
 }
 
+bool LadderManager::UploadCmdLine(ResultType result, const Matchup &ThisMatch)
+{
+#ifndef ENABLE_CURL
+	return true;
+#else
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
+	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
+	std::string ReplayFile;
+	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
+	{
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + GetDifficultyString(ThisMatch.Agent2.Difficulty) + "-" + RawMapName + ".Sc2Replay";
+	}
+	else
+	{
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + ThisMatch.Agent2.BotName + "-" + RawMapName + ".Sc2Replay";
+	}
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
+	std::string ReplayLoc = ReplayDir + ReplayFile;
+
+	std::string CurlCmd = "curl";
+	CurlCmd = CurlCmd + " -F Bot1Name=" + ThisMatch.Agent1.BotName;
+	CurlCmd = CurlCmd + " -F Bot1Race=" + std::to_string((int)ThisMatch.Agent1.Race);
+	CurlCmd = CurlCmd + " -F Bot2Name=" + ThisMatch.Agent2.BotName;
+	CurlCmd = CurlCmd + " -F Bot2Race=" + std::to_string((int)ThisMatch.Agent2.Race);
+	CurlCmd = CurlCmd + " -F Map=" + RawMapName;
+	CurlCmd = CurlCmd + " -F Result=" + GetResultType(result);
+	CurlCmd = CurlCmd + " -F replayfile=@" + ReplayLoc;
+	CurlCmd = CurlCmd + " " + UploadResultLocation;
+	StartExternalProcess(CurlCmd);
+	return true;
+#endif
+}
+
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
 #ifndef ENABLE_CURL
@@ -1108,8 +1142,6 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
 	CURLcode res;
-
-
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -1291,7 +1323,7 @@ void LadderManager::RunLadderManager()
 			PrintThread{} << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
 			if (EnableReplayUploads)
 			{
-				UploadMime(result, NextMatch);
+				UploadCurlExe(result, NextMatch);
 			}
 			if (ResultsLogFile.size() > 0)
 			{
