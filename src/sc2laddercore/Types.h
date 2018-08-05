@@ -93,6 +93,23 @@ struct Matchup
 
 };
 
+static std::string GetExitCaseString(ExitCase ExitCaseIn)
+{
+	switch (ExitCaseIn)
+	{
+	case ExitCase::ClientRequestExit:
+		return "ClientRequestExit";
+	case ExitCase::ClientTimeout:
+		return "ClientTimeout";
+	case ExitCase::GameEnd:
+		return "GameEnd";
+	case ExitCase::GameTimeout:
+		return "GameTimeout";
+	case ExitCase::InProgress:
+		return "InProgress";
+	}
+	return "Error";
+}
 
 static sc2::Race GetRaceFromString(const std::string & RaceIn)
 {

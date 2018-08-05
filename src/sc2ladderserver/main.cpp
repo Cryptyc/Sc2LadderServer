@@ -9,7 +9,7 @@
 // in order to be included in the tests.
 int main(int argc, char** argv)
 {
-	std::cout << "LadderManager started." << std::endl;
+	PrintThread{} << "LadderManager started." << std::endl;
 
 	LadderManager LadderMan(argc, argv);
 	if (LadderMan.LoadSetup())
@@ -17,5 +17,5 @@ int main(int argc, char** argv)
 		LadderMan.RunLadderManager();
 	}
 
-	std::cout << "Finished." << std::endl;
+	PrintThread{} << "Finished." << std::endl;
 }

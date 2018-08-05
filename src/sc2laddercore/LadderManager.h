@@ -3,6 +3,8 @@
 #include <sstream>
 #include <mutex>
 #include <iostream>
+#include <iomanip>
+#include <ctime>
 #include <sc2api/sc2_api.h>
 #include "LadderConfig.h"
 #define PORT_START 5690
@@ -19,7 +21,9 @@ public:
 	~PrintThread()
 	{
 		std::lock_guard<std::mutex> guard(_mutexPrint);
-		std::cout << this->str();
+		std::time_t t = std::time(nullptr);
+		std::tm tm = *std::localtime(&t);
+		std::cout << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << this->str();
 	}
 
 private:
