@@ -124,6 +124,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 			SC2APIProtocol::Status CurrentStatus;
 			if (!client || !server)
 			{
+				PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
 				return ExitCase::ClientTimeout;
 			}
 			if (client->connection_ == nullptr && RequestFound)
@@ -145,7 +146,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					}
 					else if (request.second->has_debug() && !AlreadyWarned)
 					{
-						std::cout << *botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
+						PrintThread{} << *botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
 						AlreadyWarned = true;
 					}
 				}
@@ -207,11 +208,12 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 			}
 
 		}
+		PrintThread{} << botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << std::endl;
 		return CurrentExitCase;
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << e.what() << std::endl;
+		PrintThread{} << e.what() << std::endl;
 		return ExitCase::ClientTimeout;
 	}
 }
@@ -259,12 +261,33 @@ bool LadderManager::ProcessObservationResponse(SC2APIProtocol::ResponseObservati
 
 std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty)
 {
+	// Add bot type specific command line needs
 	std::string OutCmdLine;
 	switch (AgentConfig.Type)
 	{
 	case Python:
 	{
-		OutCmdLine = "python " + AgentConfig.FileName;
+		OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
+		break;
+	}
+	case Wine:
+	{
+		OutCmdLine = "wine " + AgentConfig.FileName;
+		break;
+	}
+	case Mono:
+	{
+		OutCmdLine = "mono " + AgentConfig.FileName;
+		break;
+	}
+	case DotNetCore:
+	{
+		OutCmdLine = "dotnet " + AgentConfig.FileName;
+		break;
+	}
+	case CommandCenter:
+	{
+		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
 		break;
 	}
 	case BinaryCpp:
@@ -272,18 +295,12 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
-	case CommandCenter:
-	{
-		OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
-		break;
+	case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
+	}
 
-	}
-	case DefaultBot:
-	{
-
-	}
-	}
+	// Add universal arguments
 	OutCmdLine += " --GamePort " + std::to_string(GamePort) + " --StartPort " + std::to_string(StartPort) + " --LadderServer 127.0.0.1 --OpponentId " + OpponentId;
+
 	if (CompOpp)
 	{
 		OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
@@ -471,7 +488,7 @@ ResultType LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient > 60)
 		{
-			std::cout << "Failed to connect client 1. BotProcessID: " << BotProcessId << std::endl;
+			PrintThread{} << "Failed to connect client 1. BotProcessID: " << BotProcessId << std::endl;
 			return ResultType::InitializationError;
 		}
 	}
@@ -485,17 +502,17 @@ ResultType LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 	SC2APIProtocol::Response* create_response = nullptr;
 	if (client.Receive(create_response, 100000))
 	{
-		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
+		PrintThread{} << "Recieved create game response " << create_response->data().DebugString() << std::endl;
 		if (ProcessResponse(create_response->create_game()))
 		{
-			std::cout << "Create game successful" << std::endl << std::endl;
+			PrintThread{} << "Create game successful" << std::endl << std::endl;
 		}
 	}
 	unsigned long ProcessId;
 	auto bot1ProgramThread = std::thread(StartBotProcess,Agent1, Agent1Path, &ProcessId);
 	sc2::SleepFor(1000);
 
-	std::cout << "Monitoring client of: " << Agent1.BotName << std::endl;
+	PrintThread{} << "Monitoring client of: " << Agent1.BotName << std::endl;
 	auto bot1UpdateThread = std::async(GameUpdate, &client, &server,&Agent1.BotName, MaxGameTime);
 	sc2::SleepFor(1000);
 
@@ -545,7 +562,7 @@ ResultType LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 	SaveReplay(&client, ReplayFile);
 	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
-		std::cout << "CreateLeaveGameRequest failed" << std::endl;
+		PrintThread{} << "CreateLeaveGameRequest failed" << std::endl;
 	}
 
 	bot1ProgramThread.join();
@@ -593,7 +610,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient1 > 60)
 		{
-			std::cout << "Failed to connect client 1. BotProcessID: " << Bot1ProcessId << std::endl;
+			PrintThread{} << "Failed to connect client 1. BotProcessID: " << Bot1ProcessId << std::endl;
 			return ResultType::InitializationError;
 		}
 	}
@@ -605,7 +622,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient2 > 60)
 		{
-			std::cout << "Failed to connect client 2. BotProcessID: " << Bot2ProcessId << std::endl;
+			PrintThread{} << "Failed to connect client 2. BotProcessID: " << Bot2ProcessId << std::endl;
 			return ResultType::InitializationError;
 		}
 	}
@@ -619,10 +636,10 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	SC2APIProtocol::Response* create_response = nullptr;
 	if (client.Receive(create_response, 100000))
 	{
-		std::cout << "Recieved create game response " << create_response->data().DebugString() << std::endl;
+		PrintThread{} << "Recieved create game response " << create_response->data().DebugString() << std::endl;
 		if (ProcessResponse(create_response->create_game()))
 		{
-			std::cout << "Create game successful" << std::endl << std::endl;
+			PrintThread{} << "Create game successful" << std::endl << std::endl;
 		}
 	}
 	unsigned long Bot1ThreadId = 0;
@@ -727,12 +744,12 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::SleepFor(1000);
 	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
 	{
-		std::cout << "CreateLeaveGameRequest failed for Client 1." << std::endl;
+		PrintThread{} << "CreateLeaveGameRequest failed for Client 1." << std::endl;
 	}
 	sc2::SleepFor(1000);
 	if (!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
 	{
-		std::cout << "CreateLeaveGameRequest failed for Client 2." << std::endl;
+		PrintThread{} << "CreateLeaveGameRequest failed for Client 2." << std::endl;
 	}
 	sc2::SleepFor(1000);
 	if (server.HasRequest() && server.connections_.size() > 0)
@@ -740,7 +757,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		server.SendRequest();
 	}
 	sc2::SleepFor(1000);
-	if (server2.HasRequest() && server.connections_.size() > 0)
+	if (server2.HasRequest() && server2.connections_.size() > 0)
 	{
 		server2.SendRequest();
 	}
@@ -760,7 +777,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		}
 		catch (const std::exception& e)
 		{
-			std::cout << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
+			PrintThread{} << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
 			return CurrentResult;
 		}
 
@@ -780,12 +797,12 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	}
 	if (bot1ProgStatus != std::future_status::ready)
 	{
-		std::cout << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
 		KillSc2Process(Bot1ThreadId);
 	}
 	if (bot2ProgStatus != std::future_status::ready)
 	{
-		std::cout << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
 		KillSc2Process(Bot2ThreadId);
 	}
 	return CurrentResult;
@@ -848,7 +865,7 @@ bool LadderManager::LoadSetup()
 	Config = new LadderConfig(ConfigFile);
 	if (!Config->ParseConfig())
 	{
-		std::cout << "Unable to parse config (not found or not valid): " << ConfigFile << std::endl;
+		PrintThread{} << "Unable to parse config (not found or not valid): " << ConfigFile << std::endl;
 		return false;
 	}
 
@@ -1085,6 +1102,40 @@ void LadderManager::ChangeBotNames(const std::string ReplayFile, const std::stri
 	}
 }
 
+bool LadderManager::UploadCmdLine(ResultType result, const Matchup &ThisMatch)
+{
+#ifndef ENABLE_CURL
+	return true;
+#else
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
+	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
+	std::string ReplayFile;
+	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
+	{
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + GetDifficultyString(ThisMatch.Agent2.Difficulty) + "-" + RawMapName + ".Sc2Replay";
+	}
+	else
+	{
+		ReplayFile = ThisMatch.Agent1.BotName + "v" + ThisMatch.Agent2.BotName + "-" + RawMapName + ".Sc2Replay";
+	}
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
+	std::string ReplayLoc = ReplayDir + ReplayFile;
+
+	std::string CurlCmd = "curl";
+	CurlCmd = CurlCmd + " -F Bot1Name=" + ThisMatch.Agent1.BotName;
+	CurlCmd = CurlCmd + " -F Bot1Race=" + std::to_string((int)ThisMatch.Agent1.Race);
+	CurlCmd = CurlCmd + " -F Bot2Name=" + ThisMatch.Agent2.BotName;
+	CurlCmd = CurlCmd + " -F Bot2Race=" + std::to_string((int)ThisMatch.Agent2.Race);
+	CurlCmd = CurlCmd + " -F Map=" + RawMapName;
+	CurlCmd = CurlCmd + " -F Result=" + GetResultType(result);
+	CurlCmd = CurlCmd + " -F replayfile=@" + ReplayLoc;
+	CurlCmd = CurlCmd + " " + UploadResultLocation;
+	StartExternalProcess(CurlCmd);
+	return true;
+#endif
+}
+
 bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 {
 #ifndef ENABLE_CURL
@@ -1106,8 +1157,6 @@ bool LadderManager::UploadMime(ResultType result, const Matchup &ThisMatch)
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 	CURL *curl;
 	CURLcode res;
-
-
 
 	curl_global_init(CURL_GLOBAL_ALL);
 
@@ -1246,15 +1295,15 @@ void LadderManager::RunLadderManager()
 {
 
 	LoadAgents();
-	std::cout << "Starting with " << MapList.size() << " maps:" << std::endl;
+	PrintThread{} << "Starting with " << MapList.size() << " maps:" << std::endl;
 	for (auto &map : MapList)
 	{
-		std::cout << "* " << map << std::endl;
+		PrintThread{} << "* " << map << std::endl;
 	}
-	std::cout << "Starting with agents: " << std::endl;
+	PrintThread{} << "Starting with agents: " << std::endl;
 	for (auto &Agent : BotConfigs)
 	{
-		std::cout << Agent.second.BotName << std::endl;
+		PrintThread{} << Agent.second.BotName << std::endl;
 	}
 	std::string MatchListFile = Config->GetValue("MatchupListFile");
 	MatchupList *Matchups = new MatchupList(MatchListFile);
@@ -1269,7 +1318,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
 			ResultType result = ResultType::InitializationError;
-			std::cout << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+			PrintThread{} << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
 			int32_t CurrentGameLoop = 0;
 			if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 			{
@@ -1286,10 +1335,10 @@ void LadderManager::RunLadderManager()
 			{
 				result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map, CurrentGameLoop);
 			}
-			std::cout << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
+			PrintThread{} << std::endl << "Game finished with result: " << GetResultType(result) << std::endl;
 			if (EnableReplayUploads)
 			{
-				UploadMime(result, NextMatch);
+				UploadCmdLine(result, NextMatch);
 			}
 			if (ResultsLogFile.size() > 0)
 			{
@@ -1301,7 +1350,7 @@ void LadderManager::RunLadderManager()
 	}
 	catch (const std::exception& e)
 	{
-		std::cout << "Exception in game " << e.what() << std::endl;
+		PrintThread{} << "Exception in game " << e.what() << std::endl;
 		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
 	

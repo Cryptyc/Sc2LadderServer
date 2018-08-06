@@ -3,6 +3,8 @@
 #include <sstream>
 #include <mutex>
 #include <iostream>
+#include <iomanip>
+#include <ctime>
 #include <sc2api/sc2_api.h>
 #include "LadderConfig.h"
 #define PORT_START 5690
@@ -19,7 +21,9 @@ public:
 	~PrintThread()
 	{
 		std::lock_guard<std::mutex> guard(_mutexPrint);
-		std::cout << this->str();
+		std::time_t t = std::time(nullptr);
+		std::tm tm = *std::localtime(&t);
+		std::cout << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << this->str();
 	}
 
 private:
@@ -50,6 +54,8 @@ private:
 	ResultType StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop);
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
 	void ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
+
+	bool UploadCmdLine(ResultType result, const Matchup &ThisMatch);
 
 	void LoadAgents();
 	bool UploadMime(ResultType result, const Matchup &ThisMatch);

@@ -8,6 +8,9 @@ enum BotType
 	BinaryCpp,
 	CommandCenter,
 	Python,
+	Wine,
+	Mono,
+	DotNetCore,
 	DefaultBot
 };
 
@@ -56,7 +59,7 @@ struct BotConfig
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
 	std::string PlayerId;
-	BotConfig() 
+	BotConfig()
 		: Type(BotType::BinaryCpp)
 		, Race(sc2::Race::Random)
 		, Difficulty(sc2::Difficulty::Easy)
@@ -93,6 +96,23 @@ struct Matchup
 
 };
 
+static std::string GetExitCaseString(ExitCase ExitCaseIn)
+{
+	switch (ExitCaseIn)
+	{
+	case ExitCase::ClientRequestExit:
+		return "ClientRequestExit";
+	case ExitCase::ClientTimeout:
+		return "ClientTimeout";
+	case ExitCase::GameEnd:
+		return "GameEnd";
+	case ExitCase::GameTimeout:
+		return "GameTimeout";
+	case ExitCase::InProgress:
+		return "InProgress";
+	}
+	return "Error";
+}
 
 static sc2::Race GetRaceFromString(const std::string & RaceIn)
 {
@@ -156,6 +176,18 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "python")
 	{
 		return BotType::Python;
+	}
+	else if (type == "wine")
+	{
+		return BotType::Wine;
+	}
+	else if (type == "dotnetcore")
+	{
+		return BotType::DotNetCore;
+	}
+	else if (type == "mono")
+	{
+		return BotType::Mono;
 	}
 	return BotType::BinaryCpp;
 }
