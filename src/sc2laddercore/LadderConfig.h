@@ -10,7 +10,7 @@
 class LadderConfig
 {
 public:
-    LadderConfig(const std::string &InConfigFile);
+    explicit LadderConfig(const std::string &InConfigFile);
     bool ParseConfig();
 	bool WriteConfig();
     std::string GetValue(std::string RequestedValue);
