@@ -31,8 +31,8 @@ bool LadderConfig::ParseConfig()
 		std::string ConfigString = buffer.str();
 		return !doc.Parse(ConfigString.c_str()).HasParseError();
 	}
-	else
-		return false;
+	
+	return false;
 }
 
 
@@ -49,12 +49,14 @@ std::string LadderConfig::GetValue(std::string RequestedValue)
 	if (doc.HasMember(RequestedValue))
 	{
 		if (doc[RequestedValue].IsString())
+		{
 			return doc[RequestedValue].GetString();
-		else
-			throw std::string("Unable to obtain RequestedValue: ") + RequestedValue;
+		}
+		
+		throw std::string("Unable to obtain RequestedValue: ") + RequestedValue;
 	}
-	else
-		return ""; // this allows config entries to not have to exist
+	
+	return ""; // this allows config entries to not have to exist
 }
 
 void LadderConfig::AddValue(const std::string &Index, const std::string &Value)
