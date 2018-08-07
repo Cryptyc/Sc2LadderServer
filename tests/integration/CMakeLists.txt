@@ -1,11 +1,18 @@
 # Test source files
 file(GLOB SOURCES_SC2LADDERSERVER_INTEGRATION_TESTS "*.cpp" "*.h")
 
-# copy test data/configs
+# This variable is used in the test configs
+if (WIN32)
+	set(DEBUG_BOT_FILENAME "DebugBot.exe")
+else ()
+	set(DEBUG_BOT_FILENAME "DebugBot")
+endif ()
+
+# copy test data/configs and replace any variables they might contain
 configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json
-    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json COPYONLY)
+    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json)
 configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.json
-    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.json COPYONLY)
+    ${EXECUTABLE_OUTPUT_PATH}/integration_test_configs/TestMatch_Bot1Eliminated/LadderManager.json)
 
 # Include directories
 include_directories(SYSTEM
