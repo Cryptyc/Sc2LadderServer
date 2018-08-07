@@ -5,13 +5,13 @@
       "Race": "Terran",
       "Type": "binarycpp",
       "RootPath": "./",
-      "FileName": "DebugBot.exe"
+      "FileName": "DebugBot"
     },
     "DebugBot2": {
       "Race": "Terran",
       "Type": "binarycpp",
       "RootPath": "./",
-      "FileName": "DebugBot.exe"
+      "FileName": "DebugBot"
     }
   },
   "Maps": [
