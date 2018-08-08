@@ -1,76 +1,69 @@
+#include "LadderConfig.h"
+
+#include "Types.h"
+
+#include "ostreamwrapper.h"
+#include "writer.h"
+#include "prettywriter.h"
+
 #include <string>
 #include <map>
 #include <iostream>
 #include <sstream>
-#include <fstream>      
-#include "LadderConfig.h"
+#include <fstream>    
 
-LadderConfig::LadderConfig(const std::string &InConfigFile)
-	:ConfigFileLocation(InConfigFile)
+
+LadderConfig::LadderConfig(const std::string &ConfigFile)
+	:ConfigFileLocation(ConfigFile)
 {
+	// Doing this allows us to write values to the doc
+	// straight off instead of loading from file
+	this->doc.SetObject();
 }
 
 bool LadderConfig::ParseConfig()
 {
-	std::ifstream ifs(ConfigFileLocation, std::ifstream::binary);
-	if (!ifs)
+	std::ifstream t(this->ConfigFileLocation);
+	if (t.good())
 	{
-		return false;
+		std::stringstream buffer;
+		buffer << t.rdbuf();
+		std::string ConfigString = buffer.str();
+		return !doc.Parse(ConfigString.c_str()).HasParseError();
 	}
 	
-
-	std::string line;
-	while (std::getline(ifs, line))
-	{
-		std::istringstream is_line(line);
-		std::string key;
-		if (std::getline(is_line, key, '='))
-		{
-			std::string value;
-			if (std::getline(is_line, value))
-			{
-				TrimString(key);
-				TrimString(value);
-				options.insert(std::make_pair(key, value));
-			}
-		}
-	}
-	return true;
+	return false;
 }
+
 
 bool LadderConfig::WriteConfig()
 {
-	std::ofstream outfile(ConfigFileLocation, std::ofstream::binary);
-	for (const auto& setting : options)
-	{
-		outfile << setting.first << "=" << setting.second << std::endl;
-	}
-	outfile.close();
-	return true;
+	std::ofstream ofs(this->ConfigFileLocation.c_str());
+	rapidjson::OStreamWrapper osw(ofs);
+	rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
+	return this->doc.Accept(writer);
 }
 
 std::string LadderConfig::GetValue(std::string RequestedValue)
 {
-	auto search = options.find(RequestedValue);
-	if (search != options.end())
+	if (doc.HasMember(RequestedValue))
 	{
-		return search->second;
+		if (doc[RequestedValue].IsString())
+		{
+			return doc[RequestedValue].GetString();
+		}
+		
+		throw std::string("Unable to obtain RequestedValue: ") + RequestedValue;
 	}
-	return std::string();
-}
-
-void LadderConfig::TrimString(std::string &Str)
-{
-	size_t p = Str.find_first_not_of(" \t");
-	Str.erase(0, p);
-	p = Str.find_last_not_of(" \t\r\n");
-	if (std::string::npos != p)
-	{
-		Str.erase(p + 1);
-	}
+	
+	return ""; // this allows config entries to not have to exist
 }
 
 void LadderConfig::AddValue(const std::string &Index, const std::string &Value)
 {
-	options.insert(std::make_pair(Index, Value));
+	rapidjson::Document::AllocatorType& allocator = doc.GetAllocator();
+	doc.AddMember(
+		rapidjson::Value(Index.c_str(), allocator).Move(),
+		rapidjson::Value(Value.c_str(), allocator).Move(),
+		allocator);
 }
