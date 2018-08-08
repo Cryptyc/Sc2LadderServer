@@ -208,7 +208,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 			}
 
 		}
-		PrintThread{} << botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << std::endl;
+		PrintThread{} << *botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << std::endl;
 		return CurrentExitCase;
 	}
 	catch (const std::exception& e)
