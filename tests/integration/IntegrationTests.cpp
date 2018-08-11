@@ -33,7 +33,7 @@ bool TestLadderConfig(int argc, char** argv) {
 	// Use separate config instances to make sure we don't accidentally
 	// succeed due to the values sticking around between file access.
 
-	char *configFile = "./integration_test_configs/TestConfig.json",
+	const char *configFile = "./integration_test_configs/TestConfig.json",
 		*item1 = "Just a general string",
 		*item2 = "./a/path\\like\\string.exe",
 		*item3 = "http://127.0.0.1/web_address.php";

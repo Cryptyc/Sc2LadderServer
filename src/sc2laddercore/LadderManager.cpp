@@ -826,7 +826,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 }
 
 // Used for tests
-LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *InConfigFile)
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InConfigFile)
 
 	: coordinator(nullptr)
 	, CoordinatorArgc(InCoordinatorArgc)
