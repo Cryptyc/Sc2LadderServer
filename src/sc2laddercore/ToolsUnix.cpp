@@ -66,8 +66,15 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
         if (RedirectOutput(Agent, STDERR_FILENO, "stderr.log") < 0)
             exit(errno);
 
+        if (Agent.Debug)
+        {
+            if (RedirectOutput(Agent, STDOUT_FILENO, "stdout.log") < 0)
+                exit(errno);
+        }
+        else
+            close(STDOUT_FILENO);
+
         close(STDIN_FILENO);
-        close(STDOUT_FILENO);
 
         std::vector<char*> unix_cmd;
         std::istringstream stream(CommandLine);
