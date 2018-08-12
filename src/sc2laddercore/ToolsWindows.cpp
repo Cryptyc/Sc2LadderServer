@@ -16,13 +16,25 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	securityAttributes.lpSecurityDescriptor = NULL;
 	securityAttributes.bInheritHandle = TRUE;
 	std::string logFile = Agent.RootPath + "/stderr.log";
-	HANDLE h = CreateFile(logFile.c_str(),
+	HANDLE stderrfile = CreateFile(logFile.c_str(),
 		FILE_APPEND_DATA,
 		FILE_SHARE_WRITE | FILE_SHARE_READ,
 		&securityAttributes,
 		OPEN_ALWAYS,
 		FILE_ATTRIBUTE_NORMAL,
 		NULL);
+
+	HANDLE stdoutfile = NULL;
+	if (Agent.Debug)
+	{
+		stdoutfile = CreateFile("stdout.log",
+			FILE_APPEND_DATA,
+			FILE_SHARE_WRITE | FILE_SHARE_READ,
+			&securityAttributes,
+			OPEN_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			NULL);
+	}
 
 	PROCESS_INFORMATION processInformation;
 	STARTUPINFO startupInfo;
@@ -33,7 +45,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	startupInfo.cb = sizeof(STARTUPINFO);
 	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
 	startupInfo.hStdInput = INVALID_HANDLE_VALUE;
-	startupInfo.hStdError = h;
+	startupInfo.hStdError = stderrfile;
 	startupInfo.hStdOutput = NULL;
 
 	DWORD exitCode;
@@ -82,7 +94,11 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
 		// We succeeded.
 	}
-	CloseHandle(h);
+	CloseHandle(stderrfile);
+	if (Agent.Debug)
+	{
+		CloseHandle(stdoutfile);
+	}
 }
 
 void StartExternalProcess(const std::string CommandLine)
