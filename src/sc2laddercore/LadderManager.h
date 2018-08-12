@@ -58,7 +58,6 @@ private:
 	bool UploadCmdLine(ResultType result, const Matchup &ThisMatch);
 
 	void LoadAgents();
-	bool UploadMime(ResultType result, const Matchup &ThisMatch);
 	bool LoginToServer();
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;

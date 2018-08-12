@@ -27,10 +27,6 @@ include_directories(SYSTEM
 # Link directories
 link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
 
-if (ENABLE_CURL AND WIN32) # Curl library for windows
-	link_directories(${PROJECT_SOURCE_DIR}/curl/lib)
-endif ()
-
 # Create the executable.
 add_executable(Sc2LadderIntegrationTests ${SOURCES_SC2LADDERSERVER_INTEGRATION_TESTS})
 target_link_libraries(Sc2LadderIntegrationTests
