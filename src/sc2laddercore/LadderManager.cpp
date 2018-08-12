@@ -1054,6 +1054,9 @@ void LadderManager::LoadAgents()
 				{
 					NewBot.Args = val["Arg"].GetString();
 				}
+				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
+					NewBot.Debug = val["Debug"].GetBool();
+				}
 			}
 			else
 			{
