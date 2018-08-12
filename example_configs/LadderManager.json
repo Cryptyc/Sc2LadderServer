@@ -8,5 +8,6 @@
     "BotConfigFile": "./LadderBots.json",
     "EnableReplayUpload": "False",
     "ResultsLogFile": "./Results.json",
-    "PlayerIdFile": "./playerids"
+    "PlayerIdFile": "./playerids",
+    "PythonBinary": "python"
 }

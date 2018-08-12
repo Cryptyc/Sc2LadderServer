@@ -78,8 +78,9 @@ Make sure you've installed the maps, as per the directions from [Blizzard's SC2C
    
 ### Configuration files
 All configuration files should be placed in the project root directory.
-##### LadderManager.conf
-Create a file called `LadderManager.conf` with entries as described in the table below.
+
+##### LadderManager.json
+Create a file called `LadderManager.json` It should be in json format, with entries as described in the table below.
  
 | Config Entry Name | Description |
 |---|---|
@@ -92,6 +93,7 @@ Create a file called `LadderManager.conf` with entries as described in the table
 | `UploadResultLocation`	|	Location of remote server to store results |
 | `ResultsLogFile`			|	Local file to store results in json format |
 | `PlayerIdFile`			|	Location of file to store player IDs.  |
+
 ##### BotConfigFile.json
 Create a `BotConfigFile.json`  file that will describe the roster of bots and their required attributes.  It should also contain an array of maps to be used.  For each map you want the bots to play on, add its name into this array, **including** the `.SC2Map` file ending.
 
