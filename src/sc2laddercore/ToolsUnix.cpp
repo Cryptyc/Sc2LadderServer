@@ -5,13 +5,42 @@
 #include <string>
 #include <vector>
 
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "Tools.h"
 #include "Types.h"
+
+namespace {
+
+int RedirectOutput(const BotConfig &Agent, int SrcFD, const char *LogFile)
+{
+    int logFD = open(LogFile, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    if (logFD < 0) {
+        std::cerr << Agent.BotName +
+            ": Failed to create a log file, error: " +
+            strerror(errno) << std::endl;
+            return logFD;
+    }
+
+    int ret = dup2(logFD, SrcFD);
+    if (ret < 0) {
+        std::cerr << Agent.BotName +
+            ": Can't redirect output to a log file, error: " +
+            strerror(errno) << std::endl;
+        return ret;
+    }
+
+    close(logFD);
+    return ret;
+}
+
+} // namespace
 
 void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, unsigned long *ProcessId)
 {
@@ -26,12 +55,6 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
     if (pID == 0) // child
     {
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-
-        // FIXME (alkurbatov): Redirect stderr to a file like ToolsWindows do.
-        //close(STDERR_FILENO);
-
         int ret = chdir(Agent.RootPath.c_str());
         if (ret < 0) {
             std::cerr << Agent.BotName +
@@ -39,6 +62,19 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
                 ", error: " + strerror(errno) << std::endl;
             exit(errno);
         }
+
+        if (RedirectOutput(Agent, STDERR_FILENO, "stderr.log") < 0)
+            exit(errno);
+
+        if (Agent.Debug)
+        {
+            if (RedirectOutput(Agent, STDOUT_FILENO, "stdout.log") < 0)
+                exit(errno);
+        }
+        else
+            close(STDOUT_FILENO);
+
+        close(STDIN_FILENO);
 
         std::vector<char*> unix_cmd;
         std::istringstream stream(CommandLine);

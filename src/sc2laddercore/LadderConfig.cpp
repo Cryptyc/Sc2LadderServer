@@ -13,8 +13,8 @@
 #include <fstream>    
 
 
-LadderConfig::LadderConfig(const std::string &ConfigFile)
-	:ConfigFileLocation(ConfigFile)
+LadderConfig::LadderConfig(const std::string &InConfigFile)
+	:ConfigFileLocation(InConfigFile)
 {
 	// Doing this allows us to write values to the doc
 	// straight off instead of loading from file

@@ -34,7 +34,7 @@ class LadderManager
 {
 public:
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
-	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *InConfigFile);
+	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InConfigFile);
 	std::string GerneratePlayerId(size_t Length);
     bool LoadSetup();
 	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, ResultType Result, int32_t GameTime);
@@ -49,7 +49,7 @@ public:
 
 private:
 	bool SaveReplay(sc2::Connection *client, const std::string & path);
-	std::string GetBotCommandLine(const BotConfig &Config, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
+	std::string GetBotCommandLine(const BotConfig &AgentConfig, int GamePort, int StartPort, const std::string &OpponentId, bool CompOpp = false, sc2::Race CompRace = sc2::Race::Terran, sc2::Difficulty CompDifficulty = sc2::Difficulty::Easy);
 	ResultType GetPlayerResults(sc2::Connection *client);
 	ResultType StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop);
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
@@ -69,7 +69,7 @@ private:
 
     int CoordinatorArgc;
     char **CoordinatorArgv;
-	char *ConfigFile;
+	std::string ConfigFile;
 
 	bool EnableReplayUploads;
 	bool EnableServerLogin;

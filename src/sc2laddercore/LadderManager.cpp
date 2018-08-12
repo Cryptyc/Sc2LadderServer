@@ -826,7 +826,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 }
 
 // Used for tests
-LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, char *InConfigFile)
+LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InConfigFile)
 
 	: coordinator(nullptr)
 	, CoordinatorArgc(InCoordinatorArgc)
@@ -1053,6 +1053,9 @@ void LadderManager::LoadAgents()
 				if (val.HasMember("Args") && val["Args"].IsString())
 				{
 					NewBot.Args = val["Arg"].GetString();
+				}
+				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
+					NewBot.Debug = val["Debug"].GetBool();
 				}
 			}
 			else

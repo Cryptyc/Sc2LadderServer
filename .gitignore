@@ -21,3 +21,6 @@ build_*/
 # CLion
 .idea/
 cmake-build-*/
+
+# VScode
+.vscode/
