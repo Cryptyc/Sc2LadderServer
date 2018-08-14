@@ -774,7 +774,6 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		catch (const std::exception& e)
 		{
 			PrintThread{} << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
-			return CurrentResult;
 		}
 
 	}
