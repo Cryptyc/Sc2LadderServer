@@ -11,7 +11,8 @@ enum BotType
 	Wine,
 	Mono,
 	DotNetCore,
-	DefaultBot
+	DefaultBot,
+    Java
 };
 
 enum ResultType
@@ -192,6 +193,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	{
 		return BotType::Mono;
 	}
+    else if (type == "java")
+    {
+        return BotType::Java;
+    }
 	return BotType::BinaryCpp;
 }
 

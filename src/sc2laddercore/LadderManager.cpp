@@ -291,6 +291,11 @@ std::string LadderManager::GetBotCommandLine(const BotConfig &AgentConfig, int G
 		OutCmdLine = AgentConfig.RootPath + AgentConfig.FileName;
 		break;
 	}
+	case Java:
+	{
+		OutCmdLine = "java -jar " + AgentConfig.FileName;
+		break;
+	}
 	case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
 	}
 
