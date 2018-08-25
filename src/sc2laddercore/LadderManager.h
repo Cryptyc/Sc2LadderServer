@@ -59,6 +59,7 @@ private:
 
 	void LoadAgents();
 	bool LoginToServer();
+    bool CheckDiactivatedBots();
     std::map<std::string, BotConfig> BotConfigs;
     std::vector<std::string> MapList;
 	std::string ResultsLogFile;
@@ -73,6 +74,7 @@ private:
 	bool EnableReplayUploads;
 	bool EnableServerLogin;
 	bool EnablePlayerIds;
+    std::string BotCheckLocation;
 	std::string ServerUsername;
 	std::string ServerPassword;
 	std::string ServerLoginAddress;

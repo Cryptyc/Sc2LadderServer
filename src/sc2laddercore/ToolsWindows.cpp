@@ -46,7 +46,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	startupInfo.dwFlags |= STARTF_USESTDHANDLES;
 	startupInfo.hStdInput = INVALID_HANDLE_VALUE;
 	startupInfo.hStdError = stderrfile;
-	startupInfo.hStdOutput = NULL;
+	startupInfo.hStdOutput = stdoutfile;
 
 	DWORD exitCode;
 	LPSTR cmdLine = const_cast<char *>(CommandLine.c_str());

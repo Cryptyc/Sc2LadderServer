@@ -28,6 +28,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <array>
 #include <iostream>
 #include <future>
 #include <chrono>
@@ -898,6 +899,7 @@ bool LadderManager::LoadSetup()
 		ServerUsername = Config->GetValue("ServerUsername");
 		ServerPassword = Config->GetValue("ServerPassword");
 	}
+	BotCheckLocation = Config->GetValue("BotInfoLocation");
 
 	return true;
 }
@@ -1130,6 +1132,70 @@ bool LadderManager::LoginToServer()
 	return false;
 }
 
+bool LadderManager::CheckDiactivatedBots() {
+	std::array<char, 10000> buffer;
+	std::string result;
+	if (BotCheckLocation.empty())
+	{
+		return false;
+	}
+	std::string command = "curl " + BotCheckLocation;
+	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	while (!feof(pipe.get())) {
+		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+			result += buffer.data();
+	}
+	if (result.empty())
+	{
+		return false;
+	}
+	rapidjson::Document doc;
+	bool parsingFailed = doc.Parse(result.c_str()).HasParseError();
+	if (parsingFailed)
+	{
+		std::cerr << "Unable to parse incoming bot config: " << ConfigFile << std::endl;
+		return false;
+	}
+	if (doc.HasMember("Bots") && doc["Bots"].IsArray())
+	{
+		const rapidjson::Value & Units = doc["Bots"];
+		for (const auto& val : Units.GetArray())
+		{
+			if (val.HasMember("name") && val["name"].IsString())
+			{
+				auto ThisBot = BotConfigs.find(val["name"].GetString());
+				if (ThisBot != BotConfigs.end())
+				{
+					if (val.HasMember("deactivated") && val.HasMember("deleted") && val["deactivated"].IsBool() && val["deleted"].IsBool())
+					{
+						if ((val["deactivated"].GetBool() || val["deleted"].GetBool()) && !ThisBot->second.Disabled)
+						{
+							// Set bot to disabled
+							PrintThread{} << "Deactivating bot " << ThisBot->second.BotName;
+							ThisBot->second.Disabled = true;
+
+						}
+						else if (val["deactivated"].GetBool() == false && val["deleted"].GetBool() == false && ThisBot->second.Disabled == true)
+						{
+							// reenable a bot
+							PrintThread{} << "Activating bot " << ThisBot->second.BotName;
+							ThisBot->second.Disabled = false;
+						}
+					}
+					if (val.HasMember("elo") && val["elo"].IsInt())
+					{
+						ThisBot->second.ELO = val["elo"].GetInt();
+					}
+				}
+
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 
 void LadderManager::RunLadderManager()
 {
@@ -1157,6 +1223,11 @@ void LadderManager::RunLadderManager()
 		}
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
+			CheckDiactivatedBots();
+			if (NextMatch.Agent1.Disabled || NextMatch.Agent2.Disabled)
+			{
+				continue;
+			}
 			ResultType result = ResultType::InitializationError;
 			PrintThread{} << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
 			int32_t CurrentGameLoop = 0;
