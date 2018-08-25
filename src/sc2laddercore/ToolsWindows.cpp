@@ -3,6 +3,8 @@
 #include "Tools.h"
 #include "LadderManager.h"
 #include <Windows.h>
+#include <array>
+
 
 
 void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, unsigned long *ProcessId)
@@ -144,4 +146,17 @@ bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName) {
 	return MoveFile(lpExistingFileName, lpNewFileName);
 }
 
+std::string PerformRestRequest(const std::string &location)
+{
+	std::array<char, 10000> buffer;
+	std::string result;
+	std::string command = "curl " + location;
+	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	while (!feof(pipe.get())) {
+		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+			result += buffer.data();
+	}
+	return result;
+}
 #endif

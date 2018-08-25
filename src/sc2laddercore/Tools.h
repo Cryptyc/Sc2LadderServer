@@ -12,3 +12,5 @@ void KillSc2Process(unsigned long pid);
 bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName);
 
 void StartExternalProcess(const std::string CommandLine);
+
+std::string PerformRestRequest(const std::string &location);

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <array>
 
 #include <fcntl.h>
 #include <signal.h>
@@ -150,6 +151,20 @@ bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
     }
 
     return ret == 0;
+}
+
+std::string PerformRestRequest(const std::string &location)
+{
+	std::array<char, 10000> buffer;
+	std::string result;
+	std::string command = "curl " + location;
+	std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+	if (!pipe) throw std::runtime_error("popen() failed!");
+	while (!feof(pipe.get())) {
+		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+			result += buffer.data();
+	}
+	return result;
 }
 
 #endif

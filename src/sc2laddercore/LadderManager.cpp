@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <array>
 #include <iostream>
 #include <future>
 #include <chrono>
@@ -1133,19 +1132,11 @@ bool LadderManager::LoginToServer()
 }
 
 bool LadderManager::CheckDiactivatedBots() {
-	std::array<char, 10000> buffer;
-	std::string result;
 	if (BotCheckLocation.empty())
 	{
 		return false;
 	}
-	std::string command = "curl " + BotCheckLocation;
-	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
-	if (!pipe) throw std::runtime_error("popen() failed!");
-	while (!feof(pipe.get())) {
-		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
-			result += buffer.data();
-	}
+	std::string result = PerformRestRequest(BotCheckLocation);
 	if (result.empty())
 	{
 		return false;
