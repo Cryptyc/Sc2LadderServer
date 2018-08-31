@@ -755,12 +755,12 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::SleepFor(1000);
 	if (server.HasRequest() && server.connections_.size() > 0)
 	{
-		server.SendRequest();
+		server.SendRequest(client.connection_);
 	}
 	sc2::SleepFor(1000);
 	if (server2.HasRequest() && server2.connections_.size() > 0)
 	{
-		server2.SendRequest();
+		server2.SendRequest(client2.connection_);
 	}
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
 
