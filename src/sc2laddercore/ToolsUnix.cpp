@@ -131,7 +131,7 @@ void SleepFor(int seconds)
     sleep(seconds);
 }
 
-void KillSc2Process(unsigned long pid)
+void KillBotProcess(unsigned long pid)
 {
     int ret = kill(pid, SIGKILL);
     if (ret < 0)

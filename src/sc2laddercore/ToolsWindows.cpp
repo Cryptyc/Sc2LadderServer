@@ -130,7 +130,7 @@ void SleepFor(int seconds)
 	Sleep(seconds * 1000);
 }
 
-void KillSc2Process(unsigned long pid)
+void KillBotProcess(unsigned long pid)
 {
 	DWORD dwDesiredAccess = PROCESS_TERMINATE;
 	BOOL  bInheritHandle = FALSE;
