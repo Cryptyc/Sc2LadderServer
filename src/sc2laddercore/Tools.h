@@ -7,7 +7,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine, uns
 
 void SleepFor(int seconds);
 
-void KillSc2Process(unsigned long pid);
+void KillBotProcess(unsigned long pid);
 
 bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName);
 
