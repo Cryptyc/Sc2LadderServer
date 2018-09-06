@@ -589,13 +589,13 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
-	uint64_t Bot1ProcessId = sc2::StartProcess(process_settings.process_path,
+	uint64_t GameClientPid1 = sc2::StartProcess(process_settings.process_path,
 	{ "-listen", "127.0.0.1",
 		"-port", "5679",
 		"-displayMode", "0",
 		"-dataVersion", process_settings.data_version }
 	);
-	uint64_t Bot2ProcessId = sc2::StartProcess(process_settings.process_path,
+	uint64_t GameClientPid2 = sc2::StartProcess(process_settings.process_path,
 		{ "-listen", "127.0.0.1",
 		"-port", "5680",
 		"-displayMode", "0",
@@ -611,7 +611,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient1 > 60)
 		{
-			PrintThread{} << "Failed to connect client 1. BotProcessID: " << Bot1ProcessId << std::endl;
+			PrintThread{} << "Failed to connect client 1. BotProcessID: " << GameClientPid1 << std::endl;
 			return ResultType::InitializationError;
 		}
 	}
@@ -623,7 +623,7 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient2 > 60)
 		{
-			PrintThread{} << "Failed to connect client 2. BotProcessID: " << Bot2ProcessId << std::endl;
+			PrintThread{} << "Failed to connect client 2. BotProcessID: " << GameClientPid2 << std::endl;
 			return ResultType::InitializationError;
 		}
 	}
@@ -755,20 +755,20 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::SleepFor(1000);
 	if (server.HasRequest() && server.connections_.size() > 0)
 	{
-		server.SendRequest();
+		server.SendRequest(client.connection_);
 	}
 	sc2::SleepFor(1000);
 	if (server2.HasRequest() && server2.connections_.size() > 0)
 	{
-		server2.SendRequest();
+		server2.SendRequest(client2.connection_);
 	}
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
 
 	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
 	{
 		sc2::SleepFor(5000);
-		KillSc2Process((unsigned long)Bot1ProcessId);
-		KillSc2Process((unsigned long)Bot2ProcessId);
+		sc2::TerminateProcess(GameClientPid1);
+		sc2::TerminateProcess(GameClientPid2);
 		sc2::SleepFor(5000);
 		try
 		{
@@ -798,12 +798,12 @@ ResultType LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	if (bot1ProgStatus != std::future_status::ready)
 	{
 		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
-		KillSc2Process(Bot1ThreadId);
+		KillBotProcess(Bot1ThreadId);
 	}
 	if (bot2ProgStatus != std::future_status::ready)
 	{
 		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
-		KillSc2Process(Bot2ThreadId);
+		KillBotProcess(Bot2ThreadId);
 	}
 	return CurrentResult;
 }
