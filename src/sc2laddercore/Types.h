@@ -61,14 +61,14 @@ struct BotConfig
 	std::string Args; //Optional arguments
 	std::string PlayerId;
 	bool Debug;
-    bool Disabled;
+    bool Enabled;
     int ELO;
 	BotConfig()
 		: Type(BotType::BinaryCpp)
 		, Race(sc2::Race::Random)
 		, Difficulty(sc2::Difficulty::Easy)
 		, Debug(false)
-        , Disabled(false)
+        , Enabled(true)
         , ELO(0)
 	{}
 	BotConfig(BotType InType, const std::string & InBotName, sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs = "")

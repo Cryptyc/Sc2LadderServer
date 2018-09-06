@@ -1160,18 +1160,18 @@ bool LadderManager::CheckDiactivatedBots() {
 				{
 					if (val.HasMember("deactivated") && val.HasMember("deleted") && val["deactivated"].IsBool() && val["deleted"].IsBool())
 					{
-						if ((val["deactivated"].GetBool() || val["deleted"].GetBool()) && !ThisBot->second.Disabled)
+						if ((val["deactivated"].GetBool() || val["deleted"].GetBool()) && ThisBot->second.Enabled)
 						{
 							// Set bot to disabled
 							PrintThread{} << "Deactivating bot " << ThisBot->second.BotName;
-							ThisBot->second.Disabled = true;
+							ThisBot->second.Enabled = false;
 
 						}
-						else if (val["deactivated"].GetBool() == false && val["deleted"].GetBool() == false && ThisBot->second.Disabled == true)
+						else if (val["deactivated"].GetBool() == false && val["deleted"].GetBool() == false && ThisBot->second.Enabled == false)
 						{
 							// reenable a bot
 							PrintThread{} << "Activating bot " << ThisBot->second.BotName;
-							ThisBot->second.Disabled = false;
+							ThisBot->second.Enabled = true;
 						}
 					}
 					if (val.HasMember("elo") && val["elo"].IsInt())
@@ -1187,6 +1187,15 @@ bool LadderManager::CheckDiactivatedBots() {
 	return false;
 }
 
+bool LadderManager::IsBotEnabled(std::string BotName)
+{
+	auto ThisBot = BotConfigs.find(BotName);
+	if (ThisBot != BotConfigs.end())
+	{
+		return ThisBot->second.Enabled;
+	}
+	return false;
+}
 
 void LadderManager::RunLadderManager()
 {
@@ -1212,10 +1221,11 @@ void LadderManager::RunLadderManager()
 		{
 			LoginToServer();
 		}
+		CheckDiactivatedBots();
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
-			CheckDiactivatedBots();
-			if (NextMatch.Agent1.Disabled || NextMatch.Agent2.Disabled)
+
+			if ((!IsBotEnabled(NextMatch.Agent1.BotName)) || (!IsBotEnabled(NextMatch.Agent2.BotName)))
 			{
 				continue;
 			}
@@ -1248,7 +1258,6 @@ void LadderManager::RunLadderManager()
 			}
 			Matchups->SaveMatchList();
 		}
-	
 	}
 	catch (const std::exception& e)
 	{

@@ -54,7 +54,7 @@ private:
 	ResultType StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map, int32_t &GameLoop);
 	ResultType StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map, int32_t &GameLoop);
 	void ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
-
+    bool IsBotEnabled(std::string BotName);
 	bool UploadCmdLine(ResultType result, const Matchup &ThisMatch);
 
 	void LoadAgents();
