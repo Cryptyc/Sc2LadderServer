@@ -50,6 +50,21 @@ struct GameState
 
 };
 
+struct GameResult
+{
+    ResultType Result;
+    float Bot1AvgFrame;
+    float Bot2AvgFrame;
+    int GameLoop;
+    GameResult()
+        : Result(ResultType::InitializationError)
+        , Bot1AvgFrame(0)
+        , Bot2AvgFrame(0)
+        , GameLoop(0)
+    {}
+
+};
+
 struct BotConfig
 {
 	BotType Type;
