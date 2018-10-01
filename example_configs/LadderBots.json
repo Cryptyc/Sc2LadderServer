@@ -1,29 +1,35 @@
 {
-	"Bots": {
-		"ProtossBot": {
-			"Race": "Protoss", // Race of your bot
-			"Type": "BinaryCpp", // Type (BinaryCpp or Python)
-			"RootPath": "C:/Ladder/Bots/", // Path to the bot file
-			"FileName": "ProtossBot.exe", // Name of the bot file
-			"Args": "--arg1 --arg2", // Optional command line arguments that gets passed to the bot file.
-			"Debug": true // Redirect stdout to a file. Disabled by default.
-		},
-		"TerranBot": {
-			"Race": "Terran",
-			"Type": "BinaryCpp",
-			"RootPath": "C:/Ladder/Bots/",
-			"FileName": "TerranBot.exe",
-		},
-		"ZergBot": {
-			"Race": "Zerg",
-			"Type": "Python",
-			"RootPath": "C:/Ladder/Bots/ZergBot/",
-			"FileName": "run.py",
-			"Args": "--argA --argB"
-		}
-	},
-	"Maps": [
-		"InterloperLE.SC2Map",
-		"BelShirVestigeLE.SC2Map"
-	]
+    "Bots": {
+        "ProtossBot": {
+            "Race": "Protoss",
+            // Race of your bot
+            "Type": "BinaryCpp",
+            // Type (BinaryCpp or Python)
+            "RootPath": "C:/Ladder/Bots/",
+            // Path to the bot file
+            "FileName": "ProtossBot.exe",
+            // Name of the bot file
+            "Args": "--arg1 --arg2",
+            // Optional command line arguments that gets passed to the bot file.
+            "Debug": true
+            // Redirect stdout to a file. Disabled by default.
+        },
+        "TerranBot": {
+            "Race": "Terran",
+            "Type": "BinaryCpp",
+            "RootPath": "C:/Ladder/Bots/",
+            "FileName": "TerranBot.exe"
+        },
+        "ZergBot": {
+            "Race": "Zerg",
+            "Type": "Python",
+            "RootPath": "C:/Ladder/Bots/ZergBot/",
+            "FileName": "run.py",
+            "Args": "--argA --argB"
+        }
+    },
+    "Maps": [
+        "InterloperLE.SC2Map",
+        "BelShirVestigeLE.SC2Map"
+    ]
 }

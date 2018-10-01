@@ -7,15 +7,13 @@
 // There's not much here...?
 // That's because everything else is compiled as libraries
 // in order to be included in the tests.
-int main(int argc, char** argv)
-{
-	PrintThread{} << "LadderManager started." << std::endl;
+int main(int argc, char **argv) {
+    PrintThread{} << "LadderManager started." << std::endl;
 
-	LadderManager LadderMan(argc, argv);
-	if (LadderMan.LoadSetup())
-	{
-		LadderMan.RunLadderManager();
-	}
+    LadderManager LadderMan(argc, argv);
+    if (LadderMan.LoadSetup()) {
+        LadderMan.RunLadderManager();
+    }
 
-	PrintThread{} << "Finished." << std::endl;
+    PrintThread{} << "Finished." << std::endl;
 }
