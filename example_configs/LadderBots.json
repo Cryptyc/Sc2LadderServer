@@ -1,18 +1,18 @@
 {
     "Bots": {
         "ProtossBot": {
-            "Race": "Protoss",
             // Race of your bot
-            "Type": "BinaryCpp",
+            "Race": "Protoss",
             // Type (BinaryCpp or Python)
-            "RootPath": "C:/Ladder/Bots/",
+            "Type": "BinaryCpp",
             // Path to the bot file
-            "FileName": "ProtossBot.exe",
+            "RootPath": "C:/Ladder/Bots/",
             // Name of the bot file
-            "Args": "--arg1 --arg2",
+            "FileName": "ProtossBot.exe",
             // Optional command line arguments that gets passed to the bot file.
-            "Debug": true
+            "Args": "--arg1 --arg2",
             // Redirect stdout to a file. Disabled by default.
+            "Debug": true
         },
         "TerranBot": {
             "Race": "Terran",
