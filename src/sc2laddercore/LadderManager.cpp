@@ -100,7 +100,7 @@ float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues
 	{
 		return (float_t)NewValue;
 	}
-	return ((OriginalValue * NumValues) + NewValue) / (NumValues++);
+	return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
 }
 
 
