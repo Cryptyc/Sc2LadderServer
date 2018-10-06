@@ -123,7 +123,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
 void StartExternalProcess(const std::string CommandLine)
 {
-	execve(CommandLine.c_str(), NULL, NULL);
+    execve(CommandLine.c_str(), NULL, NULL);
 }
 
 void SleepFor(int seconds)
@@ -155,16 +155,16 @@ bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
 
 std::string PerformRestRequest(const std::string &location)
 {
-	std::array<char, 10000> buffer;
-	std::string result;
-	std::string command = "curl " + location;
-	std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
-	if (!pipe) throw std::runtime_error("popen() failed!");
-	while (!feof(pipe.get())) {
-		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
-			result += buffer.data();
-	}
-	return result;
+    std::array<char, 10000> buffer;
+    std::string result;
+    std::string command = "curl " + location;
+    std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    while (!feof(pipe.get())) {
+        if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+            result += buffer.data();
+    }
+    return result;
 }
 
 #endif

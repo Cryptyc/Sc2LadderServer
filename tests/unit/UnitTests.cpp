@@ -1,17 +1,15 @@
 #include <iostream>
 
-bool UnitTest_Dummy(int argc, char** argv) {
-	try
-	{
-		// do unit test
-		return true;
-	}
-	catch (const std::exception& e)
-	{
-		std::cerr << "Exception in UnitTest_Dummy" << std::endl;
-		std::cerr << e.what() << std::endl;
-		return false;
-	}
+bool UnitTest_Dummy(int argc, char **argv) {
+    try {
+        // do unit test
+        return true;
+    }
+    catch (const std::exception &e) {
+        std::cerr << "Exception in UnitTest_Dummy" << std::endl;
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
 }
 
 // Handy macro from: s2client-api/tests/all_tests.cc
@@ -25,16 +23,16 @@ bool UnitTest_Dummy(int argc, char** argv) {
         std::cerr << "Test: " << #X << " failed!" << std::endl;     \
     }
 
-int main(int argc, char** argv) {
-	bool success = true;
+int main(int argc, char **argv) {
+    bool success = true;
 
-	TEST(UnitTest_Dummy);
-	// Add more tests here...
+    TEST(UnitTest_Dummy);
+    // Add more tests here...
 
-	if (success)
-		std::cout << "All unit tests succeeded!" << std::endl;
-	else
-		std::cerr << "Some unit tests failed!" << std::endl;
+    if (success)
+        std::cout << "All unit tests succeeded!" << std::endl;
+    else
+        std::cerr << "Some unit tests failed!" << std::endl;
 
-	return success ? 0 : -1;
+    return success ? 0 : -1;
 }

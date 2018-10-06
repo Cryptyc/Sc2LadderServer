@@ -4,12 +4,12 @@ file(GLOB SOURCES_SC2LADDERCORE "sc2laddercore/*.cpp" "sc2laddercore/*.h")
 
 # Include directories
 include_directories(SYSTEM
-    ${PROJECT_SOURCE_DIR}/src/sc2laddercore
-    ${PROJECT_SOURCE_DIR}/s2client-api/include
-    ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
-    ${PROJECT_BINARY_DIR}/s2client-api/generated
-    ${PROJECT_SOURCE_DIR}/rapidjson
-)
+        ${PROJECT_SOURCE_DIR}/src/sc2laddercore
+        ${PROJECT_SOURCE_DIR}/s2client-api/include
+        ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
+        ${PROJECT_BINARY_DIR}/s2client-api/generated
+        ${PROJECT_SOURCE_DIR}/rapidjson
+        )
 
 # Link directories
 link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
@@ -19,11 +19,11 @@ link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
 add_executable(Sc2LadderServer ${SOURCES_SC2LADDERSERVER})
 add_library(Sc2LadderCore ${SOURCES_SC2LADDERCORE})
 target_link_libraries(Sc2LadderServer
-    Sc2LadderCore
-)
+        Sc2LadderCore
+        )
 target_link_libraries(Sc2LadderCore
-    sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
-)
+        sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
+        )
 
 
 # Set working directory as the project root
