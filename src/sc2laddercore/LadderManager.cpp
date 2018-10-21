@@ -115,6 +115,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	clock_t FirstRequest = clock();
 	clock_t StepTime = 0;
 	uint32_t currentGameLoop = 0;
+	float_t totalTime = 0;
 	float_t AvgStepTime = 0;
 	std::map<SC2APIProtocol::Status, std::string> status;
 	status[SC2APIProtocol::Status::launched] = "launched";
@@ -161,7 +162,8 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					else if (StepTime > 0 && request.second->has_step())
 					{
 						clock_t ThisStepTime = clock() - StepTime;
-						AvgStepTime = CalculateAverage(AvgStepTime, ThisStepTime, currentGameLoop);
+						totalTime += static_cast<float_t>(ThisStepTime);
+						AvgStepTime = totalTime/static_cast<float_t>(currentGameLoop);
 					}
 				}
 				if (client->connection_ != nullptr)
