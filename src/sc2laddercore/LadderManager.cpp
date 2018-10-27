@@ -94,14 +94,6 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues)
-{
-	if (NumValues == 0 || OriginalValue == 0)
-	{
-		return (float_t)NewValue;
-	}
-	return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
-}
 
 
 ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, int32_t *GameLoop)
