@@ -94,14 +94,6 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues)
-{
-	if (NumValues == 0 || OriginalValue == 0)
-	{
-		return (float_t)NewValue;
-	}
-	return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
-}
 
 
 ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, int32_t *GameLoop)
@@ -114,7 +106,8 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	clock_t LastRequest = clock();
 	clock_t FirstRequest = clock();
 	clock_t StepTime = 0;
-	int32_t steps = 0;
+	uint32_t currentGameLoop = 0;
+	float_t totalTime = 0;
 	float_t AvgStepTime = 0;
 	std::map<SC2APIProtocol::Status, std::string> status;
 	status[SC2APIProtocol::Status::launched] = "launched";
@@ -161,8 +154,8 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					else if (StepTime > 0 && request.second->has_step())
 					{
 						clock_t ThisStepTime = clock() - StepTime;
-						AvgStepTime = CalculateAverage(AvgStepTime, ThisStepTime, steps);
-						steps++;
+						totalTime += static_cast<float_t>(ThisStepTime);
+						AvgStepTime = totalTime/static_cast<float_t>(currentGameLoop);
 					}
 				}
 				if (client->connection_ != nullptr)
@@ -190,7 +183,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					{
 						const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
 						const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
-						uint32_t currentGameLoop = ActualObservation.game_loop();
+						currentGameLoop = ActualObservation.game_loop();
 						if (currentGameLoop > MaxGameTime)
 						{
 							CurrentExitCase = ExitCase::GameTimeout;
