@@ -78,15 +78,15 @@ Create a file called `LadderManager.json` It should be in json format, with entr
  
 | Config Entry Name | Description |
 |---|---|
-| `ErrorListFile`	    	|	Place to store games where errors have occured |
-| `BotConfigFile`	    	|	Location of the json file defining the bots |
-| `MaxGameTime`	    		|	Maximum length of game |
-| `CommandCenterDirectory`	|	Directory to read .ccbot command center config files |
-| `LocalReplayDirectory`	|	Directory to store local replays |
-| `EnableReplayUpload`		|	True/False if replays and results should be uploaded |
-| `UploadResultLocation`	|	Location of remote server to store results |
-| `ResultsLogFile`			|	Local file to store results in json format |
-| `PlayerIdFile`			|	Location of file to store player IDs.  |
+| `ErrorListFile`           | Place to store games where errors have occured |
+| `BotConfigFile`           | Location of the json file defining the bots |
+| `MaxGameTime`             | Maximum length of game |
+| `CommandCenterDirectory`  | Directory to read .ccbot command center config files |
+| `LocalReplayDirectory`    | Directory to store local replays |
+| `EnableReplayUpload`      | True/False if replays and results should be uploaded |
+| `UploadResultLocation`    | Location of remote server to store results |
+| `ResultsLogFile`          | Local file to store results in json format |
+| `PlayerIdFile`            | Location of file to store player IDs.  |
 
 ##### BotConfigFile.json
 Create a `BotConfigFile.json`  file that will describe the roster of bots and their required attributes.  It should also contain an array of maps to be used.  For each map you want the bots to play on, add its name into this array, **including** the `.SC2Map` file ending.
