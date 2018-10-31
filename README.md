@@ -96,3 +96,8 @@ CommandCenter bots are supported. Just add the json config file in the command c
    
 ## Debugging
 DebugBot (included in this repo) can be used for debugging if you don't want to wait around for real bots to fight it out.
+
+## Architecture
+The ladder server establishes a facade in between the bots and the SC2 instances, as is illustrated below.
+
+![Ladder Server Architecture](docs/LadderServerArchitecture.png)
