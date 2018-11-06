@@ -278,7 +278,7 @@ ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *
 			}
 			if (client->connection_ == nullptr)
 			{
-				PrintThread{} << "Client disconnect (" << *botName << ")" << std::endl;
+				PrintThread{} << "Client disconnected (" << *botName << ")" << std::endl;
 				CurrentExitCase = ExitCase::ClientTimeout;
 			}
 			if (server->HasRequest())
@@ -700,13 +700,13 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
-	uint64_t GameClientPid1 = sc2::StartProcess(process_settings.process_path,
+	auto GameClientPid1 = sc2::StartProcess(process_settings.process_path,
 	{ "-listen", "127.0.0.1",
 	  "-port", "5679",
 	  "-displayMode", "0",
 	  "-dataVersion", process_settings.data_version }
 												);
-	uint64_t GameClientPid2 = sc2::StartProcess(process_settings.process_path,
+	auto GameClientPid2 = sc2::StartProcess(process_settings.process_path,
 	{ "-listen", "127.0.0.1",
 	  "-port", "5680",
 	  "-displayMode", "0",
@@ -857,53 +857,15 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	}
 	sc2::SleepFor(1000);
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
-	auto bot1OnEndThread = std::async(&OnEnd, &client, &server, &Agent1.BotName);
-	auto bot2OnEndThread = std::async(&OnEnd, &client2, &server2, &Agent2.BotName);
+	// Process last requests
+	std::thread onEnd1(&OnEnd, &client, &server, &Agent1.BotName);
+	std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
+	onEnd1.join();
+	onEnd2.join();
 	sc2::SleepFor(1000);
-	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
-	{
-		PrintThread{} << "CreateLeaveGameRequest failed for Client 1." << std::endl;
-	}
-	sc2::SleepFor(1000);
-	if (!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
-	{
-		PrintThread{} << "CreateLeaveGameRequest failed for Client 2." << std::endl;
-	}
-	sc2::SleepFor(1000);
-	PrintThread{} << "test " << server.connections_.size() << std::endl;
-	PrintThread{} << "test " << server2.connections_.size() << std::endl;
-	sc2::SleepFor(5000);
 	sc2::TerminateProcess(GameClientPid1);
 	sc2::TerminateProcess(GameClientPid2);
-	sc2::SleepFor(5000);
-	if (server.HasRequest() && server.connections_.size() > 0)
-	{
-		server.SendRequest(client.connection_);
-	}
 	sc2::SleepFor(1000);
-	if (server2.HasRequest() && server2.connections_.size() > 0)
-	{
-		server2.SendRequest(client2.connection_);
-	}
-	/*
-	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
-	{
-		sc2::SleepFor(5000);
-		sc2::TerminateProcess(GameClientPid1);
-		sc2::TerminateProcess(GameClientPid2);
-		sc2::SleepFor(5000);
-		try
-		{
-			bot1UpdateThread.wait();
-			bot2UpdateThread.wait();
-
-		}
-		catch (const std::exception& e)
-		{
-			PrintThread{} << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
-		}
-
-	}
 	std::future_status bot1ProgStatus, bot2ProgStatus;
 	auto start = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds;
@@ -927,7 +889,6 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
 		KillBotProcess(Bot2ThreadId);
 	}
-	*/
 	GameResult Result;
 	Result.Result = CurrentResult;
 	Result.Bot1AvgFrame = Bot1AvgFrame;
