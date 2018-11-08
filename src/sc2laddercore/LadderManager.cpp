@@ -847,8 +847,8 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		CurrentResult = GetPlayerResults(&client2);
 	}
 	sc2::SleepFor(1000);
+	PrintThread{} << "Saving replay" << std::endl;
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-
 	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	if (!SaveReplay(&client, ReplayFile))
@@ -858,23 +858,24 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::SleepFor(1000);
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
 	// Process last requests
+	PrintThread{} << "Test1" << std::endl;
 	std::thread onEnd1(&OnEnd, &client, &server, &Agent1.BotName);
 	std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
+	PrintThread{} << "Test2" << std::endl;
 	onEnd1.join();
 	onEnd2.join();
-	sc2::SleepFor(1000);
-	sc2::TerminateProcess(GameClientPid1);
-	sc2::TerminateProcess(GameClientPid2);
-	sc2::SleepFor(1000);
+	PrintThread{} << "Test3" << std::endl;
 	std::future_status bot1ProgStatus, bot2ProgStatus;
 	auto start = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds;
+	PrintThread{} << "Are they ready?" << std::endl;
 	while (elapsed_seconds.count() < 20)
 	{
 		bot1ProgStatus = bot1ProgramThread.wait_for(50ms);
 		bot2ProgStatus = bot2ProgramThread.wait_for(50ms);
 		if (bot1ProgStatus == std::future_status::ready && bot2ProgStatus == std::future_status::ready)
 		{
+			PrintThread{} << "Ready!" << std::endl;
 			break;
 		}
 		elapsed_seconds = std::chrono::system_clock::now() - start;
@@ -889,6 +890,10 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
 		KillBotProcess(Bot2ThreadId);
 	}
+	sc2::SleepFor(1000);
+	sc2::TerminateProcess(GameClientPid1);
+	sc2::TerminateProcess(GameClientPid2);
+	sc2::SleepFor(1000);
 	GameResult Result;
 	Result.Result = CurrentResult;
 	Result.Bot1AvgFrame = Bot1AvgFrame;
