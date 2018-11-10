@@ -858,17 +858,13 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::SleepFor(1000);
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
 	// Process last requests
-	PrintThread{} << "Test1" << std::endl;
 	std::thread onEnd1(&OnEnd, &client, &server, &Agent1.BotName);
 	std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
-	PrintThread{} << "Test2" << std::endl;
 	onEnd1.join();
 	onEnd2.join();
-	PrintThread{} << "Test3" << std::endl;
 	std::future_status bot1ProgStatus, bot2ProgStatus;
 	auto start = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds;
-	PrintThread{} << "Are they ready?" << std::endl;
 	while (elapsed_seconds.count() < 20)
 	{
 		bot1ProgStatus = bot1ProgramThread.wait_for(50ms);
@@ -882,12 +878,12 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	}
 	if (bot1ProgStatus != std::future_status::ready)
 	{
-		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s. Make sure the bot does not issue leaveGame or quit. Killing" << std::endl;
 		KillBotProcess(Bot1ThreadId);
 	}
 	if (bot2ProgStatus != std::future_status::ready)
 	{
-		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s. Make sure the bot does not issue leaveGame or quit. Killing" << std::endl;
 		KillBotProcess(Bot2ThreadId);
 	}
 	sc2::SleepFor(1000);

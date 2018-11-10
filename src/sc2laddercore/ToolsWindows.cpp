@@ -17,8 +17,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	securityAttributes.nLength = sizeof(securityAttributes);
 	securityAttributes.lpSecurityDescriptor = NULL;
 	securityAttributes.bInheritHandle = TRUE;
-	std::string logFile = Agent.RootPath + "/stderr.log";
-	HANDLE stderrfile = CreateFile(logFile.c_str(),
+	std::string stderrLogFile = Agent.RootPath + "/stderr.log";
+	HANDLE stderrfile = CreateFile(stderrLogFile.c_str(),
 		FILE_APPEND_DATA,
 		FILE_SHARE_WRITE | FILE_SHARE_READ,
 		&securityAttributes,
@@ -29,7 +29,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	HANDLE stdoutfile = NULL;
 	if (Agent.Debug)
 	{
-		stdoutfile = CreateFile("stdout.log",
+        std::string stdoutLogFile = Agent.RootPath + "/stdout.log";
+		stdoutfile = CreateFile(stdoutLogFile.c_str(),
 			FILE_APPEND_DATA,
 			FILE_SHARE_WRITE | FILE_SHARE_READ,
 			&securityAttributes,
