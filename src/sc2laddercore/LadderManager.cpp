@@ -257,15 +257,6 @@ ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *
 	ExitCase CurrentExitCase = ExitCase::InProgress;
 	PrintThread{} << "Processing last requests/responses for " << *botName << std::endl;
 	std::time_t LastRequest = std::time(nullptr);
-	std::map<SC2APIProtocol::Status, std::string> status;
-	status[SC2APIProtocol::Status::launched] = "launched";
-	status[SC2APIProtocol::Status::init_game] = "init_game";
-	status[SC2APIProtocol::Status::in_game] = "in_game";
-	status[SC2APIProtocol::Status::in_replay] = "in_replay";
-	status[SC2APIProtocol::Status::ended] = "ended";
-	status[SC2APIProtocol::Status::quit] = "quit";
-	status[SC2APIProtocol::Status::unknown] = "unknown";
-	SC2APIProtocol::Status OldStatus = SC2APIProtocol::Status::in_game;
 	try
 	{
 		while (CurrentExitCase == ExitCase::InProgress)
@@ -722,7 +713,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient1 > 60)
 		{
-			PrintThread{} << "Failed to connect client 1. BotProcessID: " << GameClientPid1 << std::endl;
+			PrintThread{} << "Failed to connect client 1. ClientProcessID: " << GameClientPid1 << std::endl;
 			return GameResult();
 		}
 	}
@@ -734,7 +725,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient2 > 60)
 		{
-			PrintThread{} << "Failed to connect client 2. BotProcessID: " << GameClientPid2 << std::endl;
+			PrintThread{} << "Failed to connect client 2. ClientProcessID: " << GameClientPid2 << std::endl;
 			return GameResult();
 		}
 	}
@@ -862,6 +853,16 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
 	onEnd1.join();
 	onEnd2.join();
+	sc2::SleepFor(1000);
+	if (!server.connections_.empty())
+	{
+		server.connections_.clear();
+		PrintThread{} << Agent1.BotName << " is still connected..."<< std::endl;
+	}
+	if (!server2.connections_.empty())
+	{
+		PrintThread{} << Agent2.BotName << " is still connected..." << std::endl;
+	}
 	std::future_status bot1ProgStatus, bot2ProgStatus;
 	auto start = std::chrono::system_clock::now();
 	std::chrono::duration<double> elapsed_seconds;
