@@ -872,7 +872,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		bot2ProgStatus = bot2ProgramThread.wait_for(50ms);
 		if (bot1ProgStatus == std::future_status::ready && bot2ProgStatus == std::future_status::ready)
 		{
-			PrintThread{} << "Ready!" << std::endl;
+			PrintThread{} << "Both bots quit properly." << std::endl;
 			break;
 		}
 		elapsed_seconds = std::chrono::system_clock::now() - start;
@@ -1358,7 +1358,7 @@ void LadderManager::RunLadderManager()
 			if (IsBotEnabled(NextMatch.Agent1.BotName) && IsBotEnabled(NextMatch.Agent2.BotName) && IsInsideEloRange(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName))
 			{
 				GameResult result;
-				PrintThread{} << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+				PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
 				if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 				{
 					if (NextMatch.Agent1.Type == DefaultBot)
@@ -1374,7 +1374,7 @@ void LadderManager::RunLadderManager()
 				{
 					result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
 				}
-				PrintThread{} << std::endl << "Game finished with result: " << GetResultType(result.Result) << std::endl;
+				PrintThread{} << "Game finished with result: " << GetResultType(result.Result) << std::endl;
 				if (EnableReplayUploads)
 				{
 					UploadCmdLine(result, NextMatch);
