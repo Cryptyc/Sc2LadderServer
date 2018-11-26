@@ -1,15 +1,23 @@
 #pragma once
 
+class AgentsConfig;
+
 class MatchupList
 {
 public:
-    MatchupList(const std::string &inMatchupListFile);
-    bool GenerateMatches(std::map<std::string, BotConfig> Agents, std::vector<std::string> Maps);
+    MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> MapList, const std::string &GeneratorType, std::string &InServerUsername, const std::string &InServerPassword);
+    bool GenerateMatches(std::vector<std::string> Maps);
     bool GetNextMatchup(Matchup &NextMatch);
     bool SaveMatchList();
 
 private:
     const std::string &MatchupListFile;
     std::vector<Matchup> Matchups;
-    bool LoadMatchupList(std::map<std::string, BotConfig> Agents);
+    AgentsConfig *AgentConfig;
+    bool LoadMatchupList();
+    bool GetNetMatchFromURL(Matchup &NextMatch);
+
+    MatchupListType MatchUpProcess;
+    std::string ServerUsername;
+    std::string ServerPassword;
 };

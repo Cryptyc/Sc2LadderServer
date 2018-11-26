@@ -3,10 +3,14 @@
     "LocalReplayDirectory": "./integration_test_configs/TestMatch_Bot1Eliminated/Replays/",
     "UploadResultLocation": "http://127.0.0.1/fileupload9uysm34.php",
     "MaxGameTime": "60480",
+	"MatchupGenerator": "File",
     "MatchupListFile": "./integration_test_configs/TestMatch_Bot1Eliminated/matchuplist",
     "ErrorListFile": "./integration_test_configs/TestMatch_Bot1Eliminated/errorlist",
     "BotConfigFile": "./integration_test_configs/TestMatch_Bot1Eliminated/LadderBots.json",
     "EnableReplayUpload": "False",
     "ResultsLogFile": "./integration_test_configs/TestMatch_Bot1Eliminated/Results.json",
-    "PlayerIdFile": "./integration_test_configs/TestMatch_Bot1Eliminated/playerids"
+    "PlayerIdFile": "./integration_test_configs/TestMatch_Bot1Eliminated/playerids",
+	"Maps": [
+		"InterloperLE.SC2Map"
+	]
 }

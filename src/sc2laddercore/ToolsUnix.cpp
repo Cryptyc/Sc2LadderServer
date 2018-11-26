@@ -153,11 +153,16 @@ bool MoveReplayFile(const char* lpExistingFileName, const  char* lpNewFileName)
     return ret == 0;
 }
 
-std::string PerformRestRequest(const std::string &location)
+std::string PerformRestRequest(const std::string &location, const std::vector<std::string> &arguments)
 {
 	std::array<char, 10000> buffer;
 	std::string result;
-	std::string command = "curl " + location;
+	std::string command = "curl";
+	for (const std::string &NextArgument : arguments)
+	{
+		command = command + NextArgument;
+	}
+	command = command + " " + location;
 	std::shared_ptr<FILE> pipe(popen(command.c_str(), "r"), pclose);
 	if (!pipe) throw std::runtime_error("popen() failed!");
 	while (!feof(pipe.get())) {
@@ -165,6 +170,16 @@ std::string PerformRestRequest(const std::string &location)
 			result += buffer.data();
 	}
 	return result;
+}
+
+bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive)
+{
+	return false;
+}
+
+bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
+{
+	return false;
 }
 
 #endif

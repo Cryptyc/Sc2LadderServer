@@ -2,6 +2,27 @@
 
 #include <string>
 #include <sc2api/sc2_api.h>
+#include <ctime>
+#include <sstream>
+#include <iostream>
+#include <iomanip>
+
+class PrintThread : public std::ostringstream
+{
+public:
+    PrintThread() = default;
+
+    ~PrintThread()
+    {
+        std::lock_guard<std::mutex> guard(_mutexPrint);
+        std::time_t t = std::time(nullptr);
+        std::tm tm = *std::localtime(&t);
+        std::cout << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << this->str();
+    }
+
+private:
+    static std::mutex _mutexPrint;
+};
 
 enum BotType
 {
@@ -26,6 +47,13 @@ enum ResultType
 	Player2Crash,
 	Tie,
 	Error
+};
+
+enum MatchupListType
+{
+    File,
+    URL,
+    None
 };
 
 enum ExitCase
@@ -118,6 +146,25 @@ struct Matchup
 
 
 };
+
+static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorType)
+{
+    std::string type(GeneratorType);
+    std::transform(type.begin(), type.end(), type.begin(), ::tolower);
+
+    if (type == "url")
+    {
+        return MatchupListType::URL;
+    }
+    else if (type == "file")
+    {
+        return MatchupListType::File;
+    }
+    else
+    {
+        return MatchupListType::None;
+    }
+}
 
 static std::string GetExitCaseString(ExitCase ExitCaseIn)
 {
