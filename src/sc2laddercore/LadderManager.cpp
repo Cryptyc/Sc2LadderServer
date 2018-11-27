@@ -35,12 +35,12 @@
 #include <fcntl.h>
 #include <sstream>   
 #include <cctype>
-#include <filesystem>
 #include "Types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
+#include <filesystem> // Not compiling on linux/gcc
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -95,23 +95,26 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues)
+std::mutex m;
+bool gameEnded = false;
+
+void setGameEnded(const bool status)
 {
-	if (NumValues == 0 || OriginalValue == 0)
-	{
-		return (float_t)NewValue;
-	}
-	return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
+	std::lock_guard<std::mutex> lock(m);
+	gameEnded = status;
 }
 
+bool getGameEnded()
+{
+	std::lock_guard<std::mutex> lock(m);
+	return gameEnded;
+}
 
 ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, int32_t *GameLoop)
 {
-	//    std::cout << "Sending Join game request" << std::endl;
-	//    sc2::GameRequestPtr Create_game_request = CreateJoinGameRequest();
-	//    Client->Send(Create_game_request.get());
 	ExitCase CurrentExitCase = ExitCase::InProgress;
 	PrintThread{} << "Starting proxy for " << *botName << std::endl;
+	setGameEnded(false);
 	clock_t LastRequest = clock();
 	clock_t FirstRequest = clock();
 	clock_t StepTime = 0;
@@ -130,7 +133,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	try
 	{
 		bool AlreadyWarned = false;
-		while (CurrentExitCase == ExitCase::InProgress) {
+		while (CurrentExitCase == ExitCase::InProgress && !getGameEnded()) {
 			SC2APIProtocol::Status CurrentStatus;
 			if (!client || !server || client->connection_ == nullptr)
 			{
@@ -233,7 +236,68 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 			}
 		}
 		*AvgFrame = AvgStepTime;
-		PrintThread{} << *botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << std::endl;
+		PrintThread{} << *botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
+		setGameEnded(true);
+		return CurrentExitCase;
+	}
+	catch (const std::exception& e)
+	{
+		PrintThread{} << e.what() << std::endl;
+		return ExitCase::ClientTimeout;
+	}
+}
+
+ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *botName)
+{
+	ExitCase CurrentExitCase = ExitCase::InProgress;
+	PrintThread{} << "Processing last requests/responses for " << *botName << std::endl;
+	std::time_t LastRequest = std::time(nullptr);
+	try
+	{
+		while (CurrentExitCase == ExitCase::InProgress)
+		{
+			SC2APIProtocol::Status CurrentStatus;
+			if (!client || !server)
+			{
+				PrintThread{} << *botName << " Null server or client returning ClientTimeout" << std::endl;
+				return ExitCase::ClientTimeout;
+			}
+			if (client->connection_ == nullptr)
+			{
+				PrintThread{} << "Client disconnected (" << *botName << ")" << std::endl;
+				CurrentExitCase = ExitCase::ClientTimeout;
+			}
+			if (server->HasRequest())
+			{
+				if (client->connection_ != nullptr)
+				{
+					PrintThread{} << "Sending request of " << *botName << std::endl;
+					server->SendRequest(client->connection_);
+					LastRequest = std::time(nullptr);
+				}
+			}
+			SC2APIProtocol::Response* response = nullptr;
+			if (client->Receive(response, 1000)) // why is server->hasResponse() not working?!
+			{
+				// Send the response back to the client.
+				if (response && server->connections_.size() > 0 && client->connection_ != NULL)
+				{
+					PrintThread{} << "Sending response for " << *botName << std::endl;
+					server->QueueResponse(client->connection_, response);
+					server->SendResponse();
+					LastRequest = std::time(nullptr);
+				}
+				else
+				{
+					CurrentExitCase = ExitCase::ClientTimeout;
+				}
+			}
+			if (difftime(std::time(nullptr),LastRequest) > 5)
+			{
+				PrintThread{} << "No new requests/responses for (" << *botName <<")" << std::endl;
+				CurrentExitCase = ExitCase::ClientTimeout;
+			}
+		}
 		return CurrentExitCase;
 	}
 	catch (const std::exception& e)
@@ -251,7 +315,7 @@ bool LadderManager::SaveReplay(sc2::Connection *client, const std::string& path)
 	SC2APIProtocol::Response* replay_response = nullptr;
 	if (!client->Receive(replay_response, 10000))
 	{
-//		std::cout << "Failed to receive replay response" << std::endl;
+		//		std::cout << "Failed to receive replay response" << std::endl;
 		return false;
 	}
 
@@ -405,7 +469,7 @@ sc2::GameRequestPtr LadderManager::CreateLeaveGameRequest()
 	sc2::ProtoInterface proto;
 	sc2::GameRequestPtr request = proto.MakeRequest();
 
-	request->mutable_quit();
+	request->mutable_leave_game();
 
 	return request;
 }
@@ -498,7 +562,7 @@ GameResult LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 	}
 
 	sc2::Server server;
-	
+
 	server.Listen("5677", "100000", "100000", "5");
 
 	// Find game executable and run it.
@@ -506,11 +570,11 @@ GameResult LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
 	uint64_t BotProcessId = sc2::StartProcess(process_settings.process_path,
-		{ "-listen", "127.0.0.1",
-		"-port", "5679",
-		"-displayMode", "0",
-		"-dataVersion", process_settings.data_version }
-	);
+	{ "-listen", "127.0.0.1",
+	  "-port", "5679",
+	  "-displayMode", "0",
+	  "-dataVersion", process_settings.data_version }
+											  );
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
@@ -621,7 +685,7 @@ void LadderManager::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
 
 GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map)
 {
-	
+
 	using namespace std::chrono_literals;
 	// Setup server that mimicks sc2.
 	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, Agent2.PlayerId);
@@ -638,18 +702,18 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
-	uint64_t GameClientPid1 = sc2::StartProcess(process_settings.process_path,
+	auto GameClientPid1 = sc2::StartProcess(process_settings.process_path,
 	{ "-listen", "127.0.0.1",
-		"-port", "5679",
-		"-displayMode", "0",
-		"-dataVersion", process_settings.data_version }
-	);
-	uint64_t GameClientPid2 = sc2::StartProcess(process_settings.process_path,
-		{ "-listen", "127.0.0.1",
-		"-port", "5680",
-		"-displayMode", "0",
-		"-dataVersion", process_settings.data_version }
-	);
+	  "-port", "5679",
+	  "-displayMode", "0",
+	  "-dataVersion", process_settings.data_version }
+												);
+	auto GameClientPid2 = sc2::StartProcess(process_settings.process_path,
+	{ "-listen", "127.0.0.1",
+	  "-port", "5680",
+	  "-displayMode", "0",
+	  "-dataVersion", process_settings.data_version }
+												);
 
 	// Connect to running sc2 process.
 	sc2::Connection client;
@@ -660,7 +724,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient1 > 60)
 		{
-			PrintThread{} << "Failed to connect client 1. BotProcessID: " << GameClientPid1 << std::endl;
+			PrintThread{} << "Failed to connect client 1. ClientProcessID: " << GameClientPid1 << std::endl;
 			return GameResult();
 		}
 	}
@@ -672,7 +736,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		sc2::SleepFor(1000);
 		if (connectionAttemptsClient2 > 60)
 		{
-			PrintThread{} << "Failed to connect client 2. BotProcessID: " << GameClientPid2 << std::endl;
+			PrintThread{} << "Failed to connect client 2. ClientProcessID: " << GameClientPid2 << std::endl;
 			return GameResult();
 		}
 	}
@@ -733,7 +797,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 			{
 				CurrentResult = ResultType::Timeout;
 			}
-			else 
+			else
 			{
 				CurrentResult = ResultType::ProcessingReplay;
 			}
@@ -786,8 +850,8 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		CurrentResult = GetPlayerResults(&client2);
 	}
 	sc2::SleepFor(1000);
+	PrintThread{} << "Saving replay" << std::endl;
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-
 	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
 	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 	if (!SaveReplay(&client, ReplayFile))
@@ -795,44 +859,21 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		SaveReplay(&client2, ReplayFile);
 	}
 	sc2::SleepFor(1000);
-	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
-	{
-		PrintThread{} << "CreateLeaveGameRequest failed for Client 1." << std::endl;
-	}
-	sc2::SleepFor(1000);
-	if (!SendDataToConnection(&client2, CreateLeaveGameRequest().get()))
-	{
-		PrintThread{} << "CreateLeaveGameRequest failed for Client 2." << std::endl;
-	}
-	sc2::SleepFor(1000);
-	if (server.HasRequest() && server.connections_.size() > 0)
-	{
-		server.SendRequest(client.connection_);
-	}
-	sc2::SleepFor(1000);
-	if (server2.HasRequest() && server2.connections_.size() > 0)
-	{
-		server2.SendRequest(client2.connection_);
-	}
 	ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
-
-	if (CurrentResult == Player1Crash || CurrentResult == Player2Crash)
+	// Process last requests
+	std::thread onEnd1(&OnEnd, &client, &server, &Agent1.BotName);
+	std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
+	onEnd1.join();
+	onEnd2.join();
+	sc2::SleepFor(1000);
+	if (!server.connections_.empty())
 	{
-		sc2::SleepFor(5000);
-		sc2::TerminateProcess(GameClientPid1);
-		sc2::TerminateProcess(GameClientPid2);
-		sc2::SleepFor(5000);
-		try
-		{
-			bot1UpdateThread.wait();
-			bot2UpdateThread.wait();
-
-		}
-		catch (const std::exception& e)
-		{
-			PrintThread{} << e.what() << std::endl <<" Unable to detect end of update thread.  Continuing" << std::endl;
-		}
-
+		server.connections_.clear();
+		PrintThread{} << Agent1.BotName << " is still connected..."<< std::endl;
+	}
+	if (!server2.connections_.empty())
+	{
+		PrintThread{} << Agent2.BotName << " is still connected..." << std::endl;
 	}
 	std::future_status bot1ProgStatus, bot2ProgStatus;
 	auto start = std::chrono::system_clock::now();
@@ -843,20 +884,25 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 		bot2ProgStatus = bot2ProgramThread.wait_for(50ms);
 		if (bot1ProgStatus == std::future_status::ready && bot2ProgStatus == std::future_status::ready)
 		{
+			PrintThread{} << "Both bots quit properly." << std::endl;
 			break;
 		}
 		elapsed_seconds = std::chrono::system_clock::now() - start;
 	}
 	if (bot1ProgStatus != std::future_status::ready)
 	{
-		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent1.BotName << " after 20s. Make sure the bot does not issue leaveGame or quit. Killing" << std::endl;
 		KillBotProcess(Bot1ThreadId);
 	}
 	if (bot2ProgStatus != std::future_status::ready)
 	{
-		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s.  Killing" << std::endl;
+		PrintThread{} << "Failed to detect end of " << Agent2.BotName << " after 20s. Make sure the bot does not issue leaveGame or quit. Killing" << std::endl;
 		KillBotProcess(Bot2ThreadId);
 	}
+	sc2::SleepFor(1000);
+	sc2::TerminateProcess(GameClientPid1);
+	sc2::TerminateProcess(GameClientPid2);
+	sc2::SleepFor(1000);
 	GameResult Result;
 	Result.Result = CurrentResult;
 	Result.Bot1AvgFrame = Bot1AvgFrame;
@@ -895,7 +941,7 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, co
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
 	, Sc2Launched(false)
-	, Config(nullptr) 
+	, Config(nullptr)
 {
 }
 
@@ -926,7 +972,7 @@ bool LadderManager::LoadSetup()
 	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
-        EnableReplayUploads = true;
+		EnableReplayUploads = true;
 	}
 
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
@@ -935,7 +981,7 @@ bool LadderManager::LoadSetup()
 	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
-        EnableServerLogin = true;
+		EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
 	}
 	BotCheckLocation = Config->GetValue("BotInfoLocation");
@@ -1166,7 +1212,7 @@ void LadderManager::RunLadderManager()
 			if (IsBotEnabled(NextMatch.Agent1.BotName) && IsBotEnabled(NextMatch.Agent2.BotName) && IsInsideEloRange(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName))
 			{
 				GameResult result;
-				PrintThread{} << std::endl << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+				PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
 				if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 				{
 					if (NextMatch.Agent1.Type == DefaultBot)
@@ -1192,7 +1238,7 @@ void LadderManager::RunLadderManager()
 						UploadBot(NextMatch.Agent2);
 					}
 				}
-				PrintThread{} << std::endl << "Game finished with result: " << GetResultType(result.Result) << std::endl;
+				PrintThread{} << "Game finished with result: " << GetResultType(result.Result) << std::endl;
 				if (EnableReplayUploads)
 				{
 					UploadCmdLine(result, NextMatch, Config->GetValue("UploadResultLocation"));
@@ -1210,7 +1256,7 @@ void LadderManager::RunLadderManager()
 		PrintThread{} << "Exception in game " << e.what() << std::endl;
 		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
-	
+
 }
 
 void LadderManager::SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map)

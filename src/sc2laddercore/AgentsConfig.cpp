@@ -5,12 +5,11 @@
 #include "rapidjson.h"
 #include "document.h"
 
-#include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
-
+#include <filesystem> // Not compiling on linux/gcc
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	: PlayerIds(nullptr),
