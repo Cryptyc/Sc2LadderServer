@@ -11,37 +11,55 @@
 #include <string>
 #include <algorithm>
 #include <random>
+#include <regex>
+#define RAPIDJSON_HAS_STDSTRING 1
+
+#include "rapidjson.h"
+
 #include "Types.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
+#include "Tools.h"
+#include "AgentsConfig.h"
 
-MatchupList::MatchupList(const std::string &inMatchupListFile)
+#define URL_REGEX 
+
+MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> MapList, const std::string &GeneratorType, std::string &InServerUsername, const std::string &InServerPassword)
 	: MatchupListFile(inMatchupListFile)
+	, ServerUsername(InServerUsername)
+	, ServerPassword(InServerPassword)
+	, AgentConfig(InAgentConfig)
 {
-
+	MatchUpProcess = GetMatchupListTypeFromString(GeneratorType);
+	if(MatchUpProcess == MatchupListType::None)
+	{
+		PrintThread{} << "Unknown Matchuplist generator type: " + GeneratorType + " Should be either \"file\" or \"url\"" << std::endl;
+		return;
+	}
+	GenerateMatches(MapList);
 }
 
-bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::vector<std::string> Maps)
+
+bool MatchupList::GenerateMatches(std::vector<std::string> Maps)
 {
 	Matchups.clear();
-	if (!LoadMatchupList(Agents))
+	MatchUpProcess = MatchupListType::File;
+
+	if (!LoadMatchupList())
 	{
 		PrintThread{} << "Could not load MatchupList from file. Generating new one.." << std::endl;
-		for (int i = 0; i < 2; i++)
+		for (const auto &Agent1 : AgentConfig->BotConfigs)
 		{
-			for (const auto &Agent1 : Agents)
+			for (const auto &Agent2 : AgentConfig->BotConfigs)
 			{
-				for (const auto &Agent2 : Agents)
+				if (Agent1.first == Agent2.first)
 				{
-					if (Agent1.first == Agent2.first)
-					{
-						continue;
-					}
-					for (std::string map : Maps)
-					{
-						Matchup NextMatchup(Agent1.second, Agent2.second, map);
-						Matchups.push_back(NextMatchup);
-					}
+					continue;
+				}
+				for (std::string map : Maps)
+				{
+					Matchup NextMatchup(Agent1.second, Agent2.second, map);
+					Matchups.push_back(NextMatchup);
 				}
 			}
 		}
@@ -49,7 +67,8 @@ bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::
 		std::random_shuffle(std::begin(Matchups), std::end(Matchups));
 		return true;
 	}
-	else {
+	else
+	{
 		PrintThread{} << "MatchupList loaded from file with " << Matchups.size() << " matches to go." << std::endl;
 	}
 	return true;
@@ -57,13 +76,33 @@ bool MatchupList::GenerateMatches(std::map<std::string, BotConfig> Agents, std::
 
 bool MatchupList::GetNextMatchup(Matchup &NextMatch)
 {
-	if (Matchups.empty())
+	switch (MatchUpProcess)
 	{
-		return false;
+		case MatchupListType::File:
+		{
+			if (MatchUpProcess == MatchupListType::File)
+			{
+				if (Matchups.empty())
+				{
+					return false;
+				}
+				NextMatch = Matchups.back();
+				Matchups.pop_back();
+				return true;
+			}
+			break;
+		}
+		case MatchupListType::URL:
+		{
+
+			return GetNetMatchFromURL(NextMatch);
+		}
+		default:
+		{
+			return false;
+		}
 	}
-	NextMatch = Matchups.back();
-	Matchups.pop_back();
-	return true;
+	return false;
 }
 
 bool MatchupList::SaveMatchList()
@@ -82,7 +121,7 @@ bool MatchupList::SaveMatchList()
 
 }
 
-bool MatchupList::LoadMatchupList(std::map<std::string, BotConfig> Agents)
+bool MatchupList::LoadMatchupList()
 {
 	std::ifstream ifs(MatchupListFile);
 	if (!ifs.good())
@@ -107,24 +146,68 @@ bool MatchupList::LoadMatchupList(std::map<std::string, BotConfig> Agents)
 		line.erase(0, p);
 		p = line.find_last_not_of(" \t\r\n");
 		std::string Map = line.substr(0, p + 1);
-		auto search = Agents.find(FirstAgent);
 		PrintThread{} << "Creating match: " + FirstAgent + " vs " + SecondAgent + " on " + Map << std::endl;
-		if (search == Agents.end())
+		BotConfig Agent2, Agent1;
+		if (!AgentConfig->FindBot(FirstAgent, Agent1))
 		{
 			PrintThread{} << "Unable to find agent: " + FirstAgent << std::endl;
 			continue;
 		}
-		BotConfig Agent1 = search->second;
-		search = Agents.find(SecondAgent);
-		if (search == Agents.end())
+		if (!AgentConfig->FindBot(SecondAgent, Agent2))
 		{
-			PrintThread{} << "Unable to find agent: " + SecondAgent << std::endl;
+			PrintThread{} << "Unable to find agent: " + FirstAgent << std::endl;
 			continue;
 		}
-		BotConfig Agent2 = search->second;
 		Matchup NextMatchup(Agent1, Agent2, Map);
 		Matchups.push_back(NextMatchup);
 
 	}
 	return true;
+}
+
+bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
+{
+	std::vector<std::string> arguments;
+	std::string argument = " -F Username=" + ServerUsername;
+	arguments.push_back(argument);
+	argument = " -F Password=" + ServerPassword;
+	arguments.push_back(argument);
+	std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
+	rapidjson::Document doc;
+	bool parsingFailed = doc.Parse(ReturnString.c_str()).HasParseError();
+	if (parsingFailed)
+	{
+		std::cerr << "Unable to parse incoming bot config: " << ReturnString << std::endl;
+		return false;
+	}
+	bool GameFound = false;
+	if (doc.HasMember("Bot1") && doc["Bot1"].IsObject())
+	{
+		const rapidjson::Value &Bot1Value = doc["Bot1"];
+		if (Bot1Value.HasMember("name") && Bot1Value["name"].IsString())
+		{
+			if(AgentConfig->FindBot(Bot1Value["name"].GetString(), NextMatch.Agent1))
+			{
+				GameFound = true;
+			}
+		}
+	}
+	if (GameFound && doc.HasMember("Bot2") && doc["Bot2"].IsObject())
+	{
+		GameFound = false;
+		const rapidjson::Value &Bot2Value = doc["Bot2"];
+		if (Bot2Value.HasMember("name") && Bot2Value["name"].IsString())
+		{
+			if (AgentConfig->FindBot(Bot2Value["name"].GetString(), NextMatch.Agent1))
+			{
+				GameFound = true;
+			}
+		}
+	}
+	if (GameFound && doc.HasMember("Map") && doc["Map"].IsString())
+	{
+		NextMatch.Map = doc["Map"].GetString();
+		GameFound = true;
+	}
+	return GameFound;
 }

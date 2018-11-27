@@ -29,8 +29,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	HANDLE stdoutfile = NULL;
 	if (Agent.Debug)
 	{
-        std::string stdoutLogFile = Agent.RootPath + "/stdout.log";
-		stdoutfile = CreateFile(stdoutLogFile.c_str(),
+		std::string stdoutFile = Agent.RootPath + "/stdout.log";
+		stdoutfile = CreateFile(stdoutFile.c_str(),
 			FILE_APPEND_DATA,
 			FILE_SHARE_WRITE | FILE_SHARE_READ,
 			&securityAttributes,
@@ -147,17 +147,51 @@ bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName) {
 	return MoveFile(lpExistingFileName, lpNewFileName);
 }
 
-std::string PerformRestRequest(const std::string &location)
+std::string PerformRestRequest(const std::string &location, const std::vector<std::string> &arguments)
 {
 	std::array<char, 10000> buffer;
 	std::string result;
-	std::string command = "curl " + location;
+	std::string command = "curl";
+	for (const std::string &NextArgument : arguments)
+	{
+		command = command + NextArgument;
+	}
+	command = command + " " + location;
 	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
-	if (!pipe) throw std::runtime_error("popen() failed!");
-	while (!feof(pipe.get())) {
+	if (!pipe)
+	{
+		throw std::runtime_error("popen() failed!");
+	}
+	while (!feof(pipe.get())) 
+	{
 		if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+		{
 			result += buffer.data();
+		}
 	}
 	return result;
 }
+
+bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive)
+{
+	std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('" + InDirectory + "', '" + OutArchive + "'); }\"";
+	std::shared_ptr<FILE> pipe(_popen(CommandLIne.c_str(), "r"), _pclose);
+	if (!pipe)
+	{
+		return false;
+	}
+	return true;
+}
+
+bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
+{
+	std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::ExtractToDirectory('" + InArchive + "', '" + OutDirectory + "'); }\"";
+	std::shared_ptr<FILE> pipe(_popen(CommandLIne.c_str(), "r"), _pclose);
+	if (!pipe)
+	{
+		return false;
+	}
+	return true;
+}
+
 #endif

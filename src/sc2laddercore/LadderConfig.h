@@ -6,6 +6,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 class LadderConfig
 {
@@ -14,6 +15,7 @@ public:
     bool ParseConfig();
 	bool WriteConfig();
     std::string GetValue(std::string RequestedValue);
+    std::vector<std::string> GetArray(std::string ReqyestedValue);
 	void AddValue(const std::string &Index, const std::string &Value);
 private:
     const std::string ConfigFileLocation;

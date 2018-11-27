@@ -13,8 +13,5 @@
       "RootPath": "./",
       "FileName": "@DEBUG_BOT_FILENAME@"
     }
-  },
-  "Maps": [
-    "InterloperLE.SC2Map"
-  ]
+  }
 }

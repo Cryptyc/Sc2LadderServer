@@ -35,6 +35,7 @@
 #include <fcntl.h>
 #include <sstream>   
 #include <cctype>
+#include <filesystem>
 #include "Types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
@@ -131,21 +132,14 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 	SC2APIProtocol::Status OldStatus = SC2APIProtocol::Status::unknown;
 	try
 	{
-		bool RequestFound = false;
 		bool AlreadyWarned = false;
 		while (CurrentExitCase == ExitCase::InProgress && !getGameEnded()) {
 			SC2APIProtocol::Status CurrentStatus;
-			if (!client || !server)
+			if (!client || !server || client->connection_ == nullptr)
 			{
 				PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
 				return ExitCase::ClientTimeout;
 			}
-			if (client->connection_ == nullptr && RequestFound)
-			{
-				PrintThread{} << "Client disconnect (" << *botName << ")" << std::endl;
-				CurrentExitCase = ExitCase::ClientTimeout;
-			}
-
 			if (server->HasRequest())
 			{
 				const sc2::RequestData request = server->PeekRequest();
@@ -166,7 +160,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					{
 						clock_t ThisStepTime = clock() - StepTime;
 						totalTime += static_cast<float_t>(ThisStepTime);
-						AvgStepTime = totalTime/static_cast<float_t>(currentGameLoop);
+						AvgStepTime = totalTime / static_cast<float_t>(currentGameLoop);
 					}
 				}
 				if (client->connection_ != nullptr)
@@ -189,6 +183,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 					if (CurrentStatus > SC2APIProtocol::Status::in_replay)
 					{
 						CurrentExitCase = ExitCase::GameEnd;
+
 					}
 					if (response->has_observation())
 					{
@@ -554,6 +549,10 @@ bool LadderManager::SendDataToConnection(sc2::Connection *Connection, const SC2A
 
 GameResult LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map)
 {
+	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
+	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
+	remove(ReplayFile.c_str());
 	using namespace std::chrono_literals;
 	// Setup server that mimicks sc2.
 	std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, "", true, sc2::Race::Random, CompDifficulty);
@@ -656,9 +655,6 @@ GameResult LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 		CurrentResult = GetPlayerResults(&client);
 	}
 
-	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-	std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
-	ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
 
 	SaveReplay(&client, ReplayFile);
 	if (!SendDataToConnection(&client, CreateLeaveGameRequest().get()))
@@ -670,6 +666,21 @@ GameResult LadderManager::StartGameVsDefault(const BotConfig &Agent1, sc2::Race 
 	GameResult result;
 	result.Result = CurrentResult;
 	return result;
+}
+
+void LadderManager::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
+{
+	std::time_t t = std::time(nullptr);
+	std::tm tm = *std::localtime(&t);
+	std::string Bot1Filename = Bot1.RootPath + "/stderr.log";
+	std::string Bot2Filename = Bot2.RootPath + "/stderr.log";
+	std::ofstream outfile;
+	outfile.open(Bot1Filename, std::ios_base::app);
+	outfile << std::endl << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << "Starting game vs " << Bot2.BotName << std::endl;
+	outfile.close();
+	outfile.open(Bot2Filename, std::ios_base::app);
+	outfile << std::endl << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << "Starting game vs " << Bot1.BotName << std::endl;
+	outfile.close();
 }
 
 GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map)
@@ -747,6 +758,7 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 	}
 	unsigned long Bot1ThreadId = 0;
 	unsigned long Bot2ThreadId = 0;
+	LogStartGame(Agent1, Agent2);
 	auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path, &Bot1ThreadId);
 	auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path, &Bot2ThreadId);
 	sc2::SleepFor(500);
@@ -827,8 +839,8 @@ GameResult LadderManager::StartGame(const BotConfig &Agent1, const BotConfig &Ag
 			CurrentResult = ResultType::Player2Crash;
 			GameRunning = false;
 		}
-
 	}
+
 	if (CurrentResult == ResultType::ProcessingReplay)
 	{
 		CurrentResult = GetPlayerResults(&client);
@@ -911,10 +923,8 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 	, ConfigFile("LadderManager.json")
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
-	, EnablePlayerIds(false)
 	, Sc2Launched(false)
 	, Config(nullptr)
-	, PlayerIds(nullptr)
 {
 }
 
@@ -930,29 +940,12 @@ LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, co
 	, ConfigFile(InConfigFile)
 	, EnableReplayUploads(false)
 	, EnableServerLogin(false)
-	, EnablePlayerIds(false)
 	, Sc2Launched(false)
 	, Config(nullptr)
-	, PlayerIds(nullptr)
 {
 }
 
-std::string LadderManager::GerneratePlayerId(size_t Length)
-{
-	static const char hexdigit[16] = { '0', '1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
-	std::string outstring;
-	if (Length < 1)
-	{
-		return outstring;
 
-	}
-	--Length;
-	for (int i = 0; i < Length; ++i)
-	{
-		outstring.append(1, hexdigit[rand() % sizeof hexdigit]);
-	}
-	return outstring;
-}
 
 bool LadderManager::LoadSetup()
 {
@@ -964,12 +957,6 @@ bool LadderManager::LoadSetup()
 		return false;
 	}
 
-	std::string PlayerIdFile = Config->GetValue("PlayerIdFile");
-	if (PlayerIdFile.length() > 0)
-	{
-		PlayerIds = new LadderConfig(PlayerIdFile);
-		EnablePlayerIds = true;
-	}
 
 	std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
 	if (MaxGameTimeString.length() > 0)
@@ -989,14 +976,13 @@ bool LadderManager::LoadSetup()
 	}
 
 	ResultsLogFile = Config->GetValue("ResultsLogFile");
-
+	ServerUsername = Config->GetValue("ServerUsername");
+	ServerPassword = Config->GetValue("ServerPassword");
 	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
 		EnableServerLogin = true;
 		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
-		ServerUsername = Config->GetValue("ServerUsername");
-		ServerPassword = Config->GetValue("ServerPassword");
 	}
 	BotCheckLocation = Config->GetValue("BotInfoLocation");
 
@@ -1069,121 +1055,6 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	ResultsDoc.Accept(writer);
 }
 
-
-void LadderManager::LoadAgents()
-{
-	std::string BotConfigFile = Config->GetValue("BotConfigFile");
-	if (BotConfigFile.length() < 1)
-	{
-		return;
-	}
-	std::ifstream t(BotConfigFile);
-	std::stringstream buffer;
-	buffer << t.rdbuf();
-	std::string BotConfigString = buffer.str();
-	rapidjson::Document doc;
-	bool parsingFailed = doc.Parse(BotConfigString.c_str()).HasParseError();
-	if (parsingFailed)
-	{
-		std::cerr << "Unable to parse bot config file: " << BotConfigFile << std::endl;
-		return;
-	}
-	if (doc.HasMember("Bots") && doc["Bots"].IsObject())
-	{
-		const rapidjson::Value & Bots = doc["Bots"];
-		for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
-		{
-			BotConfig NewBot;
-			NewBot.BotName = itr->name.GetString();
-			const rapidjson::Value &val = itr->value;
-
-			if (val.HasMember("Race") && val["Race"].IsString())
-			{
-				NewBot.Race = GetRaceFromString(val["Race"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (val.HasMember("Type") && val["Type"].IsString())
-			{
-				NewBot.Type = GetTypeFromString(val["Type"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (NewBot.Type != DefaultBot)
-			{
-				if (val.HasMember("RootPath") && val["RootPath"].IsString())
-				{
-					NewBot.RootPath = val["RootPath"].GetString();
-					if (NewBot.RootPath.back() != '/')
-					{
-						NewBot.RootPath += '/';
-					}
-				}
-				else
-				{
-					std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (val.HasMember("FileName") && val["FileName"].IsString())
-				{
-					NewBot.FileName = val["FileName"].GetString();
-				}
-				else
-				{
-					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
-				{
-					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
-					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
-					continue;
-				}
-				if (val.HasMember("Args") && val["Args"].IsString())
-				{
-					NewBot.Args = val["Arg"].GetString();
-				}
-				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
-					NewBot.Debug = val["Debug"].GetBool();
-				}
-			}
-			else
-			{
-				if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
-				{
-					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
-				}
-			}
-			if (EnablePlayerIds)
-			{
-				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
-				if (NewBot.PlayerId.empty())
-				{
-					NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
-					PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
-					PlayerIds->WriteConfig();
-				}
-			}
-			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
-
-		}
-	}
-	if (doc.HasMember("Maps") && doc["Maps"].IsArray())
-	{
-		const rapidjson::Value & Maps = doc["Maps"];
-		for (auto itr = Maps.Begin(); itr != Maps.End(); ++itr)
-		{
-			MapList.push_back(itr->GetString());
-		}
-	}
-}
-
 std::string LadderManager::RemoveMapExtension(const std::string& filename) {
 	size_t lastdot = filename.find_last_of(".");
 	if (lastdot == std::string::npos) return filename;
@@ -1200,10 +1071,9 @@ void LadderManager::ChangeBotNames(const std::string ReplayFile, const std::stri
 	}
 }
 
-bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch)
+bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch, const std::string UploadResultLocation)
 {
 	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
-	std::string UploadResultLocation = Config->GetValue("UploadResultLocation");
 	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
 	std::string ReplayFile;
 	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
@@ -1218,6 +1088,7 @@ bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch)
 	std::string ReplayLoc = ReplayDir + ReplayFile;
 
 	std::string CurlCmd = "curl";
+	CurlCmd = CurlCmd + " -b cookies.txt";
 	CurlCmd = CurlCmd + " -F Bot1Name=" + ThisMatch.Agent1.BotName;
 	CurlCmd = CurlCmd + " -F Bot1Race=" + std::to_string((int)ThisMatch.Agent1.Race);
 	CurlCmd = CurlCmd + " -F Bot2Name=" + ThisMatch.Agent2.BotName;
@@ -1236,72 +1107,22 @@ bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch)
 
 bool LadderManager::LoginToServer()
 {
-	std::cout << "LoginToServer feature has been temporarily disabled";
-	return false;
-}
-
-bool LadderManager::CheckDiactivatedBots() {
-	if (BotCheckLocation.empty())
-	{
-		return false;
-	}
-	std::string result = PerformRestRequest(BotCheckLocation);
-	if (result.empty())
-	{
-		return false;
-	}
-	rapidjson::Document doc;
-	bool parsingFailed = doc.Parse(result.c_str()).HasParseError();
-	if (parsingFailed)
-	{
-		std::cerr << "Unable to parse incoming bot config: " << ConfigFile << std::endl;
-		return false;
-	}
-	if (doc.HasMember("Bots") && doc["Bots"].IsArray())
-	{
-		const rapidjson::Value & Units = doc["Bots"];
-		for (const auto& val : Units.GetArray())
-		{
-			if (val.HasMember("name") && val["name"].IsString())
-			{
-				auto ThisBot = BotConfigs.find(val["name"].GetString());
-				if (ThisBot != BotConfigs.end())
-				{
-					if (val.HasMember("deactivated") && val.HasMember("deleted") && val["deactivated"].IsBool() && val["deleted"].IsBool())
-					{
-						if ((val["deactivated"].GetBool() || val["deleted"].GetBool()) && ThisBot->second.Enabled)
-						{
-							// Set bot to disabled
-							PrintThread{} << "Deactivating bot " << ThisBot->second.BotName << std::endl;
-							ThisBot->second.Enabled = false;
-
-						}
-						else if (val["deactivated"].GetBool() == false && val["deleted"].GetBool() == false && ThisBot->second.Enabled == false)
-						{
-							// reenable a bot
-							PrintThread{} << "Activating bot " << ThisBot->second.BotName;
-							ThisBot->second.Enabled = true;
-						}
-					}
-					if (val.HasMember("elo") && val["elo"].IsString())
-					{
-						ThisBot->second.ELO = std::stoi(val["elo"].GetString());
-					}
-				}
-
-			}
-		}
-		return true;
-	}
-	return false;
+	std::string CurlCmd = "curl";
+	CurlCmd = CurlCmd + " -F username=" + ServerUsername;
+	CurlCmd = CurlCmd + " -F password=" + ServerPassword;
+	CurlCmd = CurlCmd + " -c cookies.txt";
+	CurlCmd = CurlCmd + " " + ServerLoginAddress;
+	StartExternalProcess(CurlCmd);
+	return true;
 }
 
 bool LadderManager::IsBotEnabled(std::string BotName)
 {
-	auto ThisBot = BotConfigs.find(BotName);
-	if (ThisBot != BotConfigs.end())
+	BotConfig ThisBot;
+	if (AgentConfig->FindBot(BotName, ThisBot))
 	{
-		return ThisBot->second.Enabled;
+		return ThisBot.Enabled;
+
 	}
 	return false;
 }
@@ -1311,39 +1132,73 @@ bool LadderManager::IsInsideEloRange(std::string Bot1Name, std::string Bot2Name)
 	{
 		return true;
 	}
-	auto Bot1 = BotConfigs.find(Bot1Name);
-	auto Bot2 = BotConfigs.find(Bot2Name);
-	if(Bot1 != BotConfigs.end() && Bot2 != BotConfigs.end())
+	BotConfig Bot1, Bot2;
+	if (AgentConfig->FindBot(Bot1Name, Bot1) && AgentConfig->FindBot(Bot2Name, Bot2))
 	{
-		int32_t EloDiff = abs(Bot1->second.ELO - Bot2->second.ELO);
-		PrintThread{} << Bot1Name << " ELO: " << Bot1->second.ELO << " | " << Bot2Name << " ELO: " << Bot2->second.ELO << " | Diff: " << EloDiff << std::endl;
+		int32_t EloDiff = abs(Bot1.ELO - Bot2.ELO);
+		PrintThread{} << Bot1Name << " ELO: " << Bot1.ELO << " | " << Bot2Name << " ELO: " << Bot2.ELO << " | Diff: " << EloDiff << std::endl;
 
-		if (Bot1->second.ELO > 0 && Bot2->second.ELO > 0 && abs(EloDiff) > MaxEloDiff)
+		if (Bot1.ELO > 0 && Bot2.ELO > 0 && abs(EloDiff) > MaxEloDiff)
 		{
 			return false;
 		}
 		return true;
+
 	}
 	return true;
 }
 
+void LadderManager::DownloadBot(const BotConfig &bot)
+{
+	std::vector<std::string> arguments;
+	std::string argument = " -F Username=" + ServerUsername;
+	arguments.push_back(argument);
+	argument = " -F Password=" + ServerPassword;
+	arguments.push_back(argument);
+	argument = " -F BotName=" + bot.BotName;
+	arguments.push_back(argument);
+	std::string BotZipLocation = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+	argument = " -o " + BotZipLocation;
+	arguments.push_back(argument);
+	PerformRestRequest(Config->GetValue("BotDownloadPath"), arguments);
+	UnzipArchive(BotZipLocation, bot.RootPath);
+	std::experimental::filesystem::remove(BotZipLocation);
+}
+
+void LadderManager::UploadBot(const BotConfig &bot)
+{
+	std::string BotZipLocation = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+	ZipArchive(bot.RootPath, BotZipLocation);
+	std::vector<std::string> arguments;
+	std::string argument = " -F Username=" + ServerUsername;
+	arguments.push_back(argument);
+	argument = " -F Password=" + ServerPassword;
+	arguments.push_back(argument);
+	argument = " -F BotName=" + bot.BotName;
+	arguments.push_back(argument);
+	argument = " -F BotFile=@" + BotZipLocation;
+	arguments.push_back(argument);
+	PerformRestRequest(Config->GetValue("BotUploadPath"), arguments);
+	std::experimental::filesystem::remove_all(bot.RootPath);
+	std::experimental::filesystem::remove(BotZipLocation);
+}
+
 void LadderManager::RunLadderManager()
 {
+	AgentConfig = new AgentsConfig(Config);
+	PrintThread{} << "Loaded agents: " << std::endl;
+	for (auto &Agent : AgentConfig->BotConfigs)
+	{
+		PrintThread{} << Agent.second.BotName << std::endl;
+	}
 
-	LoadAgents();
+	MapList = Config->GetArray("Maps");
 	PrintThread{} << "Starting with " << MapList.size() << " maps:" << std::endl;
 	for (auto &map : MapList)
 	{
 		PrintThread{} << "* " << map << std::endl;
 	}
-	PrintThread{} << "Starting with agents: " << std::endl;
-	for (auto &Agent : BotConfigs)
-	{
-		PrintThread{} << Agent.second.BotName << std::endl;
-	}
-	std::string MatchListFile = Config->GetValue("MatchupListFile");
-	MatchupList *Matchups = new MatchupList(MatchListFile);
-	Matchups->GenerateMatches(BotConfigs, MapList);
+	MatchupList *Matchups = new MatchupList(Config->GetValue("MatchupListFile"), AgentConfig, MapList, Config->GetValue("MatchupGenerator"), Config->GetValue("ServerUsername"), Config->GetValue("ServerPassword"));
 	Matchup NextMatch;
 	try
 	{
@@ -1351,10 +1206,9 @@ void LadderManager::RunLadderManager()
 		{
 			LoginToServer();
 		}
-		CheckDiactivatedBots();
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
-
+			AgentConfig->CheckDiactivatedBots();
 			if (IsBotEnabled(NextMatch.Agent1.BotName) && IsBotEnabled(NextMatch.Agent2.BotName) && IsInsideEloRange(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName))
 			{
 				GameResult result;
@@ -1372,12 +1226,22 @@ void LadderManager::RunLadderManager()
 				}
 				else
 				{
+					if (Config->GetValue("BotDownloadPath") != "")
+					{
+						DownloadBot(NextMatch.Agent1);
+						DownloadBot(NextMatch.Agent2);
+					}
 					result = StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
+					if (Config->GetValue("BotUploadPath") != "")
+					{
+						UploadBot(NextMatch.Agent1);
+						UploadBot(NextMatch.Agent2);
+					}
 				}
 				PrintThread{} << "Game finished with result: " << GetResultType(result.Result) << std::endl;
 				if (EnableReplayUploads)
 				{
-					UploadCmdLine(result, NextMatch);
+					UploadCmdLine(result, NextMatch, Config->GetValue("UploadResultLocation"));
 				}
 				if (ResultsLogFile.size() > 0)
 				{

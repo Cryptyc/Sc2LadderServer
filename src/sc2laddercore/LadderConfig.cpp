@@ -10,7 +10,8 @@
 #include <map>
 #include <iostream>
 #include <sstream>
-#include <fstream>    
+#include <fstream>   
+#include <filesystem>
 
 
 LadderConfig::LadderConfig(const std::string &InConfigFile)
@@ -57,6 +58,20 @@ std::string LadderConfig::GetValue(std::string RequestedValue)
 	}
 	
 	return ""; // this allows config entries to not have to exist
+}
+
+std::vector<std::string> LadderConfig::GetArray(std::string RequestedValue)
+{
+	std::vector<std::string> ReturnedArray;
+	if (doc.HasMember(RequestedValue) && doc[RequestedValue].IsArray())
+	{
+		const rapidjson::Value & Values = doc[RequestedValue];
+		for (auto itr = Values.Begin(); itr != Values.End(); ++itr)
+		{
+			ReturnedArray.push_back(itr->GetString());
+		}
+	}
+	return ReturnedArray;
 }
 
 void LadderConfig::AddValue(const std::string &Index, const std::string &Value)
