@@ -35,12 +35,12 @@
 #include <fcntl.h>
 #include <sstream>   
 #include <cctype>
-#include <filesystem>
 #include "Types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
+#include <filesystem> // Not compiling on linux/gcc
 
 std::mutex PrintThread::_mutexPrint{};
 
