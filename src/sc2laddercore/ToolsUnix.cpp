@@ -56,9 +56,15 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 
     if (pID == 0) // child
     {
-        // Move child to a new process group so that it can not kill the ladderManager
-        setpgid(0, 0);
-        int ret = chdir(Agent.RootPath.c_str());
+        // Move child to a new process group so that it can not kill the ladderManager.
+        int ret = setpgid(0, 0);
+        if (ret < 0)
+        {
+            std::cerr << Agent.BotName + ": Failed to change process group, error: " +
+                strerror(errno) << std::endl;
+            exit(errno);
+        }
+        ret = chdir(Agent.RootPath.c_str());
         if (ret < 0) {
             std::cerr << Agent.BotName +
                 ": Can't change working directory to " + Agent.RootPath +

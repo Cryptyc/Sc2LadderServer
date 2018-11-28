@@ -40,7 +40,7 @@
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
-#include <filesystem> // Not compiling on linux/gcc
+#include <experimental/filesystem>
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -137,7 +137,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
 			SC2APIProtocol::Status CurrentStatus;
 			if (!client || !server || client->connection_ == nullptr)
 			{
-				PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
+				PrintThread{} << *botName << " Null server or client returning ClientTimeout" << std::endl;
 				return ExitCase::ClientTimeout;
 			}
 			if (server->HasRequest())

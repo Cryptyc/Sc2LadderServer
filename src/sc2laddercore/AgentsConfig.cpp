@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <filesystem> // Not compiling on linux/gcc
+#include <experimental/filesystem>
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	: PlayerIds(nullptr),
@@ -40,7 +40,7 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 {
 	BotConfigs.clear();
-	for (auto& Directory : std::experimental::filesystem::directory_iterator(BaseDirectory))
+	for (const auto& Directory : std::experimental::filesystem::directory_iterator(BaseDirectory))
 	{
 		if (Directory.status().type() == std::experimental::filesystem::file_type::directory)
 		{
@@ -48,7 +48,6 @@ void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 			LoadAgents(Directory.path().string(), CurrentConfigFile);
 		}
 	}
-
 }
 
 void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::string &BotConfigFile)
