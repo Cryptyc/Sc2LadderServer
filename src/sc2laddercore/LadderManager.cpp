@@ -358,20 +358,8 @@ bool LadderManager::UploadBot(const BotConfig &bot)
 
 void LadderManager::RunLadderManager()
 {
-    AgentConfig = new AgentsConfig(Config);
-	PrintThread{} << "Loaded agents: " << std::endl;
-	for (auto &Agent : AgentConfig->BotConfigs)
-	{
-		PrintThread{} << Agent.second.BotName << std::endl;
-	}
-
-	MapList = Config->GetArray("Maps");
-	PrintThread{} << "Starting with " << MapList.size() << " maps:" << std::endl;
-	for (auto &map : MapList)
-	{
-		PrintThread{} << "* " << map << std::endl;
-	}
-	MatchupList *Matchups = new MatchupList(Config->GetValue("MatchupListFile"), AgentConfig, MapList, Config->GetValue("MatchupGenerator"), Config->GetValue("ServerUsername"), Config->GetValue("ServerPassword"));
+	AgentConfig = new AgentsConfig(Config);
+	MatchupList *Matchups = new MatchupList(Config->GetValue("MatchupListFile"), AgentConfig, Config->GetArray("Maps"), getSC2Path(), Config->GetValue("MatchupGenerator"), Config->GetValue("ServerUsername"), Config->GetValue("ServerPassword"));
 	Matchup NextMatch;
 	try
 	{
@@ -382,7 +370,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
     		GameResult result;
-	    	PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+			PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
             LadderGame CurrentLadderGame(CoordinatorArgc, CoordinatorArgv, Config);
     		if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 	    	{
@@ -516,4 +504,12 @@ bool LadderManager::IsValidResult(GameResult Result)
         return true;
     }
     return false;
+}
+
+std::string LadderManager::getSC2Path() const
+{
+	sc2::ProcessSettings process_settings;
+	sc2::GameSettings game_settings;
+	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+	return process_settings.process_path;
 }

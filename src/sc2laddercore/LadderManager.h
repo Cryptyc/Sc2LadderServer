@@ -30,12 +30,12 @@ private:
 	bool UploadCmdLine(GameResult result, const Matchup &ThisMatch, std::string UploadLocation);
 
 	bool LoginToServer();
-    std::vector<std::string> MapList;
 	std::string ResultsLogFile;
 
 	void SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map);
 
 	bool IsValidResult(GameResult Result);
+	std::string getSC2Path() const;
 
     int CoordinatorArgc;
     int32_t MaxEloDiff;
