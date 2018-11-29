@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <filesystem> // Not compiling on linux/gcc
+#include <experimental/filesystem>
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	: PlayerIds(nullptr),

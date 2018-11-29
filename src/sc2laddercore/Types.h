@@ -391,3 +391,13 @@ static std::string GetResultType(ResultType InResultType)
 		return "Error";
 	}
 }
+
+static std::string RemoveMapExtension(const std::string& filename)
+{
+    size_t lastdot = filename.find_last_of(".");
+    if (lastdot == std::string::npos)
+    {
+        return filename;
+    }
+    return filename.substr(0, lastdot);
+}

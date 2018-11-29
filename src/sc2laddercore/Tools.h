@@ -18,4 +18,3 @@ std::string PerformRestRequest(const std::string &location, const std::vector<st
 bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive);
 
 bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory);
-
