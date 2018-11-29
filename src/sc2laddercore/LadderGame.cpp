@@ -137,7 +137,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
             SC2APIProtocol::Status CurrentStatus;
             if (!client || !server || client->connection_ == nullptr)
             {
-                PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
+                PrintThread{} << *botName << " Null server or client returning ClientTimeout" << std::endl;
                 return ExitCase::ClientTimeout;
             }
             if (server->HasRequest())

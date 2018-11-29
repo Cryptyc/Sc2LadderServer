@@ -45,8 +45,6 @@
 
 std::mutex PrintThread::_mutexPrint{};
 
-
-
 LadderManager::LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv)
 
 	: CoordinatorArgc(InCoordinatorArgc)

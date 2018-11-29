@@ -25,6 +25,9 @@ target_link_libraries(Sc2LadderCore
     sc2api sc2lib sc2utils sc2protocol civetweb libprotobuf
 )
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_link_libraries(Sc2LadderCore stdc++fs)
+endif()
 
 # Set working directory as the project root
 set_target_properties(Sc2LadderServer PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
