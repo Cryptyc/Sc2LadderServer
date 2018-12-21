@@ -11,7 +11,7 @@ public:
     bool SaveMatchList();
 
 private:
-    const std::string &MatchupListFile;
+    const std::string MatchupListFile;
     std::vector<Matchup> Matchups;
     AgentsConfig *AgentConfig;
     bool LoadMatchupList();

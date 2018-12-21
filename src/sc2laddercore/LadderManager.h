@@ -32,6 +32,8 @@ private:
 
 	void SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map);
 
+	bool IsValidResult(GameResult Result);
+
     int CoordinatorArgc;
     int32_t MaxEloDiff;
     char **CoordinatorArgv;

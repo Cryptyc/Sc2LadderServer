@@ -100,12 +100,16 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 			{
 				if (val.HasMember("RootPath") && val["RootPath"].IsString())
 				{
-					NewBot.RootPath = BaseDirectory + val["RootPath"].GetString();
+                    NewBot.RootPath = BaseDirectory;
 					if (NewBot.RootPath.back() != '/')
 					{
 						NewBot.RootPath += '/';
 					}
-
+                    NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
+                    if (NewBot.RootPath.back() != '/')
+                    {
+                        NewBot.RootPath += '/';
+                    }
 				}
 				else
 				{
@@ -142,7 +146,8 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
 				}
 			}
-			if (EnablePlayerIds)
+            /*
+            if (EnablePlayerIds)
 			{
 				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
 				if (NewBot.PlayerId.empty())
@@ -152,6 +157,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					PlayerIds->WriteConfig();
 				}
 			}
+            */
 			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
 
 		}

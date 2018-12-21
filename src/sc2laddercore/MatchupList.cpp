@@ -43,8 +43,10 @@ MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InA
 bool MatchupList::GenerateMatches(std::vector<std::string> Maps)
 {
 	Matchups.clear();
-	MatchUpProcess = MatchupListType::File;
-
+    if (MatchUpProcess == MatchupListType::URL)
+    {
+        return true;
+    }
 	if (!LoadMatchupList())
 	{
 		PrintThread{} << "Could not load MatchupList from file. Generating new one.." << std::endl;
@@ -173,6 +175,7 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
 	argument = " -F Password=" + ServerPassword;
 	arguments.push_back(argument);
 	std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
+
 	rapidjson::Document doc;
 	bool parsingFailed = doc.Parse(ReturnString.c_str()).HasParseError();
 	if (parsingFailed)
@@ -180,34 +183,48 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
 		std::cerr << "Unable to parse incoming bot config: " << ReturnString << std::endl;
 		return false;
 	}
-	bool GameFound = false;
 	if (doc.HasMember("Bot1") && doc["Bot1"].IsObject())
 	{
 		const rapidjson::Value &Bot1Value = doc["Bot1"];
 		if (Bot1Value.HasMember("name") && Bot1Value["name"].IsString())
 		{
-			if(AgentConfig->FindBot(Bot1Value["name"].GetString(), NextMatch.Agent1))
+			if(!AgentConfig->FindBot(Bot1Value["name"].GetString(), NextMatch.Agent1))
 			{
-				GameFound = true;
-			}
-		}
+                BotConfig Agent1;
+                Agent1.BotName = Bot1Value["name"].GetString();
+                Agent1.Skeleton = true;
+                NextMatch.Agent1 = Agent1;
+                if (Bot1Value.HasMember("playerid") && Bot1Value["playerid"].IsString())
+                {
+                    NextMatch.Bot1Id = Bot1Value["playerid"].GetString();
+                    Agent1.PlayerId = Bot1Value["playerid"].GetString();
+                }
+            }
+        }
 	}
-	if (GameFound && doc.HasMember("Bot2") && doc["Bot2"].IsObject())
+	if (doc.HasMember("Bot2") && doc["Bot2"].IsObject())
 	{
-		GameFound = false;
 		const rapidjson::Value &Bot2Value = doc["Bot2"];
 		if (Bot2Value.HasMember("name") && Bot2Value["name"].IsString())
 		{
-			if (AgentConfig->FindBot(Bot2Value["name"].GetString(), NextMatch.Agent1))
+			if (!AgentConfig->FindBot(Bot2Value["name"].GetString(), NextMatch.Agent2))
 			{
-				GameFound = true;
-			}
+                BotConfig Agent2;
+                Agent2.BotName = Bot2Value["name"].GetString();
+                Agent2.Skeleton = true;
+                NextMatch.Agent2 = Agent2;
+                if (Bot2Value.HasMember("playerid") && Bot2Value["playerid"].IsString())
+                {
+                    NextMatch.Bot2Id = Bot2Value["playerid"].GetString();
+                    Agent2.PlayerId = Bot2Value["playerid"].GetString();
+                }
+
+            }
 		}
 	}
-	if (GameFound && doc.HasMember("Map") && doc["Map"].IsString())
+	if (doc.HasMember("Map") && doc["Map"].IsString())
 	{
 		NextMatch.Map = doc["Map"].GetString();
-		GameFound = true;
 	}
-	return GameFound;
+	return true;
 }

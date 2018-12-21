@@ -247,10 +247,10 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
     }
 }
 
-ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *botName)
+ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string &botName)
 {
     ExitCase CurrentExitCase = ExitCase::InProgress;
-    PrintThread{} << "Processing last requests/responses for " << *botName << std::endl;
+    PrintThread{} << "Processing last requests/responses for " << botName << std::endl;
     std::time_t LastRequest = std::time(nullptr);
     try
     {
@@ -258,19 +258,19 @@ ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *
         {
             if (!client || !server)
             {
-                PrintThread{} << *botName << " Null server or client returning ClientTimeout" << std::endl;
+                PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
                 return ExitCase::ClientTimeout;
             }
             if (client->connection_ == nullptr)
             {
-                PrintThread{} << "Client disconnected (" << *botName << ")" << std::endl;
+                PrintThread{} << "Client disconnected (" << botName << ")" << std::endl;
                 CurrentExitCase = ExitCase::ClientTimeout;
             }
             if (server->HasRequest())
             {
                 if (client->connection_ != nullptr)
                 {
-                    PrintThread{} << "Sending request of " << *botName << std::endl;
+                    PrintThread{} << "Sending request of " << botName << std::endl;
                     server->SendRequest(client->connection_);
                     LastRequest = std::time(nullptr);
                 }
@@ -281,7 +281,7 @@ ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *
                 // Send the response back to the client.
                 if (response && server->connections_.size() > 0 && client->connection_ != NULL)
                 {
-                    PrintThread{} << "Sending response for " << *botName << std::endl;
+                    PrintThread{} << "Sending response for " << botName << std::endl;
                     server->QueueResponse(client->connection_, response);
                     server->SendResponse();
                     LastRequest = std::time(nullptr);
@@ -293,7 +293,7 @@ ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string *
             }
             if (difftime(std::time(nullptr), LastRequest) > 5)
             {
-                PrintThread{} << "No new requests/responses for (" << *botName << ")" << std::endl;
+                PrintThread{} << "No new requests/responses for (" << botName << ")" << std::endl;
                 CurrentExitCase = ExitCase::ClientTimeout;
             }
         }
@@ -915,8 +915,8 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     sc2::SleepFor(1000);
     ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
     // Process last requests
-    std::thread onEnd1(&OnEnd, &client, &server, &Agent1.BotName);
-    std::thread onEnd2(&OnEnd, &client2, &server2, &Agent2.BotName);
+    std::thread onEnd1(&OnEnd, &client, &server, Agent1.BotName);
+    std::thread onEnd2(&OnEnd, &client2, &server2, Agent2.BotName);
     onEnd1.join();
     onEnd2.join();
     sc2::SleepFor(1000);
