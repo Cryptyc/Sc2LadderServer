@@ -5,8 +5,8 @@ class AgentsConfig;
 class MatchupList
 {
 public:
-    MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> MapList, const std::string &GeneratorType, std::string &InServerUsername, const std::string &InServerPassword);
-    bool GenerateMatches(std::vector<std::string> Maps);
+    MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, const std::vector<std::string> &MapList, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword);
+    bool GenerateMatches(const std::vector<std::string> &Maps);
     bool GetNextMatchup(Matchup &NextMatch);
     bool SaveMatchList();
 
