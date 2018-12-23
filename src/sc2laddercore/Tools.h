@@ -11,7 +11,7 @@ void KillBotProcess(unsigned long pid);
 
 bool MoveReplayFile(const char* lpExistingFileName, const char* lpNewFileName);
 
-void StartExternalProcess(const std::string CommandLine);
+void StartExternalProcess(const std::string &CommandLine);
 
 std::string PerformRestRequest(const std::string &location, const std::vector<std::string> &arguments);
 
