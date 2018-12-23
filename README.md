@@ -52,6 +52,7 @@ $ start Sc2LadderServer.sln
  $ cd build
  
  # Generate a Makefile.
+ # Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debuginfo is needed
  $ cmake ../
  
  # Build.
