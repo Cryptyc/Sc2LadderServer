@@ -201,6 +201,11 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
                 }
             }
         }
+        if (Bot1Value.HasMember("playerid") && Bot1Value["playerid"].IsString())
+        {
+            NextMatch.Bot1Id = Bot1Value["playerid"].GetString();
+        }
+
 	}
 	if (doc.HasMember("Bot2") && doc["Bot2"].IsObject())
 	{
@@ -213,14 +218,12 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
                 Agent2.BotName = Bot2Value["name"].GetString();
                 Agent2.Skeleton = true;
                 NextMatch.Agent2 = Agent2;
-                if (Bot2Value.HasMember("playerid") && Bot2Value["playerid"].IsString())
-                {
-                    NextMatch.Bot2Id = Bot2Value["playerid"].GetString();
-                    Agent2.PlayerId = Bot2Value["playerid"].GetString();
-                }
-
             }
 		}
+        if (Bot2Value.HasMember("playerid") && Bot2Value["playerid"].IsString())
+        {
+            NextMatch.Bot2Id = Bot2Value["playerid"].GetString();
+        }
 	}
 	if (doc.HasMember("Map") && doc["Map"].IsString())
 	{

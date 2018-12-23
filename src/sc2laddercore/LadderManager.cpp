@@ -35,13 +35,18 @@
 #include <fcntl.h>
 #include <sstream>   
 #include <cctype>
-#include <experimental/filesystem>
 #include "Types.h"
 #include "LadderConfig.h"
 #include "LadderManager.h"
 #include "MatchupList.h"
 #include "Tools.h"
 #include "LadderGame.h"
+
+#ifdef _WIN32
+#include "dirent.h"
+#else
+#include <dirent.h>
+#endif
 
 std::mutex PrintThread::_mutexPrint{};
 
@@ -259,7 +264,7 @@ void LadderManager::DownloadBot(const BotConfig &bot)
 	argument = " -F BotName=" + bot.BotName;
 	arguments.push_back(argument);
 	std::string BotZipLocation = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
-    std::experimental::filesystem::remove(BotZipLocation);
+    remove(BotZipLocation.c_str());
     argument = " -o " + BotZipLocation;
 	arguments.push_back(argument);
     std::string RootPath = bot.RootPath;
@@ -286,14 +291,14 @@ void LadderManager::UploadBot(const BotConfig &bot)
 	arguments.push_back(argument);
 	PerformRestRequest(Config->GetValue("BotUploadPath"), arguments);
     SleepFor(1);
-    std::experimental::filesystem::remove_all(bot.RootPath);
-    std::experimental::filesystem::remove(BotZipLocation);
+    RemoveDirectoryRecursive(bot.RootPath);
+    remove(BotZipLocation.c_str());
 
 }
 
 void LadderManager::RunLadderManager()
 {
-	AgentConfig = new AgentsConfig(Config);
+    AgentConfig = new AgentsConfig(Config);
 	PrintThread{} << "Loaded agents: " << std::endl;
 	for (auto &Agent : AgentConfig->BotConfigs)
 	{

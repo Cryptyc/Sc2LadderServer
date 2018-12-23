@@ -11,7 +11,6 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <filesystem> // Not compiling on linux/gcc
 
 
 LadderConfig::LadderConfig(const std::string &InConfigFile)

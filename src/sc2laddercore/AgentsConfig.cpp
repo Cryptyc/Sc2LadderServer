@@ -1,6 +1,7 @@
 #include "AgentsConfig.h"
 #include "Tools.h"
 #include "sc2utils/sc2_manage_process.h"
+#include "sc2utils/sc2_scan_directory.h"
 #define RAPIDJSON_HAS_STDSTRING 1
 #include "rapidjson.h"
 #include "document.h"
@@ -9,7 +10,6 @@
 #include <fstream>
 #include <sstream>
 #include <string>
-#include <experimental/filesystem>
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	: PlayerIds(nullptr),
@@ -40,13 +40,12 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 {
 	BotConfigs.clear();
-	for (auto& Directory : std::experimental::filesystem::directory_iterator(BaseDirectory))
+    std::vector<std::string> directories;
+    sc2::scan_directory(BaseDirectory.c_str(), directories, true, true);
+	for (const std::string  &Directory : directories)
 	{
-		if (Directory.status().type() == std::experimental::filesystem::file_type::directory)
-		{
-			std::string CurrentConfigFile = Directory.path().string() + "/ladderbots.json";
-			LoadAgents(Directory.path().string(), CurrentConfigFile);
-		}
+        std::string CurrentConfigFile = Directory + "/ladderbots.json";
+		LoadAgents(Directory, CurrentConfigFile);
 	}
 
 }
@@ -146,7 +145,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
 				}
 			}
-            /*
+            
             if (EnablePlayerIds)
 			{
 				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
@@ -157,7 +156,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					PlayerIds->WriteConfig();
 				}
 			}
-            */
+            
 			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
 
 		}

@@ -16,6 +16,7 @@
 
 #include "Tools.h"
 #include "Types.h"
+#include "dirent.h"
 
 namespace {
 
