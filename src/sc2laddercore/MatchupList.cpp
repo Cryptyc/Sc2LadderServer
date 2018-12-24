@@ -24,7 +24,7 @@
 
 #define URL_REGEX 
 
-MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> MapList, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword)
+MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, const std::vector<std::string> &MapList, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword)
 	: MatchupListFile(inMatchupListFile)
 	, ServerUsername(InServerUsername)
 	, ServerPassword(InServerPassword)
@@ -40,7 +40,7 @@ MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InA
 }
 
 
-bool MatchupList::GenerateMatches(std::vector<std::string> Maps)
+bool MatchupList::GenerateMatches(const std::vector<std::string> &Maps)
 {
 	Matchups.clear();
     if (MatchUpProcess == MatchupListType::URL)

@@ -103,7 +103,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	}
 }
 
-void StartExternalProcess(const std::string CommandLine)
+void StartExternalProcess(const std::string &CommandLine)
 {
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
