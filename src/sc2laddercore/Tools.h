@@ -3,6 +3,7 @@
 #include <string>
 #include "Types.h"
 
+
 void StartBotProcess(const BotConfig &Agent, const std::string& CommandLine, unsigned long *ProcessId);
 
 void SleepFor(int seconds);
@@ -19,3 +20,6 @@ bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive);
 
 bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory);
 
+std::string NormalisePath(std::string Path);
+
+void RemoveDirectoryRecursive(std::string Path);

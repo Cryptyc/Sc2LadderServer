@@ -105,6 +105,7 @@ struct BotConfig
 	std::string PlayerId;
 	bool Debug;
     bool Enabled;
+    bool Skeleton;
     int ELO;
 	BotConfig()
 		: Type(BotType::BinaryCpp)
@@ -112,6 +113,7 @@ struct BotConfig
 		, Difficulty(sc2::Difficulty::Easy)
 		, Debug(false)
         , Enabled(true)
+        , Skeleton(false)
         , ELO(0)
 	{}
 	BotConfig(BotType InType, const std::string & InBotName, sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs = "")
@@ -123,7 +125,8 @@ struct BotConfig
 		, Difficulty(InDifficulty)
 		, Args(InArgs)
 		, Debug(false)
-	{}
+        , Skeleton(false)
+    {}
 	bool operator ==(const BotConfig &Other) const
 	{
 		return BotName == Other.BotName;
@@ -134,6 +137,8 @@ struct Matchup
 {
 	BotConfig Agent1;
 	BotConfig Agent2;
+    std::string Bot1Id;
+    std::string Bot2Id;
 	std::string Map;
 	Matchup() {}
 	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)
@@ -390,4 +395,14 @@ static std::string GetResultType(ResultType InResultType)
 	default:
 		return "Error";
 	}
+}
+
+static std::string RemoveMapExtension(const std::string& filename)
+{
+    size_t lastdot = filename.find_last_of(".");
+    if (lastdot == std::string::npos)
+    {
+        return filename;
+    }
+    return filename.substr(0, lastdot);
 }

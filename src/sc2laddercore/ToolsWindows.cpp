@@ -6,7 +6,6 @@
 #include <array>
 
 
-
 void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, unsigned long *ProcessId)
 {
 	//////////////////////////////////////////////////////////////////////////////////////////////////
@@ -17,8 +16,8 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	securityAttributes.nLength = sizeof(securityAttributes);
 	securityAttributes.lpSecurityDescriptor = NULL;
 	securityAttributes.bInheritHandle = TRUE;
-	std::string logFile = Agent.RootPath + "/stderr.log";
-	HANDLE stderrfile = CreateFile(logFile.c_str(),
+	std::string stderrLogFile = Agent.RootPath + "/stderr.log";
+	HANDLE stderrfile = CreateFile(stderrLogFile.c_str(),
 		FILE_APPEND_DATA,
 		FILE_SHARE_WRITE | FILE_SHARE_READ,
 		&securityAttributes,
@@ -128,7 +127,7 @@ void StartExternalProcess(const std::string &CommandLine)
 
 void SleepFor(int seconds)
 {
-	Sleep(seconds * 1000);
+	Sleep(seconds * CLOCKS_PER_SEC);
 }
 
 void KillBotProcess(unsigned long pid)
@@ -157,6 +156,7 @@ std::string PerformRestRequest(const std::string &location, const std::vector<st
 		command = command + NextArgument;
 	}
 	command = command + " " + location;
+    PrintThread{} << command << std::endl;
 	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
 	if (!pipe)
 	{
@@ -174,24 +174,43 @@ std::string PerformRestRequest(const std::string &location, const std::vector<st
 
 bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive)
 {
-	std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('" + InDirectory + "', '" + OutArchive + "'); }\"";
+    std::array<char, 10000> buffer;
+    std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::CreateFromDirectory('" + InDirectory + "', '" + OutArchive + "'); }\"";
 	std::shared_ptr<FILE> pipe(_popen(CommandLIne.c_str(), "r"), _pclose);
 	if (!pipe)
 	{
 		return false;
 	}
+    while (!feof(pipe.get()))
+    {
+        if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+        {
+//            result += buffer.data();
+        }
+    }
+
 	return true;
 }
 
 bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
 {
-	std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::ExtractToDirectory('" + InArchive + "', '" + OutDirectory + "'); }\"";
+    std::array<char, 10000> buffer;
+    std::string CommandLIne = "powershell.exe -nologo -noprofile -command \"& { Add-Type -A 'System.IO.Compression.FileSystem'; [IO.Compression.ZipFile]::ExtractToDirectory('" + InArchive + "', '" + OutDirectory + "'); }\"";
 	std::shared_ptr<FILE> pipe(_popen(CommandLIne.c_str(), "r"), _pclose);
 	if (!pipe)
 	{
 		return false;
 	}
-	return true;
+    while (!feof(pipe.get()))
+    {
+        if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
+        {
+            //            result += buffer.data();
+        }
+    }
+    return true;
 }
+
+
 
 #endif
