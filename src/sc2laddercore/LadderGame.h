@@ -28,7 +28,7 @@ private:
     sc2::GameRequestPtr CreateQuitRequest();
     ResultType GetPlayerResults(sc2::Connection * client);
     bool SendDataToConnection(sc2::Connection * Connection, const SC2APIProtocol::Request * request);
-    void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
+    void ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name);
 
     int CoordinatorArgc;
     char** CoordinatorArgv;
