@@ -1,0 +1,22 @@
+language: cpp
+
+matrix:
+  include:
+    - os: linux
+      dist: trusty
+      group: travis_lts
+      sudo: required
+    - os: osx
+      osx_image: xcode9.1
+
+before_install:
+  - . .travis/before-install.sh
+
+install:
+  - . .travis/install.sh
+
+script:
+  - mkdir build
+  - cd build
+  - cmake ../
+  - make
