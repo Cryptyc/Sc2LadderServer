@@ -83,7 +83,7 @@ struct GameResult
     ResultType Result;
     float Bot1AvgFrame;
     float Bot2AvgFrame;
-    int GameLoop;
+    uint32_t GameLoop;
     GameResult()
         : Result(ResultType::InitializationError)
         , Bot1AvgFrame(0)
