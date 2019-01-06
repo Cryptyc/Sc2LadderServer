@@ -399,6 +399,11 @@ void LadderManager::RunLadderManager()
     	    {
                 if (Config->GetValue("BotDownloadPath") != "")
                 {
+                    if (NextMatch.Bot1Checksum == "" || NextMatch.Bot2Checksum == "")
+                    {
+                        PrintThread{} << "No bot checksum found.  skipping game" << std::endl;
+                        continue;
+                    }
                     if (!DownloadBot(NextMatch.Agent1, NextMatch.Bot1Checksum))
                     {
                         PrintThread{} << "Bot download failed, skipping game" << std::endl;
@@ -489,7 +494,7 @@ void LadderManager::LogNetworkFailiure(const std::string &AgentName, const std::
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
 
-    ofs << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << AgentName + "Failed to " << Action  << std::endl;
+    ofs << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << AgentName + " Failed to " << Action  << std::endl;
     ofs.close();
 }
 
