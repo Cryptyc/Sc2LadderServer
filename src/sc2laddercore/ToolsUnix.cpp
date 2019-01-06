@@ -123,9 +123,22 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
     }
 }
 
-void StartExternalProcess(const std::string CommandLine)
+void StartExternalProcess(const std::string &CommandLine)
 {
-	execve(CommandLine.c_str(), NULL, NULL);
+    FILE* pipe = popen(CommandLine.c_str(), "r");
+    if (!pipe)
+    {
+        std::cerr << "Can't launch command '" <<
+            CommandLine << "'" << std::endl;
+        return;
+    }
+
+    int returnCode = pclose(pipe);
+    if (returnCode != 0)
+    {
+        std::cerr << "Failed to finish command '" <<
+            CommandLine << "', code: " << returnCode << std::endl;
+    }
 }
 
 void SleepFor(int seconds)
