@@ -11,6 +11,12 @@ include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/rapidjson
 )
 
+if (WIN32)
+    include_directories(SYSTEM
+        ${PROJECT_SOURCE_DIR}/s2client-api/src/sc2utils/dirent.h
+    )
+endif ()
+
 # Link directories
 link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
 

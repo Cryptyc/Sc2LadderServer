@@ -4,6 +4,7 @@
 #include "dirent.h"
 #else
 #include <dirent.h>
+#define MAX_PATH 255
 #endif
 
 std::string NormalisePath(std::string Path)
