@@ -1,0 +1,13 @@
+diff --git a/s2client-api/contrib/civetweb/src/civetweb.c b/s2client-api/contrib/civetweb/src/civetweb.c
+index 29c7e00e..10a39c1e 100644
+--- a/s2client-api/contrib/civetweb/src/civetweb.c
++++ b/s2client-api/contrib/civetweb/src/civetweb.c
+@@ -17863,8 +17863,6 @@ mg_get_system_info_impl(char *buffer, int buflen)
+ #if defined(__GNUC__)
+ #pragma GCC diagnostic push
+ /* Disable bogus compiler warning -Wdate-time */
+-#pragma GCC diagnostic ignored "-Wall"
+-#pragma GCC diagnostic ignored "-Werror"
+ #endif
+ 		mg_snprintf(NULL,
+ 		            NULL,

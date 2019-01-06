@@ -1,12 +1,14 @@
 #pragma once
+#include <string>
+#include <vector>
 
 class AgentsConfig;
 
 class MatchupList
 {
 public:
-    MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, const std::vector<std::string> &MapList, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword);
-    bool GenerateMatches(const std::vector<std::string> &Maps);
+	MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> &&MapList, const std::string& sc2Path, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword);
+	bool GenerateMatches(std::vector<std::string> &&Maps);
     bool GetNextMatchup(Matchup &NextMatch);
     bool SaveMatchList();
 
@@ -15,8 +17,9 @@ private:
     std::vector<Matchup> Matchups;
     AgentsConfig *AgentConfig;
     bool LoadMatchupList();
-    bool GetNetMatchFromURL(Matchup &NextMatch);
+	bool GetNextMatchFromURL(Matchup &NextMatch);
 
+	const std::string sc2Path{""};
     MatchupListType MatchUpProcess;
     std::string ServerUsername;
     std::string ServerPassword;

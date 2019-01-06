@@ -24,11 +24,12 @@
 
 #define URL_REGEX 
 
-MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, const std::vector<std::string> &MapList, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword)
+MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InAgentConfig, std::vector<std::string> &&MapList, const std::string& sc2Path, const std::string &GeneratorType, const std::string &InServerUsername, const std::string &InServerPassword)
 	: MatchupListFile(inMatchupListFile)
+	, AgentConfig(InAgentConfig)
+	, sc2Path(sc2Path)
 	, ServerUsername(InServerUsername)
 	, ServerPassword(InServerPassword)
-	, AgentConfig(InAgentConfig)
 {
 	MatchUpProcess = GetMatchupListTypeFromString(GeneratorType);
 	if(MatchUpProcess == MatchupListType::None)
@@ -36,13 +37,37 @@ MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InA
 		PrintThread{} << "Unknown Matchuplist generator type: " + GeneratorType + " Should be either \"file\" or \"url\"" << std::endl;
 		return;
 	}
-	GenerateMatches(MapList);
+	GenerateMatches(std::move(MapList));
 }
 
 
-bool MatchupList::GenerateMatches(const std::vector<std::string> &Maps)
+bool MatchupList::GenerateMatches(std::vector<std::string> &&maps)
 {
 	Matchups.clear();
+	PrintThread{} << "Found agents: " << std::endl;
+	for (const auto &Agent : AgentConfig->BotConfigs)
+	{
+		PrintThread{} << Agent.second.BotName << std::endl;
+	}
+	const auto firstInvalidMapIt = std::remove_if(maps.begin(),maps.end(),[&](const auto& map)->bool { return !isMapAvailable(map, sc2Path);});
+	if (firstInvalidMapIt != maps.cbegin())
+	{
+		PrintThread{} << "Found the following maps: " << std::endl;
+		for (auto mapIt(maps.begin());mapIt != firstInvalidMapIt;++mapIt)
+		{
+			PrintThread{} << "* " << *mapIt << std::endl;
+		}
+	}
+	if (firstInvalidMapIt != maps.cend())
+	{
+		PrintThread{} << "Failed to locate the following maps: " << std::endl;
+		for (auto mapIt(firstInvalidMapIt);mapIt != maps.end();++mapIt)
+		{
+			PrintThread{} << "* " << *mapIt << std::endl;
+		}
+		PrintThread{} << "Please put the map files in '" << sc2::GetGameMapsDirectory(sc2Path) << "'." << std::endl;
+	}
+	maps.erase(firstInvalidMapIt,maps.end());
     if (MatchUpProcess == MatchupListType::URL)
     {
         return true;
@@ -58,7 +83,7 @@ bool MatchupList::GenerateMatches(const std::vector<std::string> &Maps)
 				{
 					continue;
 				}
-				for (std::string map : Maps)
+				for (std::string map : maps)
 				{
 					Matchup NextMatchup(Agent1.second, Agent2.second, map);
 					Matchups.push_back(NextMatchup);
@@ -97,7 +122,7 @@ bool MatchupList::GetNextMatchup(Matchup &NextMatch)
 		case MatchupListType::URL:
 		{
 
-			return GetNetMatchFromURL(NextMatch);
+			return GetNextMatchFromURL(NextMatch);
 		}
 		default:
 		{
@@ -160,6 +185,11 @@ bool MatchupList::LoadMatchupList()
 			PrintThread{} << "Unable to find agent: " + FirstAgent << std::endl;
 			continue;
 		}
+		if (!isMapAvailable(Map,sc2Path))
+		{
+			PrintThread{} << "Unable to find map: " + Map << std::endl;
+			continue;
+		}
 		Matchup NextMatchup(Agent1, Agent2, Map);
 		Matchups.push_back(NextMatchup);
 
@@ -167,7 +197,7 @@ bool MatchupList::LoadMatchupList()
 	return true;
 }
 
-bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
+bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
 {
 	std::vector<std::string> arguments;
 	std::string argument = " -F Username=" + ServerUsername;
@@ -236,6 +266,11 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
 	if (doc.HasMember("Map") && doc["Map"].IsString())
 	{
 		NextMatch.Map = doc["Map"].GetString();
+		if (!isMapAvailable(NextMatch.Map,sc2Path))
+		{
+			PrintThread{} << "Unable to find map: " + NextMatch.Map << std::endl;
+			return false;
+		}
 	}
 	return true;
 }

@@ -1,9 +1,12 @@
 #include "Tools.h"
 
+#include "sc2utils/sc2_manage_process.h"
+
 #ifdef _WIN32
 #include "dirent.h"
 #else
 #include <dirent.h>
+#define MAX_PATH 255
 #endif
 
 std::string NormalisePath(std::string Path)
@@ -47,4 +50,28 @@ void RemoveDirectoryRecursive(std::string Path)
         }
     }
     remove(Path.c_str());
+}
+
+bool isMapAvailable(const std::string& map_name, const std::string& sc2Path)
+{
+	// BattleNet map
+	if (!sc2::HasExtension(map_name, ".SC2Map"))
+	{
+		// Not sure if we should return true here.
+		return true;
+	}
+
+	// Absolute path
+	if (sc2::DoesFileExist(map_name))
+	{
+		return true;
+	}
+
+	// Relative path - Game maps directory
+	std::string game_relative = sc2::GetGameMapsDirectory(sc2Path) + map_name;
+	if (sc2::DoesFileExist(game_relative))
+	{
+		return true;
+	}
+	return false;
 }
