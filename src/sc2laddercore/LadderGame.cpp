@@ -957,6 +957,12 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     Result.Bot1AvgFrame = Bot1AvgFrame;
     Result.Bot2AvgFrame = Bot2AvgFrame;
     Result.GameLoop = GameLoop;
+
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::gmtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") <<"UTC";
+    Result.TimeStamp = oss.str();
     return Result;
 }
 
