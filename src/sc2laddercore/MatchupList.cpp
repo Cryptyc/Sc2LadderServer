@@ -174,7 +174,7 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
 	arguments.push_back(argument);
 	argument = " -F Password=" + ServerPassword;
 	arguments.push_back(argument);
-	std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
+    std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
 
 	rapidjson::Document doc;
 	bool parsingFailed = doc.Parse(ReturnString.c_str()).HasParseError();
@@ -205,6 +205,10 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
         {
             NextMatch.Bot1Id = Bot1Value["playerid"].GetString();
         }
+        if (Bot1Value.HasMember("checksum") && Bot1Value["checksum"].IsString())
+        {
+            NextMatch.Bot1Checksum = Bot1Value["checksum"].GetString();
+        }
 
 	}
 	if (doc.HasMember("Bot2") && doc["Bot2"].IsObject())
@@ -224,7 +228,11 @@ bool MatchupList::GetNetMatchFromURL(Matchup &NextMatch)
         {
             NextMatch.Bot2Id = Bot2Value["playerid"].GetString();
         }
-	}
+        if (Bot2Value.HasMember("checksum") && Bot2Value["checksum"].IsString())
+        {
+            NextMatch.Bot2Checksum = Bot2Value["checksum"].GetString();
+        }
+    }
 	if (doc.HasMember("Map") && doc["Map"].IsString())
 	{
 		NextMatch.Map = doc["Map"].GetString();

@@ -4,7 +4,7 @@
 #include "LadderManager.h"
 #include <Windows.h>
 #include <array>
-
+#include <Wincrypt.h>
 
 void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, unsigned long *ProcessId)
 {
@@ -183,10 +183,7 @@ bool ZipArchive(const std::string &InDirectory, const std::string &OutArchive)
 	}
     while (!feof(pipe.get()))
     {
-        if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
-        {
-//            result += buffer.data();
-        }
+        fgets(buffer.data(), 10000, pipe.get());
     }
 
 	return true;
@@ -203,14 +200,98 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
 	}
     while (!feof(pipe.get()))
     {
-        if (fgets(buffer.data(), 10000, pipe.get()) != nullptr)
-        {
-            //            result += buffer.data();
-        }
+        fgets(buffer.data(), 10000, pipe.get());
     }
     return true;
 }
 
+std::string GenerateMD5(std::string filename)
+{
+    constexpr int BufferSize = 1024;
+    constexpr int MD5Len = 16;
+    std::string ReturnString;
+    BOOL bResult = FALSE;
+    HCRYPTPROV hProv = 0;
+    HCRYPTHASH hHash = 0;
+    HANDLE hFile = NULL;
+    BYTE rgbFile[BufferSize];
+    DWORD cbRead = 0;
+    BYTE rgbHash[MD5Len];
+    DWORD cbHash = 0;
+    CHAR rgbDigits[] = "0123456789abcdef";
+    // Logic to check usage goes here.
 
+    hFile = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+
+    if (INVALID_HANDLE_VALUE == hFile)
+    {
+        printf("Error opening file %s\nError: %d\n", filename.c_str(), GetLastError());
+        return ReturnString;
+    }
+
+    // Get handle to the crypto provider
+    if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+    {
+        printf("CryptAcquireContext failed: %d\n", GetLastError());
+        CloseHandle(hFile);
+        return ReturnString;
+    }
+
+    if (!CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
+    {
+        printf("CryptAcquireContext failed: %d\n", GetLastError());
+        CloseHandle(hFile);
+        CryptReleaseContext(hProv, 0);
+        return ReturnString;
+    }
+
+    while (bResult = ReadFile(hFile, rgbFile, BufferSize,
+        &cbRead, NULL))
+    {
+        if (0 == cbRead)
+        {
+            break;
+        }
+
+        if (!CryptHashData(hHash, rgbFile, cbRead, 0))
+        {
+            printf("CryptHashData failed: %d\n", GetLastError());
+            CryptReleaseContext(hProv, 0);
+            CryptDestroyHash(hHash);
+            CloseHandle(hFile);
+            return ReturnString;
+        }
+    }
+
+    if (!bResult)
+    {
+        printf("ReadFile failed: %d\n", GetLastError());
+        CryptReleaseContext(hProv, 0);
+        CryptDestroyHash(hHash);
+        CloseHandle(hFile);
+        return ReturnString;
+    }
+    cbHash = MD5Len;
+    if (CryptGetHashParam(hHash, HP_HASHVAL, rgbHash, &cbHash, 0))
+    {
+        constexpr int ArrayLen = MD5Len * 2 + 1;
+        int CurrentChar = 0;
+        for (DWORD i = 0; i < cbHash; i++)
+        {
+            ReturnString += rgbDigits[rgbHash[i] >> 4];
+            ReturnString += rgbDigits[rgbHash[i] & 0xf];
+        }
+    }
+    else
+    {
+        printf("CryptGetHashParam failed: %d\n", GetLastError());
+    }
+
+    CryptDestroyHash(hHash);
+    CryptReleaseContext(hProv, 0);
+    CloseHandle(hFile);
+
+    return ReturnString;
+}
 
 #endif

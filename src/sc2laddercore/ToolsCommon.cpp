@@ -28,7 +28,7 @@ void RemoveDirectoryRecursive(std::string Path)
         DIR *SubDir = NULL;
         FILE *file = NULL;
         char AbsPath[MAX_PATH] = { 0 };
-        if (*(entry->d_name) != '.')
+        if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."))
         {
             sprintf(AbsPath, "%s/%s", Path.c_str(), entry->d_name);
             if (SubDir = opendir(AbsPath))

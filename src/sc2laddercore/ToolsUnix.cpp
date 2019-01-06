@@ -184,4 +184,9 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
 	return false;
 }
 
+std::string GenerateMD5(std::string filename)
+{
+
+}
+
 #endif
