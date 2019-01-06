@@ -23,3 +23,6 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
 std::string NormalisePath(std::string Path);
 
 void RemoveDirectoryRecursive(std::string Path);
+
+std::string GenerateMD5(std::string filename);
+

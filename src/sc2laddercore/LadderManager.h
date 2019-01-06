@@ -19,11 +19,14 @@ public:
 	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, GameResult Result);
 	void RunLadderManager();
 
+    void LogNetworkFailiure(const std::string &Agent1, const std::string &Action);
+
 private:
     bool IsBotEnabled(std::string BotName);
 	bool IsInsideEloRange(std::string Bot1Name, std::string Bot2Name);
-	void DownloadBot(const BotConfig &bot);
-    void UploadBot(const BotConfig &bot);
+	bool DownloadBot(const BotConfig &bot, std::string Checksum);
+    bool VerifyUploadRequest(const std::string & uploadResult);
+    bool UploadBot(const BotConfig &bot);
 	bool UploadCmdLine(GameResult result, const Matchup &ThisMatch, std::string UploadLocation);
 
 	bool LoginToServer();
