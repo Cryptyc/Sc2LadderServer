@@ -33,7 +33,7 @@ private:
     int CoordinatorArgc;
     char** CoordinatorArgv;
     LadderConfig *Config;
-    uint32_t MaxGameTime;
-    uint32_t MaxRealGameTime;
+    uint32_t MaxGameTime{0U};
+    uint32_t MaxRealGameTime{0U};
 
 };

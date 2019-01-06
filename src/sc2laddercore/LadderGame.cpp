@@ -85,16 +85,6 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues)
-{
-    if (NumValues == 0 || OriginalValue == 0)
-    {
-        return (float_t)NewValue;
-    }
-    return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
-}
-
-
 std::mutex m;
 bool gameEnded = false;
 
@@ -110,10 +100,19 @@ bool getGameEnded()
     return gameEnded;
 }
 
-ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, int32_t *GameLoop)
+uint32_t getMaxStepTime(const uint32_t gameloop)
+{
+    if (gameloop)
+    {
+        return 50U;  // ToDo: Add this to config file.
+    }
+    return 0U;
+}
+
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string& botName, const bool debug, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, uint32_t *GameLoop)
 {
     ExitCase CurrentExitCase = ExitCase::InProgress;
-    PrintThread{} << "Starting proxy for " << *botName << std::endl;
+    PrintThread{} << "Starting proxy for " << botName << std::endl;
     setGameEnded(false);
     clock_t LastRequest = clock();
     clock_t FirstRequest = clock();
@@ -153,7 +152,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     }
                     else if (request.second->has_debug() && !AlreadyWarned)
                     {
-                        PrintThread{} << *botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
+                        PrintThread{} << botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
                         AlreadyWarned = true;
                     }
                     else if (StepTime > 0 && request.second->has_step())
@@ -177,7 +176,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     CurrentStatus = response->status();
                     if (OldStatus != CurrentStatus)
                     {
-                        PrintThread{} << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+                        PrintThread{} << "New status of " << botName << ": " << status.at(CurrentStatus) << std::endl;
                         OldStatus = CurrentStatus;
                     }
                     if (CurrentStatus > SC2APIProtocol::Status::in_replay)
@@ -190,7 +189,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                         const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
                         const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
                         currentGameLoop = ActualObservation.game_loop();
-                        if (currentGameLoop > MaxGameTime)
+                        if (MaxGameTime && currentGameLoop > MaxGameTime)
                         {
                             CurrentExitCase = ExitCase::GameTimeout;
                         }
@@ -203,18 +202,15 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     {
                         StepTime = clock();
                     }
-                    if (MaxRealGameTime > 0)
+                    if (MaxRealGameTime && clock() > (FirstRequest + (MaxRealGameTime * CLOCKS_PER_SEC)))
                     {
-                        if (clock() > (FirstRequest + (MaxRealGameTime * CLOCKS_PER_SEC)))
-                        {
-                            CurrentExitCase = ExitCase::GameTimeout;
-                        }
+                        CurrentExitCase = ExitCase::GameTimeout;
                     }
 
                 }
 
                 // Send the response back to the client.
-                if (server->connections_.size() > 0 && client->connection_ != NULL)
+                if (server->connections_.size() > 0 && client->connection_ != nullptr)
                 {
                     server->QueueResponse(client->connection_, response);
                     server->SendResponse();
@@ -228,15 +224,16 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
             }
             else
             {
-                if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
+                const uint32_t maxStepTime = getMaxStepTime(currentGameLoop);
+                if (!debug && maxStepTime && (LastRequest + (maxStepTime * CLOCKS_PER_SEC)) < clock())
                 {
-                    PrintThread{} << "Client timeout (" << *botName << ")" << std::endl;
+                    PrintThread{} << "Client timeout (" << botName << ")" << std::endl;
                     CurrentExitCase = ExitCase::ClientTimeout;
                 }
             }
         }
         *AvgFrame = AvgStepTime;
-        PrintThread{} << *botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
+        PrintThread{} << botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
         setGameEnded(true);
         return CurrentExitCase;
     }
@@ -382,7 +379,7 @@ bool LadderGame::SaveReplay(sc2::Connection *client, const std::string& path) {
     SC2APIProtocol::Response* replay_response = nullptr;
     if (!client->Receive(replay_response, 10000))
     {
-        //		std::cout << "Failed to receive replay response" << std::endl;
+        //        std::cout << "Failed to receive replay response" << std::endl;
         return false;
     }
 
@@ -681,8 +678,8 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
 
     PrintThread{} << "Monitoring client of: " << Agent1.BotName << std::endl;
     float_t AvgFrameTime = 0;
-    int32_t GameLoop;
-    auto bot1UpdateThread = std::async(GameUpdate, &client, &server, &Agent1.BotName, MaxGameTime, MaxRealGameTime, &AvgFrameTime, &GameLoop);
+    uint32_t GameLoop = 0U;
+    auto bot1UpdateThread = std::async(GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &AvgFrameTime, &GameLoop);
     sc2::SleepFor(1000);
 
     ResultType CurrentResult = ResultType::InitializationError;
@@ -739,7 +736,6 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
 
 GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map)
 {
-
     using namespace std::chrono_literals;
     // Setup server that mimicks sc2.
     std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, Agent2.PlayerId);
@@ -821,9 +817,9 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     //toDo check here already if the bots crashed.
     float_t Bot1AvgFrame = 0;
     float_t Bot2AvgFrame = 0;
-    int32_t GameLoop;
-    auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
-    auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
+    uint32_t GameLoop = 0U;
+    auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
+    auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, Agent2.BotName, Agent2.Debug, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
     sc2::SleepFor(1000);
 
     ResultType CurrentResult = ResultType::InitializationError;
@@ -922,7 +918,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     sc2::SleepFor(1000);
     if (!server.connections_.empty())
     {
-        server.connections_.clear();
         PrintThread{} << Agent1.BotName << " is still connected..." << std::endl;
     }
     if (!server2.connections_.empty())
