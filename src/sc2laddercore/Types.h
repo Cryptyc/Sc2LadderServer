@@ -84,11 +84,14 @@ struct GameResult
     float Bot1AvgFrame;
     float Bot2AvgFrame;
     int GameLoop;
+    std::string TimeStamp;
+
     GameResult()
         : Result(ResultType::InitializationError)
         , Bot1AvgFrame(0)
         , Bot2AvgFrame(0)
         , GameLoop(0)
+        , TimeStamp("")
     {}
 
 };

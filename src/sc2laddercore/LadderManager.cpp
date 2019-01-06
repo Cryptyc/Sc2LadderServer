@@ -167,6 +167,7 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	NewResult.AddMember("Map", Map, alloc);
 	NewResult.AddMember("Result", GetResultType(Result.Result), alloc);
 	NewResult.AddMember("GameTime", Result.GameLoop, alloc);
+	NewResult.AddMember("TimeStamp", Result.TimeStamp, alloc);
 	ResultsArray.PushBack(NewResult, alloc);
 	ResultsDoc.AddMember("Results", ResultsArray, alloc);
 	std::ofstream ofs(ResultsLogFile.c_str());
