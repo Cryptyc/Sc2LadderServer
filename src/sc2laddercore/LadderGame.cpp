@@ -26,7 +26,7 @@
 #include <chrono>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sstream>   
+#include <sstream>
 #include <cctype>
 
 #include "Types.h"
@@ -454,6 +454,11 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     case Java:
     {
         OutCmdLine = "java -jar " + AgentConfig.FileName;
+        break;
+    }
+    case NodeJS:
+    {
+        OutCmdLine = Config->GetValue("NodeJSBinary") + " " + AgentConfig.FileName;
         break;
     }
     case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
