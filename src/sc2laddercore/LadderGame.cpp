@@ -522,8 +522,7 @@ sc2::GameRequestPtr LadderGame::CreateStartGameRequest(const std::string &MapNam
         playerSetup->set_difficulty(SC2APIProtocol::Difficulty(setup.difficulty));
     }
     ResolveMap(MapName, request_create_game, process_settings);
-
-    request_create_game->set_realtime(false);
+    request_create_game->set_realtime(RealTime);
     return request;
 }
 
@@ -667,7 +666,6 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
     Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Computer, sc2::Race::Random, nullptr, CompDifficulty));
     sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
     SendDataToConnection(&client, Create_game_request.get());
-
     SC2APIProtocol::Response* create_response = nullptr;
     if (client.Receive(create_response, 100000))
     {
@@ -769,7 +767,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
           "-displayMode", "0",
           "-dataVersion", process_settings.data_version }
     );
-
     // Connect to running sc2 process.
     sc2::Connection client;
     int connectionAttemptsClient1 = 0;
@@ -998,6 +995,22 @@ LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderCo
     if (MaxRealGameTimeString.length() > 0)
     {
         MaxRealGameTime = std::stoi(MaxRealGameTimeString);
+    }
+    std::string realTimeMode = Config->GetValue("RealTimeMode");
+    if (realTimeMode.length() > 0)
+    {
+        if (realTimeMode == "1")
+        {
+            RealTime = true;
+        }
+        else
+        {
+            std::transform(realTimeMode.begin(), realTimeMode.end(), realTimeMode.begin(), ::tolower);
+            if (realTimeMode == "true")
+            {
+                RealTime = true;
+            }
+        }
     }
 
 }

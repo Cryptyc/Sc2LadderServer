@@ -11,6 +11,7 @@
     "ResultsLogFile": "./Results.json",
     "PlayerIdFile": "./playerids",
     "PythonBinary": "python",
+    "RealTimeMode": "False",
 	"Maps": [
 		"InterloperLE.SC2Map",
 		"BelShirVestigeLE.SC2Map"
