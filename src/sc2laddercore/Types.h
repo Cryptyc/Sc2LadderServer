@@ -61,9 +61,11 @@ enum ExitCase
 {
 	InProgress,
 	GameEnd,
-	ClientRequestExit,
-	ClientTimeout,
-	GameTimeout
+    ClientError,
+    ServerError,
+    BotTimeout,
+    BotCrashed,
+    GameTimeout
 };
 
 struct GameState
@@ -180,16 +182,20 @@ static std::string GetExitCaseString(ExitCase ExitCaseIn)
 {
 	switch (ExitCaseIn)
 	{
-	case ExitCase::ClientRequestExit:
-		return "ClientRequestExit";
-	case ExitCase::ClientTimeout:
-		return "ClientTimeout";
+    case ExitCase::BotCrashed:
+        return "BotCrashed";
+    case ExitCase::BotTimeout:
+        return "BotTimeout";
+    case ExitCase::ClientError:
+        return "ClientError";
 	case ExitCase::GameEnd:
 		return "GameEnd";
 	case ExitCase::GameTimeout:
-		return "GameTimeout";
-	case ExitCase::InProgress:
-		return "InProgress";
+        return "GameTimeout";
+    case ExitCase::InProgress:
+        return "InProgress";
+    case ExitCase::ServerError:
+        return "ServerError";
 	}
 	return "Error";
 }

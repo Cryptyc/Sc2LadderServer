@@ -127,7 +127,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
 				{
 					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
-					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
+					std::cerr << "Is the path " << NewBot.RootPath << " correct?" << std::endl;
 					continue;
 				}
 				if (val.HasMember("Args") && val["Args"].IsString())

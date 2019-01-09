@@ -76,7 +76,6 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
         std::cerr << "CreateGame request returned an error code: " << errorCode << std::endl;
         success = false;
     }
-
     if (response.has_error_details() && response.error_details().length() > 0) {
         std::cerr << "CreateGame request returned error details: " << response.error_details() << std::endl;
         success = false;
@@ -85,35 +84,93 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-std::mutex m;
-bool gameEnded = false;
+static std::mutex m;
+static std::map<std::string,bool> botCrashed;
 
-void setGameEnded(const bool status)
+void setBotCrashed(const std::string & botName)
 {
+    PrintThread{} << "Crash "<<  botName << std::endl;
     std::lock_guard<std::mutex> lock(m);
-    gameEnded = status;
+    botCrashed[botName] = true;
 }
 
-bool getGameEnded()
+bool getBotCrashed(const std::string & botName)
 {
     std::lock_guard<std::mutex> lock(m);
-    return gameEnded;
+    return botCrashed[botName];
 }
 
 uint32_t getMaxStepTime(const uint32_t gameloop)
 {
     if (gameloop)
     {
-        return 50U;  // ToDo: Add this to config file.
+        return 5U;  // ToDo: Add this to config file.
     }
     return 0U;
 }
 
+SC2APIProtocol::Response* terminateGame(sc2::Connection *client, bool win)
+{
+    sc2::ProtoInterface proto;
+    sc2::GameRequestPtr request = proto.MakeRequest();
+
+    SC2APIProtocol::RequestDebug* debugRequest = request->mutable_debug();
+
+    auto debugCommand = debugRequest->add_debug();
+    auto endGame = debugCommand->mutable_end_game();
+    if (win)
+    {
+        endGame->set_end_result(SC2APIProtocol::DebugEndGame_EndResult::DebugEndGame_EndResult_DeclareVictory);
+    }
+    else
+    {
+        endGame->set_end_result(SC2APIProtocol::DebugEndGame_EndResult::DebugEndGame_EndResult_Surrender);
+    }
+
+    client->Send(request.get());
+    SC2APIProtocol::Response* debugResponse = nullptr;
+    if (client->Receive(debugResponse, 100000))
+    {
+        PrintThread{} << "Received debug end game " << debugResponse->data().DebugString() << std::endl;
+    }
+    return debugResponse;
+}
+
+
+SC2APIProtocol::Response*  doAStep(sc2::Connection *client)
+{
+    sc2::ProtoInterface proto;
+    sc2::GameRequestPtr request = proto.MakeRequest();
+
+    SC2APIProtocol::RequestStep* stepRequest = request->mutable_step();
+
+    stepRequest->set_count(1);
+    client->Send(request.get());
+    SC2APIProtocol::Response* response = nullptr;
+    if (client->Receive(response, 100000))
+    {
+        PrintThread{} << "Received step response " << response->data().DebugString() << std::endl;
+    }
+    return response;
+}
+
+
+//ToDo: proper naming of ExitCase
 ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string& botName, const bool debug, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, uint32_t *GameLoop)
 {
+    if (!client)
+    {
+        PrintThread{} << botName << " : client nullptr." << std::endl;
+        return ExitCase::ClientError;
+    }
+    if (!server)
+    {
+        PrintThread{} << botName << ": server is nullptr" << std::endl;
+        return ExitCase::ServerError;
+    }
+
     ExitCase CurrentExitCase = ExitCase::InProgress;
     PrintThread{} << "Starting proxy for " << botName << std::endl;
-    setGameEnded(false);
     clock_t LastRequest = clock();
     clock_t FirstRequest = clock();
     clock_t StepTime = 0;
@@ -132,27 +189,59 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
     try
     {
         bool AlreadyWarned = false;
-        while (CurrentExitCase == ExitCase::InProgress && !getGameEnded()) {
-            SC2APIProtocol::Status CurrentStatus;
-            if (!client || !server || client->connection_ == nullptr)
+        bool AlreadySurrendered = false;
+        SC2APIProtocol::Status CurrentStatus = SC2APIProtocol::Status::init_game;
+        while (CurrentStatus < SC2APIProtocol::Status::in_replay)
+        {
+            // If we know that the bot crashed we surrender for it.
+            if (CurrentExitCase == ExitCase::BotCrashed)
             {
-                PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
-                return ExitCase::ClientTimeout;
+                SC2APIProtocol::Response* response = nullptr;
+                // The bot is dead. So we will surrender on its behalf
+                if(!AlreadySurrendered)
+                {
+                    response = terminateGame(client,false);
+                    AlreadySurrendered = true;
+                }
+                // and step the simulation
+                else
+                {
+                    response = doAStep(client);
+                }
+                // until the match has officially ended.
+                CurrentStatus = response->status();
+                if (OldStatus != CurrentStatus)
+                {
+                    PrintThread{} << "New status of " << botName << ": " << status.at(CurrentStatus) << std::endl;
+                    OldStatus = CurrentStatus;
+                }
+                continue;
             }
+            // Check if the bot thread has send the crashed signal.
+            if (getBotCrashed(botName))
+            {
+                PrintThread{} << botName << " crashed." << std::endl;
+                CurrentExitCase = ExitCase::BotCrashed;
+                continue;
+            }
+
             if (server->HasRequest())
             {
                 const sc2::RequestData request = server->PeekRequest();
+                // Analyse request
                 if (request.second)
                 {
-                    if (request.second->has_quit()) //Really paranoid here...
+                    if (request.second->has_quit())
                     {
-                        // Intercept leave game and quit requests, we want to keep game alive to save replays
-                        CurrentExitCase = ExitCase::ClientRequestExit;
-                        break;
+						// Intercept quit requests, we want to keep game alive to save replays.
+                        // If a s2client-api (c++) throws an exception a quit request gets issued.
+						PrintThread{} << botName << " HAS ISSUED A QUIT REQUEST. Please tell them not to." << std::endl;
+                        CurrentExitCase = ExitCase::BotCrashed;
+						continue;
                     }
                     else if (request.second->has_debug() && !AlreadyWarned)
                     {
-                        PrintThread{} << botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
+                        PrintThread{} << botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT! Please tell them not to." << std::endl;
                         AlreadyWarned = true;
                     }
                     else if (StepTime > 0 && request.second->has_step())
@@ -162,35 +251,46 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                         AvgStepTime = totalTime / static_cast<float_t>(currentGameLoop);
                     }
                 }
-                if (client->connection_ != nullptr)
-                {
-                    server->SendRequest(client->connection_);
-
-                }
+                // Send request
+                server->SendRequest(client->connection_);
 
                 // Block for sc2's response then queue it.
                 SC2APIProtocol::Response* response = nullptr;
                 client->Receive(response, 100000);
                 if (response != nullptr)
                 {
-                    CurrentStatus = response->status();
-                    if (OldStatus != CurrentStatus)
+                    if (response->error_size() > 0)
                     {
-                        PrintThread{} << "New status of " << botName << ": " << status.at(CurrentStatus) << std::endl;
-                        OldStatus = CurrentStatus;
-                    }
-                    if (CurrentStatus > SC2APIProtocol::Status::in_replay)
-                    {
-                        CurrentExitCase = ExitCase::GameEnd;
-
+                        PrintThread {} << response->response_case() << std::endl;
+                        std::ostringstream ss;
+                        ss << botName << " : response has " << response->error_size() << "  error(s)!" << std::endl;
+                        for (int i(0); i < response->error_size(); ++i)
+                        {
+                            ss << "\t * " << response->error(i) << std::endl;
+                        }
+                        PrintThread {} << ss.str();
+                        CurrentExitCase = ExitCase::ClientError;
                     }
                     if (response->has_observation())
                     {
-                        const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
+                        CurrentStatus = response->status();
+                        if (OldStatus != CurrentStatus)
+                        {
+                            PrintThread{} << "New status of " << botName << ": " << status.at(CurrentStatus) << std::endl;
+                            OldStatus = CurrentStatus;
+                        }
+                        const SC2APIProtocol::ResponseObservation &LastObservation = response->observation();
                         const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
                         currentGameLoop = ActualObservation.game_loop();
+                        if (CurrentStatus >= SC2APIProtocol::Status::in_replay && CurrentExitCase == ExitCase::GameTimeout)
+                        {
+                            auto test = response->mutable_observation();
+                            auto test2 = test->add_player_result();
+                            test2->set_result(SC2APIProtocol::Result::Tie);
+                        }
                         if (MaxGameTime && currentGameLoop > MaxGameTime)
                         {
+                            terminateGame(client,true);
                             CurrentExitCase = ExitCase::GameTimeout;
                         }
                         if (GameLoop != nullptr)
@@ -210,96 +310,62 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                 }
 
                 // Send the response back to the client.
-                if (server->connections_.size() > 0 && client->connection_ != nullptr)
+                if (!server->connections_.empty() && client->connection_ != nullptr)
                 {
                     server->QueueResponse(client->connection_, response);
                     server->SendResponse();
                 }
                 else
                 {
-                    CurrentExitCase = ExitCase::ClientTimeout;
+                    if (server->connections_.empty())
+                    {
+                        PrintThread{} << botName << " server->connections_.empty()" << std::endl;
+                    }
+                    else
+                    {
+                        PrintThread{} << botName << " client->connection_ == nullptr" << std::endl;
+                    }
+                    CurrentExitCase = ExitCase::ClientError;
                 }
                 LastRequest = clock();
-
             }
             else
             {
                 const uint32_t maxStepTime = getMaxStepTime(currentGameLoop);
                 if (!debug && maxStepTime && (LastRequest + (maxStepTime * CLOCKS_PER_SEC)) < clock())
                 {
-                    PrintThread{} << "Client timeout (" << botName << ")" << std::endl;
-                    CurrentExitCase = ExitCase::ClientTimeout;
+                    PrintThread{} << botName << " is too slow." << std::endl;
+                    CurrentExitCase = ExitCase::BotTimeout;
+                }
+
+                // We can only forward messages to the bot if there is a connection
+                if (server->connections_.empty())
+                {
+                    PrintThread{} << botName << ": server->connections_.empty()" << std::endl;
+                    return ExitCase::ServerError;
+                }
+
+                // If there is no connection to the client it probably crashed.
+                if (client->connection_ == nullptr)
+                {
+                    PrintThread{} << botName << " : lost connection to client" << std::endl;
+                    return ExitCase::ClientError;
                 }
             }
+        }
+
+        if (CurrentExitCase == ExitCase::InProgress)
+        {
+            CurrentExitCase = ExitCase::GameEnd;
         }
         *AvgFrame = AvgStepTime;
         PrintThread{} << botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
-        setGameEnded(true);
         return CurrentExitCase;
     }
     catch (const std::exception& e)
     {
         PrintThread{} << e.what() << std::endl;
-        return ExitCase::ClientTimeout;
-    }
-}
-
-ExitCase OnEnd(sc2::Connection *client, sc2::Server *server, const std::string &botName)
-{
-    ExitCase CurrentExitCase = ExitCase::InProgress;
-    PrintThread{} << "Processing last requests/responses for " << botName << std::endl;
-    std::time_t LastRequest = std::time(nullptr);
-    try
-    {
-        while (CurrentExitCase == ExitCase::InProgress)
-        {
-            if (!client || !server)
-            {
-                PrintThread{} << botName << " Null server or client returning ClientTimeout" << std::endl;
-                return ExitCase::ClientTimeout;
-            }
-            if (client->connection_ == nullptr)
-            {
-                PrintThread{} << "Client disconnected (" << botName << ")" << std::endl;
-                CurrentExitCase = ExitCase::ClientTimeout;
-            }
-            if (server->HasRequest())
-            {
-                if (client->connection_ != nullptr)
-                {
-                    PrintThread{} << "Sending request of " << botName << std::endl;
-                    server->SendRequest(client->connection_);
-                    LastRequest = std::time(nullptr);
-                }
-            }
-            SC2APIProtocol::Response* response = nullptr;
-            if (client->Receive(response, 1000)) // why is server->hasResponse() not working?!
-            {
-                // Send the response back to the client.
-                if (response && server->connections_.size() > 0 && client->connection_ != NULL)
-                {
-                    PrintThread{} << "Sending response for " << botName << std::endl;
-                    server->QueueResponse(client->connection_, response);
-                    server->SendResponse();
-                    LastRequest = std::time(nullptr);
-                }
-                else
-                {
-                    CurrentExitCase = ExitCase::ClientTimeout;
-                }
-            }
-            if (difftime(std::time(nullptr), LastRequest) > 5)
-            {
-                PrintThread{} << "No new requests/responses for (" << botName << ")" << std::endl;
-                CurrentExitCase = ExitCase::ClientTimeout;
-            }
-        }
-        return CurrentExitCase;
-    }
-    catch (const std::exception& e)
-    {
-        PrintThread{} << e.what() << std::endl;
-        return ExitCase::ClientTimeout;
+        return ExitCase::ClientError;
     }
 }
 
@@ -577,7 +643,7 @@ ResultType LadderGame::GetPlayerResults(sc2::Connection *client)
 
     SC2APIProtocol::Response* ObservationResponse = nullptr;
     std::vector<sc2::PlayerResult> PlayerResults;
-    if (client->Receive(ObservationResponse, 100000))
+    if (client->Receive(ObservationResponse, 10000))
     {
         ProcessObservationResponse(ObservationResponse->observation(), &PlayerResults);
     }
@@ -620,6 +686,7 @@ ResultType LadderGame::GetPlayerResults(sc2::Connection *client)
 
 GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map)
 {
+    PrintThread{} << " THIS FEATURE WAS NOT MAINTAINED FOR A LONG TIME AND IS PROBABLY BROKEN. SORRY" << std::endl;
     std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
     std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
     ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
@@ -699,12 +766,7 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
         if (update1status == std::future_status::ready)
         {
             ExitCase BotExitCase = bot1UpdateThread.get();
-            if (BotExitCase == ExitCase::ClientRequestExit)
-            {
-                // If Player 1 has requested exit, he has surrendered, and player 2 is awarded the win
-                CurrentResult = ResultType::Player2Win;
-            }
-            else if (BotExitCase == ExitCase::ClientTimeout)
+            if (BotExitCase == ExitCase::BotCrashed)
             {
                 CurrentResult = ResultType::Player1Crash;
             }
@@ -805,31 +867,53 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     SC2APIProtocol::Response* create_response = nullptr;
     if (client.Receive(create_response, 100000))
     {
-        PrintThread{} << "Recieved create game response " << create_response->data().DebugString() << std::endl;
-        if (ProcessResponse(create_response->create_game()))
+        if (create_response->has_create_game())
         {
-            PrintThread{} << "Create game successful" << std::endl << std::endl;
+            PrintThread{} << "Received create game response " << create_response->data().DebugString() << std::endl;
+            if (ProcessResponse(create_response->create_game()))
+            {
+                PrintThread{} << "Create game successful" << std::endl << std::endl;
+            }
+            else
+            {
+                //TODO: DO SOMETHING
+            }
+        }
+        else
+        {
+            PrintThread{} << "Got wrong kind of response." << std::endl;
+            //TODO: DO SOMETHING
         }
     }
+    // Bots
     unsigned long Bot1ThreadId = 0;
     unsigned long Bot2ThreadId = 0;
     LogStartGame(Agent1, Agent2);
-    auto bot1ProgramThread = std::async(&StartBotProcess, Agent1, Agent1Path, &Bot1ThreadId);
-    auto bot2ProgramThread = std::async(&StartBotProcess, Agent2, Agent2Path, &Bot2ThreadId);
-    sc2::SleepFor(500);
-    sc2::SleepFor(500);
-
-    //toDo check here already if the bots crashed.
+    botCrashed={{Agent1.BotName, false},{Agent2.BotName, false}};
+    auto bot1ProgramThread = std::async(std::launch::async, &StartBotProcess, Agent1, Agent1Path, &Bot1ThreadId);
+    auto bot2ProgramThread = std::async(std::launch::async, &StartBotProcess, Agent2, Agent2Path, &Bot2ThreadId);
+    sc2::SleepFor(2000);
+    if (bot1ProgramThread.wait_for(0s) == std::future_status::ready)
+    {
+        setBotCrashed(Agent1.BotName);
+    }
+    if (bot2ProgramThread.wait_for(0s) == std::future_status::ready)
+    {
+        setBotCrashed(Agent2.BotName);
+    }
+    if (getBotCrashed(Agent1.BotName) && getBotCrashed(Agent2.BotName))
+    {
+        // something is seriously wrong. Do something.
+    }
+    // Proxies
     float_t Bot1AvgFrame = 0;
     float_t Bot2AvgFrame = 0;
     uint32_t GameLoop = 0U;
-    auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
-    auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, Agent2.BotName, Agent2.Debug, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
+    auto bot1UpdateThread = std::async(std::launch::async, &GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
+    auto bot2UpdateThread = std::async(std::launch::async, &GameUpdate, &client2, &server2, Agent2.BotName, Agent2.Debug, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
     sc2::SleepFor(1000);
-
     ResultType CurrentResult = ResultType::InitializationError;
     bool GameRunning = true;
-    //sc2::ProtoInterface proto_1;
     while (GameRunning)
     {
         auto update1status = bot1UpdateThread.wait_for(1s);
@@ -839,12 +923,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         if (update1status == std::future_status::ready)
         {
             ExitCase BotExitCase = bot1UpdateThread.get();
-            if (BotExitCase == ExitCase::ClientRequestExit)
-            {
-                // If Player 1 has requested exit, he has surrendered, and player 2 is awarded the win
-                CurrentResult = ResultType::Player2Win;
-            }
-            else if (BotExitCase == ExitCase::ClientTimeout)
+            if (BotExitCase == ExitCase::BotCrashed)
             {
                 CurrentResult = ResultType::Player1Crash;
             }
@@ -863,12 +942,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         if (update2status == std::future_status::ready)
         {
             ExitCase BotExitCase = bot2UpdateThread.get();
-            if (BotExitCase == ExitCase::ClientRequestExit)
-            {
-                // If Player 2 has requested exit, he has surrendered, and player 1 is awarded the win
-                CurrentResult = ResultType::Player1Win;
-            }
-            else if (BotExitCase == ExitCase::ClientTimeout)
+            if (BotExitCase == ExitCase::BotCrashed)
             {
                 CurrentResult = ResultType::Player2Crash;
             }
@@ -886,15 +960,32 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         }
         if (thread1Status == std::future_status::ready)
         {
+            setBotCrashed(Agent1.BotName);
             CurrentResult = ResultType::Player1Crash;
             GameRunning = false;
         }
         if (thread2Status == std::future_status::ready)
         {
+            setBotCrashed(Agent2.BotName);
             CurrentResult = ResultType::Player2Crash;
             GameRunning = false;
         }
     }
+    PrintThread{} << "Hm?" << std::endl;
+    if (bot1UpdateThread.wait_for(0ms) != std::future_status::ready)
+    {
+        PrintThread{} << "Waiting for "<<  Agent1.BotName << std::endl;
+        bot1UpdateThread.wait();
+        PrintThread{} << "Game ended for "<<  Agent1.BotName << std::endl;
+    }
+    if (bot2UpdateThread.wait_for(0ms) != std::future_status::ready)
+    {
+        PrintThread{} << "Waiting for " << Agent2.BotName << std::endl;
+        bot2UpdateThread.wait();
+        PrintThread{} << "Game ended for " << Agent2.BotName << std::endl;
+    }
+
+    PrintThread{} << "Hm?" << std::endl;
 
     if (CurrentResult == ResultType::ProcessingReplay)
     {
@@ -915,11 +1006,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     }
     sc2::SleepFor(1000);
     ChangeBotNames(ReplayFile, Agent1.BotName, Agent2.BotName);
-    // Process last requests
-    std::thread onEnd1(&OnEnd, &client, &server, Agent1.BotName);
-    std::thread onEnd2(&OnEnd, &client2, &server2, Agent2.BotName);
-    onEnd1.join();
-    onEnd2.join();
     sc2::SleepFor(1000);
     if (!server.connections_.empty())
     {
@@ -929,7 +1015,8 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     {
         PrintThread{} << Agent2.BotName << " is still connected..." << std::endl;
     }
-    std::future_status bot1ProgStatus, bot2ProgStatus;
+    std::future_status bot1ProgStatus = std::future_status::deferred;
+    std::future_status bot2ProgStatus = std::future_status::deferred;
     auto start = std::chrono::system_clock::now();
     std::chrono::duration<double> elapsed_seconds;
     while (elapsed_seconds.count() < 20)

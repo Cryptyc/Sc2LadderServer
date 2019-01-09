@@ -182,7 +182,7 @@ bool MatchupList::LoadMatchupList()
 		}
 		if (!AgentConfig->FindBot(SecondAgent, Agent2))
 		{
-			PrintThread{} << "Unable to find agent: " + FirstAgent << std::endl;
+			PrintThread{} << "Unable to find agent: " + SecondAgent << std::endl;
 			continue;
 		}
 		if (!isMapAvailable(Map,sc2Path))
