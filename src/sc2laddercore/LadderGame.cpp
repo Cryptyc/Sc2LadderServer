@@ -350,7 +350,7 @@ sc2::GameRequestPtr CreateStartGameRequest(const std::string &MapName, std::vect
     }
     ResolveMap(MapName, request_create_game, process_settings);
 
-    request_create_game->set_realtime(false);
+    request_create_game->set_realtime(process_settings.realtime);
     return request;
 }
 
@@ -523,7 +523,7 @@ sc2::GameRequestPtr LadderGame::CreateStartGameRequest(const std::string &MapNam
     }
     ResolveMap(MapName, request_create_game, process_settings);
 
-    request_create_game->set_realtime(false);
+    request_create_game->set_realtime(process_settings.realtime);
     return request;
 }
 
