@@ -44,22 +44,46 @@ bool LadderConfig::WriteConfig()
 	return this->doc.Accept(writer);
 }
 
-std::string LadderConfig::GetValue(std::string RequestedValue)
+std::string LadderConfig::GetStringValue(std::string RequestedValue)
 {
-	if (doc.HasMember(RequestedValue))
-	{
-		if (doc[RequestedValue].IsString())
-		{
-			return doc[RequestedValue].GetString();
-		}
-		
-		throw std::string("Unable to obtain RequestedValue: ") + RequestedValue;
-	}
-	
-	return ""; // this allows config entries to not have to exist
+    if (doc.HasMember(RequestedValue))
+    {
+        if (doc[RequestedValue].IsString())
+        {
+            return doc[RequestedValue].GetString();
+        }
+        throw std::invalid_argument("The value \"" + RequestedValue + "\" has to be a String! Aborting.");
+    }
+    return ""; // this allows config entries to not have to exist
 }
 
-std::vector<std::string> LadderConfig::GetArray(std::string RequestedValue)
+bool LadderConfig::GetBoolValue(std::string RequestedValue)
+{
+    if (doc.HasMember(RequestedValue))
+    {
+        if (doc[RequestedValue].IsBool())
+        {
+            return doc[RequestedValue].GetBool();
+        }
+        throw std::invalid_argument("The value \"" + RequestedValue + "\" has to be a bool! Aborting.");
+    }
+    return false; // this allows config entries to not have to exist
+}
+
+int LadderConfig::GetIntValue(std::string RequestedValue)
+{
+    if (doc.HasMember(RequestedValue))
+    {
+        if (doc[RequestedValue].IsInt())
+        {
+            return doc[RequestedValue].GetInt();
+        }
+        throw std::invalid_argument("The value \"" + RequestedValue + "\" has to be an int! Aborting.");
+    }
+    return 0; // this allows config entries to not have to exist
+}
+
+std::vector<std::string> LadderConfig::GetArrayValue(std::string RequestedValue)
 {
 	std::vector<std::string> ReturnedArray;
 	if (doc.HasMember(RequestedValue) && doc[RequestedValue].IsArray())

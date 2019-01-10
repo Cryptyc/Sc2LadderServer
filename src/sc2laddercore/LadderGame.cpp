@@ -420,7 +420,7 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     {
     case Python:
     {
-        OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
+        OutCmdLine = Config->GetStringValue("PythonBinary") + " " + AgentConfig.FileName;
         break;
     }
     case Wine:
@@ -440,7 +440,7 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     }
     case CommandCenter:
     {
-        OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
+        OutCmdLine = Config->GetStringValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
         break;
     }
     case BinaryCpp:
@@ -455,7 +455,7 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     }
     case NodeJS:
     {
-        OutCmdLine = Config->GetValue("NodeJSBinary") + " " + AgentConfig.FileName;
+        OutCmdLine = Config->GetStringValue("NodeJSBinary") + " " + AgentConfig.FileName;
         break;
     }
     case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
@@ -523,6 +523,9 @@ sc2::GameRequestPtr LadderGame::CreateStartGameRequest(const std::string &MapNam
     }
     ResolveMap(MapName, request_create_game, process_settings);
     request_create_game->set_realtime(RealTime);
+    // request_create_game->set_realtime(RealTime || process_settings.realtime);
+    // does not work since if -r true or -r false is not explicitly used
+    // process_settings.realtime is not initialized.
     return request;
 }
 
@@ -619,7 +622,7 @@ ResultType LadderGame::GetPlayerResults(sc2::Connection *client)
 
 GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map)
 {
-    std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+    std::string ReplayDir = Config->GetStringValue("LocalReplayDirectory");
     std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
     ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
     remove(ReplayFile.c_str());
@@ -903,7 +906,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     }
     sc2::SleepFor(1000);
     PrintThread{} << "Saving replay" << std::endl;
-    std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+    std::string ReplayDir = Config->GetStringValue("LocalReplayDirectory");
     std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
     ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
     if (!SaveReplay(&client, ReplayFile))
@@ -971,7 +974,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 
 void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name)
 {
-    std::string CmdLine = Config->GetValue("ReplayBotRenameProgram");
+    std::string CmdLine = Config->GetStringValue("ReplayBotRenameProgram");
     if (CmdLine.size() > 0)
     {
         CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
@@ -984,33 +987,9 @@ LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderCo
     , CoordinatorArgv(InCoordinatorArgv)
     , Config(InConfig)
 {
-
-
-    std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
-    if (MaxGameTimeString.length() > 0)
-    {
-        MaxGameTime = std::stoi(MaxGameTimeString);
-    }
-    std::string MaxRealGameTimeString = Config->GetValue("MaxRealGameTime");
-    if (MaxRealGameTimeString.length() > 0)
-    {
-        MaxRealGameTime = std::stoi(MaxRealGameTimeString);
-    }
-    std::string realTimeMode = Config->GetValue("RealTimeMode");
-    if (realTimeMode.length() > 0)
-    {
-        if (realTimeMode == "1")
-        {
-            RealTime = true;
-        }
-        else
-        {
-            std::transform(realTimeMode.begin(), realTimeMode.end(), realTimeMode.begin(), ::tolower);
-            if (realTimeMode == "true")
-            {
-                RealTime = true;
-            }
-        }
-    }
-
+    const int maxGameTimeInt = Config->GetIntValue("MaxGameTime");
+    MaxGameTime = maxGameTimeInt > 0 ? static_cast<uint32_t>(maxGameTimeInt) : 0;
+    const int MaxRealGameTimeInt = Config->GetIntValue("MaxRealGameTime");
+    MaxGameTime = MaxRealGameTimeInt > 0 ? static_cast<uint32_t>(MaxRealGameTimeInt) : 0;
+    RealTime = Config->GetBoolValue("RealTimeMode");
 }
