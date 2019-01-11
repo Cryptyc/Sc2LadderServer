@@ -360,7 +360,7 @@ bool LadderManager::UploadBot(const BotConfig &bot)
 void LadderManager::RunLadderManager()
 {
 	AgentConfig = new AgentsConfig(Config);
-    MatchupList *Matchups = new MatchupList(Config->GetStringValue("MatchupListFile"), AgentConfig, Config->GetArrayValue("Maps"), getSC2Path(), Config->GetStringValue("MatchupGenerator"), Config->GetStringValue("ServerUsername"), Config->GetStringValue("ServerPassword"));
+	MatchupList *Matchups = new MatchupList(Config->GetStringValue("MatchupListFile"), AgentConfig, Config->GetArrayValue("Maps"), getSC2Path(), Config->GetStringValue("MatchupGenerator"), Config->GetStringValue("ServerUsername"), Config->GetStringValue("ServerPassword"));
 	Matchup NextMatch;
 	try
 	{
@@ -457,7 +457,7 @@ void LadderManager::RunLadderManager()
 	}
 	catch (const std::exception& e)
 	{
-        PrintThread{} << "Exception in game " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " : " << e.what() << std::endl;
+		PrintThread{} << "Exception in game " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " : " << e.what() << std::endl;
 		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
 }
