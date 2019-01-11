@@ -2,7 +2,7 @@
     "CommandCenterPath": "./path/to/CommandCenter.exe",
     "LocalReplayDirectory": "./Replays/",
     "UploadResultLocation": "http://127.0.0.1/fileupload9uysm34.php",
-    "MaxGameTime": "60480",
+    "MaxGameTime": 60480,
 	"MatchupGenerator": "File",
     "MatchupListFile": "./matchuplist",
     "ErrorListFile": "./errorlist",
@@ -11,7 +11,7 @@
     "ResultsLogFile": "./Results.json",
     "PlayerIdFile": "./playerids",
     "PythonBinary": "python",
-    "RealTimeMode": "False",
+    "RealTimeMode": false,
 	"Maps": [
 		"InterloperLE.SC2Map",
 		"BelShirVestigeLE.SC2Map"
