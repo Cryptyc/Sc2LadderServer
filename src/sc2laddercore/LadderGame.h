@@ -35,5 +35,5 @@ private:
     LadderConfig *Config;
     uint32_t MaxGameTime{0U};
     uint32_t MaxRealGameTime{0U};
-
+    bool RealTime{false};
 };
