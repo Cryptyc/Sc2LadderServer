@@ -12,10 +12,9 @@
 #include <string>
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
-	: PlayerIds(nullptr),
-	EnablePlayerIds(false),
-	Config(InLadderConfig)
-
+    : Config(InLadderConfig),
+      PlayerIds(nullptr),
+      EnablePlayerIds(false)
 {
 	if (Config == nullptr)
 	{
@@ -35,6 +34,7 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	{
 		ReadBotDirectories(Config->GetValue("BaseBotDirectory"));
 	}
+
 }
 
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
@@ -52,7 +52,6 @@ void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 
 void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::string &BotConfigFile)
 {
-	//	std::string BotConfigFile = Config->GetValue("BotConfigFile");
 	if (BotConfigFile.length() < 1)
 	{
 		return;
@@ -157,6 +156,58 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 				}
 			}
             
+            std::string OutCmdLine = "";
+            switch (NewBot.Type)
+            {
+            case Python:
+            {
+                OutCmdLine = Config->GetValue("PythonBinary") + " " + NewBot.FileName;
+                break;
+            }
+            case Wine:
+            {
+                OutCmdLine = "wine " + NewBot.FileName;
+                break;
+            }
+            case Mono:
+            {
+                OutCmdLine = "mono " + NewBot.FileName;
+                break;
+            }
+            case DotNetCore:
+            {
+                OutCmdLine = "dotnet " + NewBot.FileName;
+                break;
+            }
+            case CommandCenter:
+            {
+                OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + NewBot.FileName;
+                break;
+            }
+            case BinaryCpp:
+            {
+                OutCmdLine = NewBot.RootPath + NewBot.FileName;
+                break;
+            }
+            case Java:
+            {
+                OutCmdLine = "java -jar " + NewBot.FileName;
+                break;
+            }
+            case NodeJS:
+            {
+                OutCmdLine = Config->GetValue("NodeJSBinary") + " " + NewBot.FileName;
+                break;
+            }
+            case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
+            }
+
+            if (NewBot.Args != "")
+            {
+                OutCmdLine += " " + NewBot.Args;
+            }
+
+            NewBot.executeCommand = OutCmdLine;
 			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
 
 		}

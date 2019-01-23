@@ -148,6 +148,11 @@ void SleepFor(int seconds)
 
 void KillBotProcess(unsigned long pid)
 {
+    if (pid == 0)
+    {
+        //Maybe a warning?
+        return;
+    }
     int ret = kill(pid, SIGKILL);
     if (ret < 0)
     {

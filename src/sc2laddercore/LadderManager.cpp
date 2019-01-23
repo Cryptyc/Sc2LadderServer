@@ -145,21 +145,23 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	NewResult.AddMember("Bot2", Bot2.BotName, alloc);
 	switch (Result.Result)
 	{
-	case Player1Win:
-	case Player2Crash:
+    case ResultType::Player1Win:
+    case ResultType::Player2Crash:
+    case ResultType::Player2TimeOut:
 		NewResult.AddMember("Winner", Bot1.BotName, alloc);
 		break;
-	case Player2Win:
-	case Player1Crash:
+    case ResultType::Player2Win:
+    case ResultType::Player1Crash:
+    case ResultType::Player1TimeOut:
 		NewResult.AddMember("Winner", Bot2.BotName, alloc);
 		break;
-	case Tie:
-	case Timeout:
+    case ResultType::Tie:
+    case ResultType::Timeout:
 		NewResult.AddMember("Winner", "Tie", alloc);
 		break;
-	case InitializationError:
-	case Error:
-	case ProcessingReplay:
+    case ResultType::InitializationError:
+    case ResultType::Error:
+    case ResultType::ProcessingReplay:
 		NewResult.AddMember("Winner", "Error", alloc);
 		break;
 	}
@@ -512,5 +514,14 @@ std::string LadderManager::getSC2Path() const
 	sc2::ProcessSettings process_settings;
 	sc2::GameSettings game_settings;
 	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+    PrintThread{} << " test " << process_settings.process_path << std::endl;
+    if (process_settings.process_path.empty())
+    {
+        PrintThread{} << "Error: Could not detect StarCraft II executable." << std::endl;
+    }
+    if (!sc2::DoesFileExist(process_settings.process_path))
+    {
+        PrintThread{} << "Error: Could not detect StarCraft II executable at " << process_settings.process_path << std::endl;
+    }
 	return process_settings.process_path;
 }
