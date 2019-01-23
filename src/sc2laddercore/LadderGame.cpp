@@ -26,7 +26,7 @@
 #include <chrono>
 #include <sys/stat.h>
 #include <fcntl.h>
-#include <sstream>   
+#include <sstream>
 #include <cctype>
 
 #include "Types.h"
@@ -85,16 +85,6 @@ bool ProcessResponse(const SC2APIProtocol::ResponseCreateGame& response)
 
 }
 
-float_t CalculateAverage(float_t OriginalValue, long NewValue, int32_t NumValues)
-{
-    if (NumValues == 0 || OriginalValue == 0)
-    {
-        return (float_t)NewValue;
-    }
-    return ((OriginalValue * NumValues) + NewValue) / (1 + NumValues);
-}
-
-
 std::mutex m;
 bool gameEnded = false;
 
@@ -110,10 +100,19 @@ bool getGameEnded()
     return gameEnded;
 }
 
-ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string *botName, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, int32_t *GameLoop)
+uint32_t getMaxStepTime(const uint32_t gameloop)
+{
+    if (gameloop)
+    {
+        return 50U;  // ToDo: Add this to config file.
+    }
+    return 0U;
+}
+
+ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::string& botName, const bool debug, uint32_t MaxGameTime, uint32_t MaxRealGameTime, float_t *AvgFrame, uint32_t *GameLoop)
 {
     ExitCase CurrentExitCase = ExitCase::InProgress;
-    PrintThread{} << "Starting proxy for " << *botName << std::endl;
+    PrintThread{} << "Starting proxy for " << botName << std::endl;
     setGameEnded(false);
     clock_t LastRequest = clock();
     clock_t FirstRequest = clock();
@@ -153,7 +152,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     }
                     else if (request.second->has_debug() && !AlreadyWarned)
                     {
-                        PrintThread{} << *botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
+                        PrintThread{} << botName << " IS USING DEBUG INTERFACE.  POSSIBLE CHEAT Please tell them not to" << std::endl;
                         AlreadyWarned = true;
                     }
                     else if (StepTime > 0 && request.second->has_step())
@@ -177,7 +176,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     CurrentStatus = response->status();
                     if (OldStatus != CurrentStatus)
                     {
-                        PrintThread{} << "New status of " << *botName << ": " << status.at(CurrentStatus) << std::endl;
+                        PrintThread{} << "New status of " << botName << ": " << status.at(CurrentStatus) << std::endl;
                         OldStatus = CurrentStatus;
                     }
                     if (CurrentStatus > SC2APIProtocol::Status::in_replay)
@@ -190,7 +189,7 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                         const SC2APIProtocol::ResponseObservation LastObservation = response->observation();
                         const SC2APIProtocol::Observation& ActualObservation = LastObservation.observation();
                         currentGameLoop = ActualObservation.game_loop();
-                        if (currentGameLoop > MaxGameTime)
+                        if (MaxGameTime && currentGameLoop > MaxGameTime)
                         {
                             CurrentExitCase = ExitCase::GameTimeout;
                         }
@@ -203,18 +202,15 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
                     {
                         StepTime = clock();
                     }
-                    if (MaxRealGameTime > 0)
+                    if (MaxRealGameTime && clock() > (FirstRequest + (MaxRealGameTime * CLOCKS_PER_SEC)))
                     {
-                        if (clock() > (FirstRequest + (MaxRealGameTime * CLOCKS_PER_SEC)))
-                        {
-                            CurrentExitCase = ExitCase::GameTimeout;
-                        }
+                        CurrentExitCase = ExitCase::GameTimeout;
                     }
 
                 }
 
                 // Send the response back to the client.
-                if (server->connections_.size() > 0 && client->connection_ != NULL)
+                if (server->connections_.size() > 0 && client->connection_ != nullptr)
                 {
                     server->QueueResponse(client->connection_, response);
                     server->SendResponse();
@@ -228,15 +224,16 @@ ExitCase GameUpdate(sc2::Connection *client, sc2::Server *server, const std::str
             }
             else
             {
-                if ((LastRequest + (50 * CLOCKS_PER_SEC)) < clock())
+                const uint32_t maxStepTime = getMaxStepTime(currentGameLoop);
+                if (!debug && maxStepTime && (LastRequest + (maxStepTime * CLOCKS_PER_SEC)) < clock())
                 {
-                    PrintThread{} << "Client timeout (" << *botName << ")" << std::endl;
+                    PrintThread{} << "Client timeout (" << botName << ")" << std::endl;
                     CurrentExitCase = ExitCase::ClientTimeout;
                 }
             }
         }
         *AvgFrame = AvgStepTime;
-        PrintThread{} << *botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
+        PrintThread{} << botName << " Exiting with " << GetExitCaseString(CurrentExitCase) << " Average step time " << AvgStepTime << ", total time: " << totalTime << ", game loops: " << currentGameLoop << std::endl;
         setGameEnded(true);
         return CurrentExitCase;
     }
@@ -382,7 +379,7 @@ bool LadderGame::SaveReplay(sc2::Connection *client, const std::string& path) {
     SC2APIProtocol::Response* replay_response = nullptr;
     if (!client->Receive(replay_response, 10000))
     {
-        //		std::cout << "Failed to receive replay response" << std::endl;
+        //        std::cout << "Failed to receive replay response" << std::endl;
         return false;
     }
 
@@ -423,7 +420,7 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     {
     case Python:
     {
-        OutCmdLine = Config->GetValue("PythonBinary") + " " + AgentConfig.FileName;
+        OutCmdLine = Config->GetStringValue("PythonBinary") + " " + AgentConfig.FileName;
         break;
     }
     case Wine:
@@ -443,7 +440,7 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     }
     case CommandCenter:
     {
-        OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
+        OutCmdLine = Config->GetStringValue("CommandCenterPath") + " --ConfigFile " + AgentConfig.FileName;
         break;
     }
     case BinaryCpp:
@@ -454,6 +451,11 @@ std::string LadderGame::GetBotCommandLine(const BotConfig &AgentConfig, int Game
     case Java:
     {
         OutCmdLine = "java -jar " + AgentConfig.FileName;
+        break;
+    }
+    case NodeJS:
+    {
+        OutCmdLine = Config->GetStringValue("NodeJSBinary") + " " + AgentConfig.FileName;
         break;
     }
     case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
@@ -520,8 +522,10 @@ sc2::GameRequestPtr LadderGame::CreateStartGameRequest(const std::string &MapNam
         playerSetup->set_difficulty(SC2APIProtocol::Difficulty(setup.difficulty));
     }
     ResolveMap(MapName, request_create_game, process_settings);
-
-    request_create_game->set_realtime(false);
+    request_create_game->set_realtime(RealTime);
+    // request_create_game->set_realtime(RealTime || process_settings.realtime);
+    // does not work since if -r true or -r false is not explicitly used
+    // process_settings.realtime is not initialized.
     return request;
 }
 
@@ -618,7 +622,7 @@ ResultType LadderGame::GetPlayerResults(sc2::Connection *client)
 
 GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map)
 {
-    std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+    std::string ReplayDir = Config->GetStringValue("LocalReplayDirectory");
     std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + GetDifficultyString(CompDifficulty) + "-" + RemoveMapExtension(Map) + ".Sc2Replay";
     ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
     remove(ReplayFile.c_str());
@@ -665,7 +669,6 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
     Players.push_back(sc2::PlayerSetup(sc2::PlayerType::Computer, sc2::Race::Random, nullptr, CompDifficulty));
     sc2::GameRequestPtr Create_game_request = CreateStartGameRequest(Map, Players, process_settings);
     SendDataToConnection(&client, Create_game_request.get());
-
     SC2APIProtocol::Response* create_response = nullptr;
     if (client.Receive(create_response, 100000))
     {
@@ -681,8 +684,8 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
 
     PrintThread{} << "Monitoring client of: " << Agent1.BotName << std::endl;
     float_t AvgFrameTime = 0;
-    int32_t GameLoop;
-    auto bot1UpdateThread = std::async(GameUpdate, &client, &server, &Agent1.BotName, MaxGameTime, MaxRealGameTime, &AvgFrameTime, &GameLoop);
+    uint32_t GameLoop = 0U;
+    auto bot1UpdateThread = std::async(GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &AvgFrameTime, &GameLoop);
     sc2::SleepFor(1000);
 
     ResultType CurrentResult = ResultType::InitializationError;
@@ -739,7 +742,6 @@ GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race Com
 
 GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map)
 {
-
     using namespace std::chrono_literals;
     // Setup server that mimicks sc2.
     std::string Agent1Path = GetBotCommandLine(Agent1, 5677, PORT_START, Agent2.PlayerId);
@@ -768,7 +770,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
           "-displayMode", "0",
           "-dataVersion", process_settings.data_version }
     );
-
     // Connect to running sc2 process.
     sc2::Connection client;
     int connectionAttemptsClient1 = 0;
@@ -821,9 +822,9 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     //toDo check here already if the bots crashed.
     float_t Bot1AvgFrame = 0;
     float_t Bot2AvgFrame = 0;
-    int32_t GameLoop;
-    auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, &Agent1.BotName, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
-    auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, &Agent2.BotName, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
+    uint32_t GameLoop = 0U;
+    auto bot1UpdateThread = std::async(&GameUpdate, &client, &server, Agent1.BotName, Agent1.Debug, MaxGameTime, MaxRealGameTime, &Bot1AvgFrame, &GameLoop);
+    auto bot2UpdateThread = std::async(&GameUpdate, &client2, &server2, Agent2.BotName, Agent2.Debug, MaxGameTime, MaxRealGameTime, &Bot2AvgFrame, nullptr);
     sc2::SleepFor(1000);
 
     ResultType CurrentResult = ResultType::InitializationError;
@@ -905,7 +906,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     }
     sc2::SleepFor(1000);
     PrintThread{} << "Saving replay" << std::endl;
-    std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+    std::string ReplayDir = Config->GetStringValue("LocalReplayDirectory");
     std::string ReplayFile = ReplayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
     ReplayFile.erase(remove_if(ReplayFile.begin(), ReplayFile.end(), isspace), ReplayFile.end());
     if (!SaveReplay(&client, ReplayFile))
@@ -922,7 +923,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     sc2::SleepFor(1000);
     if (!server.connections_.empty())
     {
-        server.connections_.clear();
         PrintThread{} << Agent1.BotName << " is still connected..." << std::endl;
     }
     if (!server2.connections_.empty())
@@ -962,13 +962,19 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     Result.Bot1AvgFrame = Bot1AvgFrame;
     Result.Bot2AvgFrame = Bot2AvgFrame;
     Result.GameLoop = GameLoop;
+
+    std::time_t t = std::time(nullptr);
+    std::tm tm = *std::gmtime(&t);
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") <<"UTC";
+    Result.TimeStamp = oss.str();
     return Result;
 }
 
 
 void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name)
 {
-    std::string CmdLine = Config->GetValue("ReplayBotRenameProgram");
+    std::string CmdLine = Config->GetStringValue("ReplayBotRenameProgram");
     if (CmdLine.size() > 0)
     {
         CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
@@ -981,17 +987,9 @@ LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderCo
     , CoordinatorArgv(InCoordinatorArgv)
     , Config(InConfig)
 {
-
-
-    std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
-    if (MaxGameTimeString.length() > 0)
-    {
-        MaxGameTime = std::stoi(MaxGameTimeString);
-    }
-    std::string MaxRealGameTimeString = Config->GetValue("MaxRealGameTime");
-    if (MaxRealGameTimeString.length() > 0)
-    {
-        MaxRealGameTime = std::stoi(MaxRealGameTimeString);
-    }
-
+    const int maxGameTimeInt = Config->GetIntValue("MaxGameTime");
+    MaxGameTime = maxGameTimeInt > 0 ? static_cast<uint32_t>(maxGameTimeInt) : 0;
+    const int MaxRealGameTimeInt = Config->GetIntValue("MaxRealGameTime");
+    MaxGameTime = MaxRealGameTimeInt > 0 ? static_cast<uint32_t>(MaxRealGameTimeInt) : 0;
+    RealTime = Config->GetBoolValue("RealTimeMode");
 }

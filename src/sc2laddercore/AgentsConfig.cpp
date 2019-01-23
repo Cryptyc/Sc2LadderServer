@@ -21,30 +21,30 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	{
 		return;
 	}
-	std::string PlayerIdFile = Config->GetValue("PlayerIdFile");
+	std::string PlayerIdFile = Config->GetStringValue("PlayerIdFile");
 	if (PlayerIdFile.length() > 0)
 	{
 		PlayerIds = new LadderConfig(PlayerIdFile);
 		EnablePlayerIds = true;
 	}
-	if (Config->GetValue("BotConfigFile") != "")
+	if (Config->GetStringValue("BotConfigFile") != "")
 	{
-		LoadAgents("", Config->GetValue("BotConfigFile"));
+		LoadAgents("", Config->GetStringValue("BotConfigFile"));
 	}
-	else if (Config->GetValue("BaseBotDirectory") != "")
+	else if (Config->GetStringValue("BaseBotDirectory") != "")
 	{
-		ReadBotDirectories(Config->GetValue("BaseBotDirectory"));
+		ReadBotDirectories(Config->GetStringValue("BaseBotDirectory"));
 	}
 }
 
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 {
 	BotConfigs.clear();
-    std::vector<std::string> directories;
-    sc2::scan_directory(BaseDirectory.c_str(), directories, true, true);
+	std::vector<std::string> directories;
+	sc2::scan_directory(BaseDirectory.c_str(), directories, true, true);
 	for (const std::string  &Directory : directories)
 	{
-        std::string CurrentConfigFile = Directory + "/ladderbots.json";
+		std::string CurrentConfigFile = Directory + "/ladderbots.json";
 		LoadAgents(Directory, CurrentConfigFile);
 	}
 
@@ -52,7 +52,7 @@ void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 
 void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::string &BotConfigFile)
 {
-	//	std::string BotConfigFile = Config->GetValue("BotConfigFile");
+	//	std::string BotConfigFile = Config->GetStringValue("BotConfigFile");
 	if (BotConfigFile.length() < 1)
 	{
 		return;
@@ -99,16 +99,16 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 			{
 				if (val.HasMember("RootPath") && val["RootPath"].IsString())
 				{
-                    NewBot.RootPath = BaseDirectory;
+					NewBot.RootPath = BaseDirectory;
 					if (NewBot.RootPath.back() != '/')
 					{
 						NewBot.RootPath += '/';
 					}
-                    NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
-                    if (NewBot.RootPath.back() != '/')
-                    {
-                        NewBot.RootPath += '/';
-                    }
+					NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
+					if (NewBot.RootPath.back() != '/')
+					{
+						NewBot.RootPath += '/';
+					}
 				}
 				else
 				{
@@ -132,7 +132,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 				}
 				if (val.HasMember("Args") && val["Args"].IsString())
 				{
-					NewBot.Args = val["Arg"].GetString();
+					NewBot.Args = val["Args"].GetString();
 				}
 				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
 					NewBot.Debug = val["Debug"].GetBool();
@@ -145,10 +145,10 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
 				}
 			}
-            
-            if (EnablePlayerIds)
+
+			if (EnablePlayerIds)
 			{
-				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
+				NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);
 				if (NewBot.PlayerId.empty())
 				{
 					NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
@@ -156,7 +156,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 					PlayerIds->WriteConfig();
 				}
 			}
-            
+
 			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
 
 		}
@@ -176,9 +176,9 @@ bool AgentsConfig::FindBot(const std::string &BotName, BotConfig &ReturnBot)
 	return false;
 }
 
-bool AgentsConfig::CheckDiactivatedBots() 
+bool AgentsConfig::CheckDiactivatedBots()
 {
-	std::string BotCheckLocation = Config->GetValue("BotInfoLocation");
+	std::string BotCheckLocation = Config->GetStringValue("BotInfoLocation");
 	if (BotCheckLocation.empty())
 	{
 		return false;
