@@ -33,7 +33,8 @@ enum BotType
 	Mono,
 	DotNetCore,
 	DefaultBot,
-    Java
+    Java,
+    NodeJS,
 };
 
 enum ResultType
@@ -83,12 +84,14 @@ struct GameResult
     ResultType Result;
     float Bot1AvgFrame;
     float Bot2AvgFrame;
-    int GameLoop;
+    uint32_t GameLoop;
+    std::string TimeStamp;
     GameResult()
         : Result(ResultType::InitializationError)
         , Bot1AvgFrame(0)
         , Bot2AvgFrame(0)
         , GameLoop(0)
+        , TimeStamp("")
     {}
 
 };
@@ -269,6 +272,10 @@ static BotType GetTypeFromString(const std::string &TypeIn)
     else if (type == "java")
     {
         return BotType::Java;
+    }
+    else if (type == "nodejs")
+    {
+        return BotType::NodeJS;
     }
 	return BotType::BinaryCpp;
 }

@@ -89,24 +89,24 @@ bool LadderManager::LoadSetup()
 		return false;
 	}
 
-	std::string EnableReplayUploadString = Config->GetValue("EnableReplayUpload");
+	std::string EnableReplayUploadString = Config->GetStringValue("EnableReplayUpload");
 	if (EnableReplayUploadString == "True")
 	{
 		EnableReplayUploads = true;
 	}
 
-	ResultsLogFile = Config->GetValue("ResultsLogFile");
-	ServerUsername = Config->GetValue("ServerUsername");
-	ServerPassword = Config->GetValue("ServerPassword");
-	std::string EnableServerLoginString = Config->GetValue("EnableServerLogin");
+	ResultsLogFile = Config->GetStringValue("ResultsLogFile");
+	ServerUsername = Config->GetStringValue("ServerUsername");
+	ServerPassword = Config->GetStringValue("ServerPassword");
+	std::string EnableServerLoginString = Config->GetStringValue("EnableServerLogin");
 	if (EnableServerLoginString == "True")
 	{
 		EnableServerLogin = true;
-		ServerLoginAddress = Config->GetValue("ServerLoginAddress");
+		ServerLoginAddress = Config->GetStringValue("ServerLoginAddress");
 	}
-	BotCheckLocation = Config->GetValue("BotInfoLocation");
+	BotCheckLocation = Config->GetStringValue("BotInfoLocation");
 
-	std::string MaxEloDiffStr = Config->GetValue("MaxEloDiff");
+	std::string MaxEloDiffStr = Config->GetStringValue("MaxEloDiff");
 	if (MaxEloDiffStr.length() > 0)
 	{
 		MaxEloDiff = std::stoi(MaxEloDiffStr);
@@ -167,6 +167,7 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	NewResult.AddMember("Map", Map, alloc);
 	NewResult.AddMember("Result", GetResultType(Result.Result), alloc);
 	NewResult.AddMember("GameTime", Result.GameLoop, alloc);
+	NewResult.AddMember("TimeStamp", Result.TimeStamp, alloc);
 	ResultsArray.PushBack(NewResult, alloc);
 	ResultsDoc.AddMember("Results", ResultsArray, alloc);
 	std::ofstream ofs(ResultsLogFile.c_str());
@@ -177,7 +178,7 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 
 bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch, const std::string UploadResultLocation)
 {
-	std::string ReplayDir = Config->GetValue("LocalReplayDirectory");
+	std::string ReplayDir = Config->GetStringValue("LocalReplayDirectory");
 	std::string RawMapName = RemoveMapExtension(ThisMatch.Map);
 	std::string ReplayFile;
 	if (ThisMatch.Agent2.Type == BotType::DefaultBot)
@@ -278,16 +279,16 @@ bool LadderManager::DownloadBot(const BotConfig &bot, std::string Checksum)
         arguments.push_back(argument);
         argument = " -F BotName=" + bot.BotName;
         arguments.push_back(argument);
-        std::string BotZipLocation = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+        std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
         remove(BotZipLocation.c_str());
         argument = " -o " + BotZipLocation;
         arguments.push_back(argument);
         std::string RootPath = bot.RootPath;
         if (RootPath == "")
         {
-            RootPath = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName;
+            RootPath = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName;
         }
-        PerformRestRequest(Config->GetValue("BotDownloadPath"), arguments);
+        PerformRestRequest(Config->GetStringValue("BotDownloadPath"), arguments);
         std::string BotMd5 = GenerateMD5(BotZipLocation);
         PrintThread{} << "Download checksum: " << Checksum << " Bot checksum: " << BotMd5 << std::endl;
 
@@ -324,7 +325,7 @@ bool LadderManager::VerifyUploadRequest(const std::string &UploadResult)
 
 bool LadderManager::UploadBot(const BotConfig &bot)
 {
-	std::string BotZipLocation = Config->GetValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+	std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
 	ZipArchive(bot.RootPath, BotZipLocation);
     std::string BotMd5 = GenerateMD5(BotZipLocation);
     std::vector<std::string> arguments;
@@ -341,7 +342,7 @@ bool LadderManager::UploadBot(const BotConfig &bot)
     constexpr int UploadRetrys = 3;
     for (int RetryCount = 0; RetryCount < UploadRetrys; RetryCount++)
     {
-       	std::string UploadResult = PerformRestRequest(Config->GetValue("BotUploadPath"), arguments);
+       	std::string UploadResult = PerformRestRequest(Config->GetStringValue("BotUploadPath"), arguments);
         if (VerifyUploadRequest(UploadResult))
         {
             SleepFor(1);
@@ -358,20 +359,8 @@ bool LadderManager::UploadBot(const BotConfig &bot)
 
 void LadderManager::RunLadderManager()
 {
-    AgentConfig = new AgentsConfig(Config);
-	PrintThread{} << "Loaded agents: " << std::endl;
-	for (auto &Agent : AgentConfig->BotConfigs)
-	{
-		PrintThread{} << Agent.second.BotName << std::endl;
-	}
-
-	MapList = Config->GetArray("Maps");
-	PrintThread{} << "Starting with " << MapList.size() << " maps:" << std::endl;
-	for (auto &map : MapList)
-	{
-		PrintThread{} << "* " << map << std::endl;
-	}
-	MatchupList *Matchups = new MatchupList(Config->GetValue("MatchupListFile"), AgentConfig, MapList, Config->GetValue("MatchupGenerator"), Config->GetValue("ServerUsername"), Config->GetValue("ServerPassword"));
+	AgentConfig = new AgentsConfig(Config);
+	MatchupList *Matchups = new MatchupList(Config->GetStringValue("MatchupListFile"), AgentConfig, Config->GetArrayValue("Maps"), getSC2Path(), Config->GetStringValue("MatchupGenerator"), Config->GetStringValue("ServerUsername"), Config->GetStringValue("ServerPassword"));
 	Matchup NextMatch;
 	try
 	{
@@ -382,7 +371,7 @@ void LadderManager::RunLadderManager()
 		while (Matchups->GetNextMatchup(NextMatch))
 		{
     		GameResult result;
-	    	PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
+			PrintThread{} << "Starting " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " on " << NextMatch.Map << std::endl;
             LadderGame CurrentLadderGame(CoordinatorArgc, CoordinatorArgv, Config);
     		if (NextMatch.Agent1.Type == DefaultBot || NextMatch.Agent2.Type == DefaultBot)
 	    	{
@@ -397,7 +386,7 @@ void LadderManager::RunLadderManager()
 		    }
 		    else
     	    {
-                if (Config->GetValue("BotDownloadPath") != "")
+                if (Config->GetStringValue("BotDownloadPath") != "")
                 {
                     if (!DownloadBot(NextMatch.Agent1, NextMatch.Bot1Checksum))
                     {
@@ -411,7 +400,7 @@ void LadderManager::RunLadderManager()
                         LogNetworkFailiure(NextMatch.Agent2.BotName, "Download");
                         continue;
                     }
-                    AgentConfig->ReadBotDirectories(Config->GetValue("BaseBotDirectory"));
+                    AgentConfig->ReadBotDirectories(Config->GetStringValue("BaseBotDirectory"));
                 }
                 AgentConfig->FindBot(NextMatch.Agent1.BotName, NextMatch.Agent1);
                 AgentConfig->FindBot(NextMatch.Agent2.BotName, NextMatch.Agent2);
@@ -439,7 +428,7 @@ void LadderManager::RunLadderManager()
                 }
                     
 			    result = CurrentLadderGame.StartGame(NextMatch.Agent1, NextMatch.Agent2, NextMatch.Map);
-			    if (Config->GetValue("BotUploadPath") != "")
+			    if (Config->GetStringValue("BotUploadPath") != "")
        		    {
                     if (IsValidResult(result))
                     {
@@ -457,7 +446,7 @@ void LadderManager::RunLadderManager()
 		    PrintThread{} << "Game finished with result: " << GetResultType(result.Result) << std::endl;
 		    if (EnableReplayUploads)
 		    {
-    			UploadCmdLine(result, NextMatch, Config->GetValue("UploadResultLocation"));
+    			UploadCmdLine(result, NextMatch, Config->GetStringValue("UploadResultLocation"));
 	    	}
     		if (ResultsLogFile.size() > 0)
 	    	{
@@ -468,15 +457,14 @@ void LadderManager::RunLadderManager()
 	}
 	catch (const std::exception& e)
 	{
-		PrintThread{} << "Exception in game " << e.what() << std::endl;
+		PrintThread{} << "Exception in game " << NextMatch.Agent1.BotName << " vs " << NextMatch.Agent2.BotName << " : " << e.what() << std::endl;
 		SaveError(NextMatch.Agent1.BotName, NextMatch.Agent2.BotName, NextMatch.Map);
 	}
-
 }
 
 void LadderManager::LogNetworkFailiure(const std::string &AgentName, const std::string &Action)
 {
-    std::string ErrorListFile = Config->GetValue("ErrorListFile");
+    std::string ErrorListFile = Config->GetStringValue("ErrorListFile");
     if (ErrorListFile == "")
     {
         return;
@@ -495,7 +483,7 @@ void LadderManager::LogNetworkFailiure(const std::string &AgentName, const std::
 
 void LadderManager::SaveError(const std::string &Agent1, const std::string &Agent2, const std::string &Map)
 {
-	std::string ErrorListFile = Config->GetValue("ErrorListFile");
+	std::string ErrorListFile = Config->GetStringValue("ErrorListFile");
 	if (ErrorListFile == "")
 	{
 		return;
@@ -516,4 +504,12 @@ bool LadderManager::IsValidResult(GameResult Result)
         return true;
     }
     return false;
+}
+
+std::string LadderManager::getSC2Path() const
+{
+	sc2::ProcessSettings process_settings;
+	sc2::GameSettings game_settings;
+	sc2::ParseSettings(CoordinatorArgc, CoordinatorArgv, process_settings, game_settings);
+	return process_settings.process_path;
 }

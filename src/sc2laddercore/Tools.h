@@ -26,3 +26,4 @@ void RemoveDirectoryRecursive(std::string Path);
 
 std::string GenerateMD5(std::string filename);
 
+bool isMapAvailable(const std::string& map_name, const std::string& sc2Path);
