@@ -985,6 +985,8 @@ void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string 
 LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderConfig *InConfig)
     : CoordinatorArgc(InCoordinatorArgc)
     , CoordinatorArgv(InCoordinatorArgv)
+    , MaxGameTime(0)
+    , MaxRealGameTime(0)
     , Config(InConfig)
 {
     const int maxGameTimeInt = Config->GetIntValue("MaxGameTime");
