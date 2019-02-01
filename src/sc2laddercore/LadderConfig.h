@@ -13,9 +13,11 @@ class LadderConfig
 public:
     explicit LadderConfig(const std::string &InConfigFile);
     bool ParseConfig();
-	bool WriteConfig();
-    std::string GetValue(std::string RequestedValue);
-    std::vector<std::string> GetArray(std::string ReqyestedValue);
+    bool WriteConfig();
+    bool GetBoolValue(std::string RequestedValue);
+    int GetIntValue(std::string RequestedValue);
+    std::string GetStringValue(std::string RequestedValue);
+    std::vector<std::string> GetArrayValue(std::string RequestedValue);
 	void AddValue(const std::string &Index, const std::string &Value);
 private:
     const std::string ConfigFileLocation;

@@ -20,19 +20,19 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	{
 		return;
 	}
-	std::string PlayerIdFile = Config->GetValue("PlayerIdFile");
+	std::string PlayerIdFile = Config->GetStringValue("PlayerIdFile");
 	if (PlayerIdFile.length() > 0)
 	{
 		PlayerIds = new LadderConfig(PlayerIdFile);
 		EnablePlayerIds = true;
 	}
-	if (Config->GetValue("BotConfigFile") != "")
+	if (Config->GetStringValue("BotConfigFile") != "")
 	{
-		LoadAgents("", Config->GetValue("BotConfigFile"));
+		LoadAgents("", Config->GetStringValue("BotConfigFile"));
 	}
-	else if (Config->GetValue("BaseBotDirectory") != "")
+	else if (Config->GetStringValue("BaseBotDirectory") != "")
 	{
-		ReadBotDirectories(Config->GetValue("BaseBotDirectory"));
+		ReadBotDirectories(Config->GetStringValue("BaseBotDirectory"));
 	}
 
 }
@@ -40,11 +40,11 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 {
 	BotConfigs.clear();
-    std::vector<std::string> directories;
-    sc2::scan_directory(BaseDirectory.c_str(), directories, true, true);
+	std::vector<std::string> directories;
+	sc2::scan_directory(BaseDirectory.c_str(), directories, true, true);
 	for (const std::string  &Directory : directories)
 	{
-        std::string CurrentConfigFile = Directory + "/ladderbots.json";
+		std::string CurrentConfigFile = Directory + "/ladderbots.json";
 		LoadAgents(Directory, CurrentConfigFile);
 	}
 
@@ -137,7 +137,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 
             if (EnablePlayerIds)
             {
-                NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
+                NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);
                 if (NewBot.PlayerId.empty())
                 {
                     NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
@@ -151,7 +151,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
             {
             case Python:
             {
-                OutCmdLine = Config->GetValue("PythonBinary") + " " + NewBot.FileName;
+                OutCmdLine = Config->GetStringValue("PythonBinary") + " " + NewBot.FileName;
                 break;
             }
             case Wine:
@@ -171,7 +171,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
             }
             case CommandCenter:
             {
-                OutCmdLine = Config->GetValue("CommandCenterPath") + " --ConfigFile " + NewBot.FileName;
+                OutCmdLine = Config->GetStringValue("CommandCenterPath") + " --ConfigFile " + NewBot.FileName;
                 break;
             }
             case BinaryCpp:
@@ -186,7 +186,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
             }
             case NodeJS:
             {
-                OutCmdLine = Config->GetValue("NodeJSBinary") + " " + NewBot.FileName;
+                OutCmdLine = Config->GetStringValue("NodeJSBinary") + " " + NewBot.FileName;
                 break;
             }
             }
@@ -215,9 +215,9 @@ bool AgentsConfig::FindBot(const std::string &BotName, BotConfig &ReturnBot)
 	return false;
 }
 
-bool AgentsConfig::CheckDiactivatedBots() 
+bool AgentsConfig::CheckDiactivatedBots()
 {
-	std::string BotCheckLocation = Config->GetValue("BotInfoLocation");
+	std::string BotCheckLocation = Config->GetStringValue("BotInfoLocation");
 	if (BotCheckLocation.empty())
 	{
 		return false;

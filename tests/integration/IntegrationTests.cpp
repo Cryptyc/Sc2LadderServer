@@ -52,9 +52,9 @@ bool TestLadderConfig(int argc, char** argv) {
 	// Check the config values come back as expected
 	LadderConfig readConfig(configFile);
 	readConfig.ParseConfig();
-	return readConfig.GetValue("Item1") == item1
-		&& readConfig.GetValue("Item2") == item2
-		&& readConfig.GetValue("Item3") == item3;
+	return readConfig.GetStringValue("Item1") == item1
+		&& readConfig.GetStringValue("Item2") == item2
+		&& readConfig.GetStringValue("Item3") == item3;
 }
 
 bool TestMatch_Bot1Eliminated(int argc, char** argv) {

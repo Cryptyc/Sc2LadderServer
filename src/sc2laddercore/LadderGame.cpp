@@ -40,16 +40,11 @@ LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderCo
     , CoordinatorArgv(InCoordinatorArgv)
     , Config(InConfig)
 {
-    std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
-    if (MaxGameTimeString.length() > 0)
-    {
-        MaxGameTime = std::stoi(MaxGameTimeString);
-    }
-    std::string MaxRealGameTimeString = Config->GetValue("MaxRealGameTime");
-    if (MaxRealGameTimeString.length() > 0)
-    {
-        MaxRealGameTime = std::stoi(MaxRealGameTimeString);
-    }
+    const int maxGameTimeInt = Config->GetIntValue("MaxGameTime");
+    MaxGameTime = maxGameTimeInt > 0 ? static_cast<uint32_t>(maxGameTimeInt) : 0;
+    const int MaxRealGameTimeInt = Config->GetIntValue("MaxRealGameTime");
+    MaxGameTime = MaxRealGameTimeInt > 0 ? static_cast<uint32_t>(MaxRealGameTimeInt) : 0;
+    RealTime = Config->GetBoolValue("RealTimeMode");
 }
 
 void LadderGame::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
@@ -92,7 +87,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         PrintThread {} << "Failed to start the StarCraft II clients." << std::endl;
         return GameResult();
     }
-
     // Setup map
     // toDo: RealTimeMode?
     PrintThread {} << "Creating the game on " << Map << "." << std::endl;
@@ -132,7 +126,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         sc2::SleepFor(1000);
     }
 
-    std::string replayDir = Config->GetValue("LocalReplayDirectory");
+    std::string replayDir = Config->GetStringValue("LocalReplayDirectory");
     if (replayDir.back() != '/')
     {
         replayDir += "/";
@@ -166,7 +160,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 
 void LadderGame::ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name)
 {
-    std::string CmdLine = Config->GetValue("ReplayBotRenameProgram");
+    std::string CmdLine = Config->GetStringValue("ReplayBotRenameProgram");
     if (CmdLine.size() > 0)
     {
         CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
