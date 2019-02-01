@@ -68,7 +68,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 		size_t size = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
 		std::string message(lpMsgBuf, size);
-		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...failed" << std::endl << "Error " << dw << " : " << message << std::endl;
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << " failed. Error " << dw << " : " << message << std::endl;
 		// Free resources created by the system
 		LocalFree(lpMsgBuf);
 		// We failed.
@@ -76,7 +76,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	}
 	else
 	{
-		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...success!" << std::endl;
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << CommandLine << std::endl;
 		// Successfully created the process.  Wait for it to finish.
 		*ProcessId = processInformation.dwProcessId;
 		WaitForSingleObject(processInformation.hProcess, INFINITE);

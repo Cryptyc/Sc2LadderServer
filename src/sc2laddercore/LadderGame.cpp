@@ -1,3 +1,19 @@
+#include "LadderGame.h"
+
+#include <sys/stat.h>
+#include <fcntl.h>
+
+#include <exception>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <iostream>
+#include <future>
+#include <chrono>
+#include <sstream>
+#include <cctype>
+
 #include "sc2lib/sc2_lib.h"
 #include "sc2api/sc2_api.h"
 #include "sc2api/sc2_interfaces.h"
@@ -6,34 +22,35 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2api/sc2_game_settings.h"
 #include "sc2api/sc2_proto_interface.h"
-#include "sc2api/sc2_interfaces.h"
 #include "sc2api/sc2_proto_to_pods.h"
 #include "s2clientprotocol/sc2api.pb.h"
 #include "sc2api/sc2_server.h"
 #include "sc2api/sc2_connection.h"
 #include "sc2api/sc2_args.h"
 #include "sc2api/sc2_client.h"
-#include "sc2api/sc2_proto_to_pods.h"
 #include "civetweb.h"
-#include <exception>
-
-#include <fstream>
-#include <string>
-#include <vector>
-#include <memory>
-#include <iostream>
-#include <future>
-#include <chrono>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sstream>
-#include <cctype>
 
 #include "Types.h"
 #include "Tools.h"
-#include "LadderGame.h"
 #include "Proxy.h"
 
+
+LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderConfig *InConfig)
+    : CoordinatorArgc(InCoordinatorArgc)
+    , CoordinatorArgv(InCoordinatorArgv)
+    , Config(InConfig)
+{
+    std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
+    if (MaxGameTimeString.length() > 0)
+    {
+        MaxGameTime = std::stoi(MaxGameTimeString);
+    }
+    std::string MaxRealGameTimeString = Config->GetValue("MaxRealGameTime");
+    if (MaxRealGameTimeString.length() > 0)
+    {
+        MaxRealGameTime = std::stoi(MaxRealGameTimeString);
+    }
+}
 
 void LadderGame::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
 {
@@ -51,16 +68,9 @@ void LadderGame::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
     outfile.close();
 }
 
-
-GameResult LadderGame::StartGameVsDefault(const BotConfig &Agent1, sc2::Race CompRace, sc2::Difficulty CompDifficulty, const std::string &Map)
-{
-    PrintThread{} << " THIS FEATURE WAS NOT MAINTAINED FOR A LONG TIME AND IS PROBABLY BROKEN. SORRY" << std::endl;
-
-    return GameResult();
-}
-
 GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent2, const std::string &Map)
 {
+    LogStartGame(Agent1, Agent2);
     // Proxy init
     Proxy proxyBot1(MaxGameTime, MaxRealGameTime, Agent1);
     Proxy proxyBot2(MaxGameTime, MaxRealGameTime, Agent2);
@@ -123,6 +133,10 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     }
 
     std::string replayDir = Config->GetValue("LocalReplayDirectory");
+    if (replayDir.back() != '/')
+    {
+        replayDir += "/";
+    }
     std::string replayFile = replayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
     replayFile.erase(remove_if(replayFile.begin(), replayFile.end(), isspace), replayFile.end());
     if (!(proxyBot1.saveReplay(replayFile) || proxyBot2.saveReplay(replayFile)))
@@ -135,7 +149,6 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     const auto resultBot1 = proxyBot1.getResult();
     const auto resultBot2 = proxyBot2.getResult();
 
-    PrintThread{} << "result " << Agent1.BotName << " : " << GetExitCaseString(resultBot1) << ", result " << Agent2.BotName << " : " << GetExitCaseString(resultBot2) << std::endl;
 
     Result.Result = getEndResultFromProxyResults(resultBot1, resultBot2);
     Result.Bot1AvgFrame = proxyBot1.stats().avgLoopDuration;
@@ -151,7 +164,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 }
 
 
-void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string &Bot1Name, const std::string Bot2Name)
+void LadderGame::ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name)
 {
     std::string CmdLine = Config->GetValue("ReplayBotRenameProgram");
     if (CmdLine.size() > 0)
@@ -159,24 +172,4 @@ void LadderGame::ChangeBotNames(const std::string ReplayFile, const std::string 
         CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
         StartExternalProcess(CmdLine);
     }
-}
-
-LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderConfig *InConfig)
-    : CoordinatorArgc(InCoordinatorArgc)
-    , CoordinatorArgv(InCoordinatorArgv)
-    , Config(InConfig)
-{
-
-
-    std::string MaxGameTimeString = Config->GetValue("MaxGameTime");
-    if (MaxGameTimeString.length() > 0)
-    {
-        MaxGameTime = std::stoi(MaxGameTimeString);
-    }
-    std::string MaxRealGameTimeString = Config->GetValue("MaxRealGameTime");
-    if (MaxRealGameTimeString.length() > 0)
-    {
-        MaxRealGameTime = std::stoi(MaxRealGameTimeString);
-    }
-
 }

@@ -32,7 +32,6 @@ enum BotType
 	Wine,
 	Mono,
 	DotNetCore,
-	DefaultBot,
     Java,
     NodeJS,
 };
@@ -264,10 +263,6 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	{
 		return BotType::CommandCenter;
 	}
-	else if (type == "computer")
-	{
-		return BotType::DefaultBot;
-	}
 	else if (type == "python")
 	{
 		return BotType::Python;
@@ -441,8 +436,7 @@ static ResultType getEndResultFromProxyResults(const ExitCase resultBot1, const 
 {
     if ((resultBot1 == ExitCase::BotCrashed && resultBot2 == ExitCase::BotCrashed)
             || (resultBot1 == ExitCase::BotStepTimeout && resultBot2 == ExitCase::BotStepTimeout)
-            || resultBot1 == ExitCase::Error
-            || resultBot2 == ExitCase::Error)
+            || (resultBot1 == ExitCase::Error && resultBot2 == ExitCase::Error))
     {
         // If both bots crashed we assume the bots are not the problem.
         return ResultType::Error;
@@ -455,11 +449,11 @@ static ResultType getEndResultFromProxyResults(const ExitCase resultBot1, const 
     {
         return ResultType::Player2Crash;
     }
-    if (resultBot1 == ExitCase::GameEndVictory && (resultBot2 == ExitCase::GameEndDefeat || resultBot2 == ExitCase::BotStepTimeout))
+    if (resultBot1 == ExitCase::GameEndVictory && (resultBot2 == ExitCase::GameEndDefeat || resultBot2 == ExitCase::BotStepTimeout || resultBot2 == ExitCase::Error))
     {
         return  ResultType::Player1Win;
     }
-    if (resultBot2 == ExitCase::GameEndVictory && (resultBot1 == ExitCase::GameEndDefeat || resultBot1 == ExitCase::BotStepTimeout))
+    if (resultBot2 == ExitCase::GameEndVictory && (resultBot1 == ExitCase::GameEndDefeat || resultBot1 == ExitCase::BotStepTimeout || resultBot1 == ExitCase::Error))
     {
         return  ResultType::Player2Win;
     }
@@ -512,7 +506,7 @@ static std::string responseCaseToString(SC2APIProtocol::Response::ResponseCase r
     case SC2APIProtocol::Response::ResponseCase::kReplayInfo: return "ReplayInfo";
     case SC2APIProtocol::Response::ResponseCase::kAvailableMaps: return "AvailableMaps";
     case SC2APIProtocol::Response::ResponseCase::kSaveMap: return "SaveMap";
-    case SC2APIProtocol::Response::ResponseCase::kMapCommand: return "MapCommand";
+    //case SC2APIProtocol::Response::ResponseCase::kMapCommand: return "MapCommand";
     case SC2APIProtocol::Response::ResponseCase::kPing: return "Ping";
     case SC2APIProtocol::Response::ResponseCase::kDebug: return "Debug";
     case SC2APIProtocol::Response::ResponseCase::RESPONSE_NOT_SET: return "RESPONSE_NOT_SET";

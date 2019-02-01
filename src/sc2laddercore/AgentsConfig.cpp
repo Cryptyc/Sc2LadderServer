@@ -70,92 +70,82 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 	if (doc.HasMember("Bots") && doc["Bots"].IsObject())
 	{
 		const rapidjson::Value & Bots = doc["Bots"];
-		for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
-		{
-			BotConfig NewBot;
-			NewBot.BotName = itr->name.GetString();
-			const rapidjson::Value &val = itr->value;
+        for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
+        {
+            BotConfig NewBot;
+            NewBot.BotName = itr->name.GetString();
+            const rapidjson::Value &val = itr->value;
 
-			if (val.HasMember("Race") && val["Race"].IsString())
-			{
-				NewBot.Race = GetRaceFromString(val["Race"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (val.HasMember("Type") && val["Type"].IsString())
-			{
-				NewBot.Type = GetTypeFromString(val["Type"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (NewBot.Type != DefaultBot)
-			{
-				if (val.HasMember("RootPath") && val["RootPath"].IsString())
-				{
-                    NewBot.RootPath = BaseDirectory;
-					if (NewBot.RootPath.back() != '/')
-					{
-						NewBot.RootPath += '/';
-					}
-                    NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
-                    if (NewBot.RootPath.back() != '/')
-                    {
-                        NewBot.RootPath += '/';
-                    }
-				}
-				else
-				{
-					std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (val.HasMember("FileName") && val["FileName"].IsString())
-				{
-					NewBot.FileName = val["FileName"].GetString();
-				}
-				else
-				{
-					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
-				{
-					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
-					std::cerr << "Is the path " << NewBot.RootPath << " correct?" << std::endl;
-					continue;
-				}
-				if (val.HasMember("Args") && val["Args"].IsString())
-				{
-					NewBot.Args = val["Args"].GetString();
-				}
-				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
-					NewBot.Debug = val["Debug"].GetBool();
-				}
-			}
-			else
-			{
-				if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
-				{
-					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
-				}
-			}
-            
+            if (val.HasMember("Race") && val["Race"].IsString())
+            {
+                NewBot.Race = GetRaceFromString(val["Race"].GetString());
+            }
+            else
+            {
+                std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("Type") && val["Type"].IsString())
+            {
+                NewBot.Type = GetTypeFromString(val["Type"].GetString());
+            }
+            else
+            {
+                std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("RootPath") && val["RootPath"].IsString())
+            {
+                NewBot.RootPath = BaseDirectory;
+                if (NewBot.RootPath.back() != '/')
+                {
+                    NewBot.RootPath += '/';
+                }
+                NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
+                if (NewBot.RootPath.back() != '/')
+                {
+                    NewBot.RootPath += '/';
+                }
+            }
+            else
+            {
+                std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("FileName") && val["FileName"].IsString())
+            {
+                NewBot.FileName = val["FileName"].GetString();
+            }
+            else
+            {
+                std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
+            {
+                std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
+                std::cerr << "Is the path " << NewBot.RootPath << " correct?" << std::endl;
+                continue;
+            }
+            if (val.HasMember("Args") && val["Args"].IsString())
+            {
+                NewBot.Args = val["Args"].GetString();
+            }
+            if (val.HasMember("Debug") && val["Debug"].IsBool()) {
+                NewBot.Debug = val["Debug"].GetBool();
+            }
+
             if (EnablePlayerIds)
-			{
-				NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
-				if (NewBot.PlayerId.empty())
-				{
-					NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
-					PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
-					PlayerIds->WriteConfig();
-				}
-			}
-            
+            {
+                NewBot.PlayerId = PlayerIds->GetValue(NewBot.BotName);
+                if (NewBot.PlayerId.empty())
+                {
+                    NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
+                    PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
+                    PlayerIds->WriteConfig();
+                }
+            }
+
             std::string OutCmdLine = "";
             switch (NewBot.Type)
             {
@@ -199,7 +189,6 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
                 OutCmdLine = Config->GetValue("NodeJSBinary") + " " + NewBot.FileName;
                 break;
             }
-            case DefaultBot: {} // BlizzardAI - doesn't need any command line arguments
             }
 
             if (NewBot.Args != "")
@@ -208,9 +197,8 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
             }
 
             NewBot.executeCommand = OutCmdLine;
-			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
-
-		}
+            BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
+        }
 	}
 
 }
