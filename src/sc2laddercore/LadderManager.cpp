@@ -267,7 +267,7 @@ bool LadderManager::IsInsideEloRange(std::string Bot1Name, std::string Bot2Name)
 	return true;
 }
 
-bool LadderManager::DownloadBot(const BotConfig &bot, std::string Checksum)
+bool LadderManager::DownloadBot(const std::string& BotName, const std::string& Checksum, bool Data)
 {
     constexpr int DownloadRetrys = 3;
     for (int RetryCount = 0; RetryCount < DownloadRetrys; RetryCount++)
@@ -277,16 +277,20 @@ bool LadderManager::DownloadBot(const BotConfig &bot, std::string Checksum)
         arguments.push_back(argument);
         argument = " -F Password=" + ServerPassword;
         arguments.push_back(argument);
-        argument = " -F BotName=" + bot.BotName;
+        argument = " -F BotName=" + BotName;
+        if (Data)
+        {
+            argument = " -F Data=1";
+        }
         arguments.push_back(argument);
-        std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+        std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + BotName + ".zip";
         remove(BotZipLocation.c_str());
         argument = " -o " + BotZipLocation;
         arguments.push_back(argument);
-        std::string RootPath = bot.RootPath;
-        if (RootPath == "")
+        std::string RootPath = Config->GetStringValue("BaseBotDirectory") + "/" + BotName;
+        if (Data)
         {
-            RootPath = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName;
+            RootPath += "/data";
         }
         PerformRestRequest(Config->GetStringValue("BotDownloadPath"), arguments);
         std::string BotMd5 = GenerateMD5(BotZipLocation);
@@ -323,10 +327,16 @@ bool LadderManager::VerifyUploadRequest(const std::string &UploadResult)
     return false;
 }
 
-bool LadderManager::UploadBot(const BotConfig &bot)
+
+bool LadderManager::UploadBot(const BotConfig &bot, bool Data)
 {
-	std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
-	ZipArchive(bot.RootPath, BotZipLocation);
+    std::string BotZipLocation = Config->GetStringValue("BaseBotDirectory") + "/" + bot.BotName + ".zip";
+    std::string InputLocation = bot.RootPath;
+    if (Data)
+    {
+        InputLocation += "/data";
+    }
+    ZipArchive(InputLocation, BotZipLocation);
     std::string BotMd5 = GenerateMD5(BotZipLocation);
     std::vector<std::string> arguments;
 	std::string argument = " -F Username=" + ServerUsername;
@@ -337,6 +347,11 @@ bool LadderManager::UploadBot(const BotConfig &bot)
 	arguments.push_back(argument);
     argument = " -F Checksum=" + BotMd5;
     arguments.push_back(argument);
+    if (Data)
+    {
+        argument = " -F Data=1";
+        arguments.push_back(argument);
+    }
     argument = " -F BotFile=@" + BotZipLocation;
 	arguments.push_back(argument);
     constexpr int UploadRetrys = 3;
@@ -354,7 +369,6 @@ bool LadderManager::UploadBot(const BotConfig &bot)
     RemoveDirectoryRecursive(bot.RootPath);
     remove(BotZipLocation.c_str());
     return false;
-
 }
 
 void LadderManager::RunLadderManager()
@@ -393,20 +407,33 @@ void LadderManager::RunLadderManager()
                         PrintThread{} << "No bot checksum found.  skipping game" << std::endl;
                         continue;
                     }
-                    if (!DownloadBot(NextMatch.Agent1, NextMatch.Bot1Checksum))
+                    if (!DownloadBot(NextMatch.Agent1.BotName, NextMatch.Bot1Checksum, false) || !DownloadBot(NextMatch.Agent1.BotName, NextMatch.Bot1DataChecksum, true))
                     {
                         PrintThread{} << "Bot download failed, skipping game" << std::endl;
                         LogNetworkFailiure(NextMatch.Agent1.BotName, "Download");
                         continue;
                     }
-                    if(!DownloadBot(NextMatch.Agent2, NextMatch.Bot2Checksum))
+                    if (NextMatch.Bot1DataChecksum != "" && !DownloadBot(NextMatch.Agent1.BotName, NextMatch.Bot1DataChecksum, true))
+                    {
+                        PrintThread{} << "Bot data download failed, skipping game" << std::endl;
+                        LogNetworkFailiure(NextMatch.Agent1.BotName, "Download Data");
+                        continue;
+                    }
+                    if(!DownloadBot(NextMatch.Agent2.BotName, NextMatch.Bot2Checksum, false) )
                     {
                         PrintThread{} << "Bot download failed, skipping game" << std::endl;
                         LogNetworkFailiure(NextMatch.Agent2.BotName, "Download");
                         continue;
                     }
+                    if (NextMatch.Bot2DataChecksum != "" && !DownloadBot(NextMatch.Agent2.BotName, NextMatch.Bot2DataChecksum, true))
+                    {
+                        PrintThread{} << "Bot data download failed, skipping game" << std::endl;
+                        LogNetworkFailiure(NextMatch.Agent2.BotName, "Download Data");
+                        continue;
+                    }
                     AgentConfig->ReadBotDirectories(Config->GetStringValue("BaseBotDirectory"));
                 }
+
                 AgentConfig->FindBot(NextMatch.Agent1.BotName, NextMatch.Agent1);
                 AgentConfig->FindBot(NextMatch.Agent2.BotName, NextMatch.Agent2);
                 if (NextMatch.Agent1.Skeleton || NextMatch.Agent2.Skeleton)
@@ -437,11 +464,11 @@ void LadderManager::RunLadderManager()
        		    {
                     if (IsValidResult(result))
                     {
-                        if (!UploadBot(NextMatch.Agent1))
+                        if(!UploadBot(NextMatch.Agent1, true))
                         {
                             LogNetworkFailiure(NextMatch.Agent1.BotName, "Upload");
                         }
-                        if (!UploadBot(NextMatch.Agent2))
+                        if(!UploadBot(NextMatch.Agent2, true))
                         {
                             LogNetworkFailiure(NextMatch.Agent2.BotName, "Upload");
                         }

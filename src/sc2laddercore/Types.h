@@ -142,8 +142,10 @@ struct Matchup
 	BotConfig Agent2;
     std::string Bot1Id;
     std::string Bot1Checksum;
+    std::string Bot1DataChecksum;
     std::string Bot2Id;
     std::string Bot2Checksum;
+    std::string Bot2DataChecksum;
     std::string Map;
 	Matchup() {}
 	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)

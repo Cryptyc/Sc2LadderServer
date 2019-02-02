@@ -204,7 +204,8 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
 	arguments.push_back(argument);
 	argument = " -F Password=" + ServerPassword;
 	arguments.push_back(argument);
-    std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
+    std::string ReturnString;// = PerformRestRequest(MatchupListFile, arguments);
+    ReturnString = "{\"Bot1\":{\"name\":\"Lambdanaut\", \"race\" : \"Zerg\", \"elo\" : \"1270\", \"playerid\" : \"ioa874jd\", \"checksum\" : \"8f10769e137259b23a73e0f1aea2c503\"}, \"Bot2\" : {\"name\":\"VeTerran\", \"race\" : \"Terran\", \"elo\" : \"1120\", \"playerid\" : \"sd9836f\", \"checksum\" : \"0a748c62d21fa8d2d412489d651a63d1\"}, \"Map\" : \"ParaSiteLE.SC2Map\"}";
 
 	rapidjson::Document doc;
 	bool parsingFailed = doc.Parse(ReturnString.c_str()).HasParseError();
@@ -239,6 +240,10 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
         {
             NextMatch.Bot1Checksum = Bot1Value["checksum"].GetString();
         }
+        if (Bot1Value.HasMember("datachecksum") && Bot1Value["datachecksum"].IsString())
+        {
+            NextMatch.Bot2DataChecksum = Bot1Value["datachecksum"].GetString();
+        }
 
 	}
 	if (doc.HasMember("Bot2") && doc["Bot2"].IsObject())
@@ -261,6 +266,10 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
         if (Bot2Value.HasMember("checksum") && Bot2Value["checksum"].IsString())
         {
             NextMatch.Bot2Checksum = Bot2Value["checksum"].GetString();
+        }
+        if (Bot2Value.HasMember("datachecksum") && Bot2Value["datachecksum"].IsString())
+        {
+            NextMatch.Bot2DataChecksum = Bot2Value["datachecksum"].GetString();
         }
     }
 	if (doc.HasMember("Map") && doc["Map"].IsString())
