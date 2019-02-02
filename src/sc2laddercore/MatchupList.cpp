@@ -31,6 +31,11 @@ MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InA
 	, ServerUsername(InServerUsername)
 	, ServerPassword(InServerPassword)
 {
+    // Do not create matches if we can not run them.
+    if (sc2Path.empty() || !sc2::DoesFileExist(sc2Path))
+    {
+        return;
+    }
 	MatchUpProcess = GetMatchupListTypeFromString(GeneratorType);
 	if(MatchUpProcess == MatchupListType::None)
 	{
@@ -47,7 +52,7 @@ bool MatchupList::GenerateMatches(std::vector<std::string> &&maps)
 	PrintThread{} << "Found agents: " << std::endl;
 	for (const auto &Agent : AgentConfig->BotConfigs)
 	{
-		PrintThread{} << Agent.second.BotName << std::endl;
+        PrintThread{} << "* " << Agent.second.BotName << std::endl;
 	}
 	const auto firstInvalidMapIt = std::remove_if(maps.begin(),maps.end(),[&](const auto& map)->bool { return !isMapAvailable(map, sc2Path);});
 	if (firstInvalidMapIt != maps.cbegin())

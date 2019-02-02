@@ -12,10 +12,9 @@
 #include <string>
 
 AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
-	: PlayerIds(nullptr),
-	EnablePlayerIds(false),
-	Config(InLadderConfig)
-
+    : Config(InLadderConfig),
+      PlayerIds(nullptr),
+      EnablePlayerIds(false)
 {
 	if (Config == nullptr)
 	{
@@ -35,6 +34,7 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	{
 		ReadBotDirectories(Config->GetStringValue("BaseBotDirectory"));
 	}
+
 }
 
 void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
@@ -52,7 +52,6 @@ void AgentsConfig::ReadBotDirectories(const std::string &BaseDirectory)
 
 void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::string &BotConfigFile)
 {
-	//	std::string BotConfigFile = Config->GetStringValue("BotConfigFile");
 	if (BotConfigFile.length() < 1)
 	{
 		return;
@@ -71,95 +70,135 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 	if (doc.HasMember("Bots") && doc["Bots"].IsObject())
 	{
 		const rapidjson::Value & Bots = doc["Bots"];
-		for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
-		{
-			BotConfig NewBot;
-			NewBot.BotName = itr->name.GetString();
-			const rapidjson::Value &val = itr->value;
+        for (auto itr = Bots.MemberBegin(); itr != Bots.MemberEnd(); ++itr)
+        {
+            BotConfig NewBot;
+            NewBot.BotName = itr->name.GetString();
+            const rapidjson::Value &val = itr->value;
 
-			if (val.HasMember("Race") && val["Race"].IsString())
-			{
-				NewBot.Race = GetRaceFromString(val["Race"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (val.HasMember("Type") && val["Type"].IsString())
-			{
-				NewBot.Type = GetTypeFromString(val["Type"].GetString());
-			}
-			else
-			{
-				std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
-				continue;
-			}
-			if (NewBot.Type != DefaultBot)
-			{
-				if (val.HasMember("RootPath") && val["RootPath"].IsString())
-				{
-					NewBot.RootPath = BaseDirectory;
-					if (NewBot.RootPath.back() != '/')
-					{
-						NewBot.RootPath += '/';
-					}
-					NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
-					if (NewBot.RootPath.back() != '/')
-					{
-						NewBot.RootPath += '/';
-					}
-				}
-				else
-				{
-					std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (val.HasMember("FileName") && val["FileName"].IsString())
-				{
-					NewBot.FileName = val["FileName"].GetString();
-				}
-				else
-				{
-					std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
-					continue;
-				}
-				if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
-				{
-					std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
-					std::cerr << "Is the path " << NewBot.RootPath << "correct?" << std::endl;
-					continue;
-				}
-				if (val.HasMember("Args") && val["Args"].IsString())
-				{
-					NewBot.Args = val["Args"].GetString();
-				}
-				if (val.HasMember("Debug") && val["Debug"].IsBool()) {
-					NewBot.Debug = val["Debug"].GetBool();
-				}
-			}
-			else
-			{
-				if (val.HasMember("Difficulty") && val["Difficulty"].IsString())
-				{
-					NewBot.Difficulty = GetDifficultyFromString(val["Difficulty"].GetString());
-				}
-			}
+            if (val.HasMember("Race") && val["Race"].IsString())
+            {
+                NewBot.Race = GetRaceFromString(val["Race"].GetString());
+            }
+            else
+            {
+                std::cerr << "Unable to parse race for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("Type") && val["Type"].IsString())
+            {
+                NewBot.Type = GetTypeFromString(val["Type"].GetString());
+            }
+            else
+            {
+                std::cerr << "Unable to parse type for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("RootPath") && val["RootPath"].IsString())
+            {
+                NewBot.RootPath = BaseDirectory;
+                if (NewBot.RootPath.back() != '/')
+                {
+                    NewBot.RootPath += '/';
+                }
+                NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
+                if (NewBot.RootPath.back() != '/')
+                {
+                    NewBot.RootPath += '/';
+                }
+            }
+            else
+            {
+                std::cerr << "Unable to parse root path for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (val.HasMember("FileName") && val["FileName"].IsString())
+            {
+                NewBot.FileName = val["FileName"].GetString();
+            }
+            else
+            {
+                std::cerr << "Unable to parse file name for bot " << NewBot.BotName << std::endl;
+                continue;
+            }
+            if (!sc2::DoesFileExist(NewBot.RootPath + NewBot.FileName))
+            {
+                std::cerr << "Unable to parse bot " << NewBot.BotName << std::endl;
+                std::cerr << "Is the path " << NewBot.RootPath << " correct?" << std::endl;
+                continue;
+            }
+            if (val.HasMember("Args") && val["Args"].IsString())
+            {
+                NewBot.Args = val["Args"].GetString();
+            }
+            if (val.HasMember("Debug") && val["Debug"].IsBool()) {
+                NewBot.Debug = val["Debug"].GetBool();
+            }
 
-			if (EnablePlayerIds)
-			{
-				NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);
-				if (NewBot.PlayerId.empty())
-				{
-					NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
-					PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
-					PlayerIds->WriteConfig();
-				}
-			}
+            if (EnablePlayerIds)
+            {
+                NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);
+                if (NewBot.PlayerId.empty())
+                {
+                    NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
+                    PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
+                    PlayerIds->WriteConfig();
+                }
+            }
 
-			BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
+            std::string OutCmdLine = "";
+            switch (NewBot.Type)
+            {
+            case Python:
+            {
+                OutCmdLine = Config->GetStringValue("PythonBinary") + " " + NewBot.FileName;
+                break;
+            }
+            case Wine:
+            {
+                OutCmdLine = "wine " + NewBot.FileName;
+                break;
+            }
+            case Mono:
+            {
+                OutCmdLine = "mono " + NewBot.FileName;
+                break;
+            }
+            case DotNetCore:
+            {
+                OutCmdLine = "dotnet " + NewBot.FileName;
+                break;
+            }
+            case CommandCenter:
+            {
+                OutCmdLine = Config->GetStringValue("CommandCenterPath") + " --ConfigFile " + NewBot.FileName;
+                break;
+            }
+            case BinaryCpp:
+            {
+                OutCmdLine = NewBot.RootPath + NewBot.FileName;
+                break;
+            }
+            case Java:
+            {
+                OutCmdLine = "java -jar " + NewBot.FileName;
+                break;
+            }
+            case NodeJS:
+            {
+                OutCmdLine = Config->GetStringValue("NodeJSBinary") + " " + NewBot.FileName;
+                break;
+            }
+            }
 
-		}
+            if (NewBot.Args != "")
+            {
+                OutCmdLine += " " + NewBot.Args;
+            }
+
+            NewBot.executeCommand = OutCmdLine;
+            BotConfigs.insert(std::make_pair(std::string(NewBot.BotName), NewBot));
+        }
 	}
 
 }
