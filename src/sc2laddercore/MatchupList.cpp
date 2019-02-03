@@ -31,6 +31,11 @@ MatchupList::MatchupList(const std::string &inMatchupListFile, AgentsConfig *InA
 	, ServerUsername(InServerUsername)
 	, ServerPassword(InServerPassword)
 {
+    // Do not create matches if we can not run them.
+    if (sc2Path.empty() || !sc2::DoesFileExist(sc2Path))
+    {
+        return;
+    }
 	MatchUpProcess = GetMatchupListTypeFromString(GeneratorType);
 	if(MatchUpProcess == MatchupListType::None)
 	{
@@ -47,7 +52,7 @@ bool MatchupList::GenerateMatches(std::vector<std::string> &&maps)
 	PrintThread{} << "Found agents: " << std::endl;
 	for (const auto &Agent : AgentConfig->BotConfigs)
 	{
-		PrintThread{} << Agent.second.BotName << std::endl;
+        PrintThread{} << "* " << Agent.second.BotName << std::endl;
 	}
 	const auto firstInvalidMapIt = std::remove_if(maps.begin(),maps.end(),[&](const auto& map)->bool { return !isMapAvailable(map, sc2Path);});
 	if (firstInvalidMapIt != maps.cbegin())
@@ -182,7 +187,7 @@ bool MatchupList::LoadMatchupList()
 		}
 		if (!AgentConfig->FindBot(SecondAgent, Agent2))
 		{
-			PrintThread{} << "Unable to find agent: " + FirstAgent << std::endl;
+			PrintThread{} << "Unable to find agent: " + SecondAgent << std::endl;
 			continue;
 		}
 		if (!isMapAvailable(Map,sc2Path))
@@ -204,8 +209,8 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
 	arguments.push_back(argument);
 	argument = " -F Password=" + ServerPassword;
 	arguments.push_back(argument);
-    std::string ReturnString;// = PerformRestRequest(MatchupListFile, arguments);
-    ReturnString = "{\"Bot1\":{\"name\":\"Lambdanaut\", \"race\" : \"Zerg\", \"elo\" : \"1270\", \"playerid\" : \"ioa874jd\", \"checksum\" : \"8f10769e137259b23a73e0f1aea2c503\"}, \"Bot2\" : {\"name\":\"VeTerran\", \"race\" : \"Terran\", \"elo\" : \"1120\", \"playerid\" : \"sd9836f\", \"checksum\" : \"0a748c62d21fa8d2d412489d651a63d1\"}, \"Map\" : \"ParaSiteLE.SC2Map\"}";
+    std::string ReturnString = PerformRestRequest(MatchupListFile, arguments);
+//    ReturnString = "{\"Bot1\":{\"name\":\"Lambdanaut\", \"race\" : \"Zerg\", \"elo\" : \"1270\", \"playerid\" : \"ioa874jd\", \"checksum\" : \"8f10769e137259b23a73e0f1aea2c503\"}, \"Bot2\" : {\"name\":\"VeTerran\", \"race\" : \"Terran\", \"elo\" : \"1120\", \"playerid\" : \"sd9836f\", \"checksum\" : \"0a748c62d21fa8d2d412489d651a63d1\"}, \"Map\" : \"ParaSiteLE.SC2Map\"}";
 
 	rapidjson::Document doc;
 	bool parsingFailed = doc.Parse(ReturnString.c_str()).HasParseError();
@@ -242,7 +247,7 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
         }
         if (Bot1Value.HasMember("datachecksum") && Bot1Value["datachecksum"].IsString())
         {
-            NextMatch.Bot2DataChecksum = Bot1Value["datachecksum"].GetString();
+            NextMatch.Bot1DataChecksum = Bot1Value["datachecksum"].GetString();
         }
 
 	}

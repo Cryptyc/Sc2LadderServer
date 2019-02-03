@@ -12,6 +12,7 @@ class AgentsConfig
 public:
     AgentsConfig(LadderConfig *InLadderConfig);
     void LoadAgents(const std::string &BaseDirectory, const std::string &BotConfigFile);
+	void SaveBotConfig(const BotConfig & Agent);
     void ReadBotDirectories(const std::string &BaseDirectory);
 
     bool FindBot(const std::string &BotName, BotConfig &ReturnBot);
