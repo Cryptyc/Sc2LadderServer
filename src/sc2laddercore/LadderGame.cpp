@@ -89,10 +89,9 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
         return GameResult();
     }
     // Setup map
-    // toDo: RealTimeMode?
     PrintThread {} << "Creating the game on " << Map << "." << std::endl;
-    const bool setupGameSuccessful1 = proxyBot1.setupGame(process_settings, Map, false, Agent1.Race, Agent2.Race);
-    const bool setupGameSuccessful2 = proxyBot2.setupGame(process_settings, Map, false, Agent1.Race, Agent2.Race);
+    const bool setupGameSuccessful1 = proxyBot1.setupGame(process_settings, Map, RealTime, Agent1.Race, Agent2.Race);
+    const bool setupGameSuccessful2 = proxyBot2.setupGame(process_settings, Map, RealTime, Agent1.Race, Agent2.Race);
     if (!setupGameSuccessful1 || !setupGameSuccessful2)
     {
         PrintThread {} << "Failed to create the game." << std::endl;
