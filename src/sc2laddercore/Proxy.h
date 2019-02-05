@@ -31,6 +31,7 @@ class Proxy
     const uint32_t m_maxGameLoops{0U};
     const uint32_t m_maxRealGameTime{0U};  // sec
     uint32_t m_currentGameLoop{0U};
+    uint32_t m_surrenderLoop{0U};
     SC2APIProtocol::Status m_gameStatus{SC2APIProtocol::Status::unknown};
     std::future<void> m_gameUpdateThread{};
     ExitCase m_result{ExitCase::Unknown};

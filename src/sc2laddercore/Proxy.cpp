@@ -547,9 +547,13 @@ bool Proxy::processResponse(SC2APIProtocol::Response* const response)
             {
                 if (chat.has_message() && chat.message() == m_botConfig.SurrenderPhrase)
                 {
-                    terminateGame();
+                    m_surrenderLoop = m_currentGameLoop + 68; // ~3 in-game sec
                 }
             }
+        }
+        if (m_surrenderLoop && m_currentGameLoop >= m_surrenderLoop)
+        {
+            terminateGame();
         }
 
         if (m_maxGameLoops && m_currentGameLoop > m_maxGameLoops)
