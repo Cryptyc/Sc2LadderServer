@@ -116,6 +116,7 @@ struct BotConfig
     bool Skeleton;
     int ELO;
     std::string executeCommand;
+    std::string SurrenderPhrase{"pineapple"};
 
 	BotConfig()
 		: Type(BotType::BinaryCpp)
