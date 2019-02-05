@@ -134,6 +134,10 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
                 NewBot.Debug = val["Debug"].GetBool();
             }
 
+            if (val.HasMember("SurrenderPhrase") && val["SurrenderPhrase"].IsString()) {
+                NewBot.SurrenderPhrase = val["SurrenderPhrase"].GetString();
+            }
+
             if (EnablePlayerIds)
             {
                 NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);

@@ -146,7 +146,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 
     Result.Result = getEndResultFromProxyResults(resultBot1, resultBot2);
     Result.Bot1AvgFrame = proxyBot1.stats().avgLoopDuration;
-    Result.Bot2AvgFrame = proxyBot1.stats().avgLoopDuration;
+    Result.Bot2AvgFrame = proxyBot2.stats().avgLoopDuration;
     Result.GameLoop = proxyBot1.stats().gameLoops;
 
     std::time_t t = std::time(nullptr);

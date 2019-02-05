@@ -540,6 +540,21 @@ bool Proxy::processResponse(SC2APIProtocol::Response* const response)
                 result->set_result(SC2APIProtocol::Result::Tie);
             }
         }
+        for (int i(0); i < response->observation().chat_size(); ++i)
+        {
+            const auto& chat = response->observation().chat(i);
+            if (observation.player_common().player_id() == chat.player_id())
+            {
+                if (chat.has_message() && chat.message() == m_botConfig.SurrenderPhrase)
+                {
+                    m_surrenderLoop = m_currentGameLoop + 68; // ~3 in-game sec
+                }
+            }
+        }
+        if (m_surrenderLoop && m_currentGameLoop >= m_surrenderLoop)
+        {
+            terminateGame();
+        }
 
         if (m_maxGameLoops && m_currentGameLoop > m_maxGameLoops)
         {
