@@ -20,14 +20,14 @@ Proxy::~Proxy()
     m_mapAlreadyLoaded = false;
 
     // Check if the bot is still running.
-    auto start = clock::now();
-    std::chrono::duration<double> elapsed_seconds{0};
+    const auto start = clock::now();
+    std::chrono::duration<double> elapsedSeconds{0};
     std::future_status botProgStatus{std::future_status::deferred};
     // toDo: add to config?
     constexpr auto maxWaitTime{20};
     if (m_botProgramThread.valid())
     {
-        while (elapsed_seconds.count() < maxWaitTime)
+        while (elapsedSeconds.count() < maxWaitTime)
         {
             botProgStatus = m_botProgramThread.wait_for(std::chrono::seconds(1));
             if (botProgStatus == std::future_status::ready)
@@ -35,7 +35,7 @@ Proxy::~Proxy()
                 PrintThread{} << m_botConfig.BotName << " : Bot terminated properly." << std::endl;
                 break;
             }
-            elapsed_seconds = clock::now() - start;
+            elapsedSeconds = clock::now() - start;
         }
         if (botProgStatus != std::future_status::ready)
         {
@@ -69,13 +69,13 @@ bool Proxy::ConnectToSC2Instance(const sc2::ProcessSettings& processSettings, co
 {
     // Depending on the hardware the client sometimes needs a second or two.
     size_t connectionAttempts = 0;
-    constexpr size_t abondonConnectionAttemptAfter = 60;  // sec
+    constexpr size_t abandonConnectionAttemptAfter = 60;  // sec
     constexpr bool withDebugOutput = false;
     while (!m_client.Connect(m_localHost, portClient, withDebugOutput))
     {
         ++connectionAttempts;
         sc2::SleepFor(1000);
-        if (connectionAttempts > abondonConnectionAttemptAfter)
+        if (connectionAttempts > abandonConnectionAttemptAfter)
         {
             PrintThread{} << "Failed to connect to client (" << m_botConfig.BotName << ")" << std::endl;
             return false;
@@ -94,6 +94,7 @@ bool Proxy::ConnectToSC2Instance(const sc2::ProcessSettings& processSettings, co
 // Technically, we only need opponents race. But I think it looks clearer on the caller side with both races.
 bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::string& map, const bool realTimeMode, const sc2::Race bot1Race, const sc2::Race bot2Race)
 {
+    m_realTimeMode = realTimeMode;
     // Only one client needs to / is allowed to send the create game request.
     if (m_mapAlreadyLoaded)
     {
@@ -134,8 +135,8 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
         else
         {
             // Relative path - Game maps directory
-            const std::string game_relative = sc2::GetGameMapsDirectory(processSettings.process_path) + map;
-            if (sc2::DoesFileExist(game_relative))
+            const std::string gameRelative = sc2::GetGameMapsDirectory(processSettings.process_path) + map;
+            if (sc2::DoesFileExist(gameRelative))
             {
                 localMap->set_map_path(map);
             }
@@ -173,17 +174,13 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
 
 bool Proxy::startBot(const int portServer, const int portStart, const std::string & opponentPlayerId)
 {
-    std::string botStartCommand = GetBotCommandLine(portServer, portStart, opponentPlayerId);
+    const std::string botStartCommand = getBotCommandLine(portServer, portStart, opponentPlayerId);
     if (botStartCommand == m_botConfig.executeCommand)
     {
         return false;
     }
     m_botProgramThread = std::async(std::launch::async, &StartBotProcess, m_botConfig, botStartCommand, &m_botThreadId);
-    if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
-    {
-        return false;
-    }
-    return true;
+    return m_botProgramThread.wait_for(std::chrono::seconds(2)) != std::future_status::ready;
 }
 
 void Proxy::startGame()
@@ -261,17 +258,10 @@ bool Proxy::createGameHasErrors(const SC2APIProtocol::ResponseCreateGame& create
     return hasError;
 }
 
-std::string Proxy::GetBotCommandLine(const int gamePort, const int startPort, const std::string &OpponentId, bool CompOpp, sc2::Race CompRace, sc2::Difficulty CompDifficulty) const
+std::string Proxy::getBotCommandLine(const int gamePort, const int startPort, const std::string& opponentID) const
 {
     // Add universal arguments
-    std::string OutCmdLine = m_botConfig.executeCommand + " --GamePort " + std::to_string(gamePort) + " --StartPort " + std::to_string(startPort) + " --LadderServer " + m_localHost + " --OpponentId " + OpponentId;
-
-    if (CompOpp)
-    {
-        OutCmdLine += " --ComputerOpponent 1 --ComputerRace " + GetRaceString(CompRace) + " --ComputerDifficulty " + GetDifficultyString(CompDifficulty);
-    }
-
-    return OutCmdLine;
+    return m_botConfig.executeCommand + " --GamePort " + std::to_string(gamePort) + " --StartPort " + std::to_string(startPort) + " --LadderServer " + m_localHost + " --OpponentId " + opponentID;
 }
 
 
@@ -312,7 +302,7 @@ void Proxy::gameUpdate()
             const sc2::RequestData& request = m_server.PeekRequest();
             // Analyse request
             // Returns false if a quit request was made.
-            bool validRequest = processRequest(request);
+            const bool validRequest = processRequest(request);
             // A quit request is handled as if the bot crashed.
             // Especially, we do not want to forward the request to the client.
             // We still need it for the replay.
@@ -328,7 +318,7 @@ void Proxy::gameUpdate()
 
             // Block for sc2's response then queue it.
             SC2APIProtocol::Response* response = receiveResponse(expectedResponseCase);
-            bool validResponse = processResponse(response);
+            const bool validResponse = processResponse(response);
 
             if (!validResponse)
             {
@@ -373,10 +363,10 @@ void Proxy::gameUpdate()
         {
             const uint32_t maxStepTime = getMaxStepTime();  // ms
             const auto timeSinceLastResponse = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - m_lastResponseSendTime).count();
-            if (!m_botConfig.Debug && maxStepTime && timeSinceLastResponse > static_cast<int>(maxStepTime))
+            if (!m_botConfig.Debug && !m_realTimeMode && maxStepTime && timeSinceLastResponse > static_cast<int>(maxStepTime))
             {
                 PrintThread{} << m_botConfig.BotName << " : bot is too slow. " << timeSinceLastResponse << " milliseconds passed. Max step time: " << static_cast<int>(maxStepTime) << " milliseconds." << std::endl;
-                // ToDo: Make a chat announcment
+                // ToDo: Make a chat announcement
                 // ToDo: Can we handle this better. It
                 m_result = ExitCase::BotStepTimeout;
             }
@@ -460,9 +450,9 @@ void Proxy::gameUpdate()
     PrintThread{} << m_botConfig.BotName << " : Exiting with " << GetExitCaseString(m_result) << " Average step time " << m_stats.avgLoopDuration << " microseconds, total time: " << std::chrono::duration_cast<std::chrono::seconds>(m_totalTime).count() << " seconds, game loops: " << m_currentGameLoop << std::endl;
 }
 
-bool Proxy::isBotCrashed(const int millisecons) const
+bool Proxy::isBotCrashed(const int milliseconds) const
 {
-    return m_botProgramThread.wait_for(std::chrono::milliseconds(millisecons)) == std::future_status::ready;
+    return m_botProgramThread.wait_for(std::chrono::milliseconds(milliseconds)) == std::future_status::ready;
 }
 
 bool Proxy::isClientCrashed(const int) const
@@ -496,7 +486,6 @@ bool Proxy::processRequest(const sc2::RequestData& request)
         {
             // Leave game requests are also a problem.
             PrintThread{} << m_botConfig.BotName << " has issued a leave game request. Please don't do that." << std::endl;
-            // ToDo: Read a "gg" from chat so that people don't use it anymore.
             // return false;
         }
         else if (request.second->has_debug() && !m_usedDebugInterface)
@@ -533,10 +522,10 @@ bool Proxy::processResponse(SC2APIProtocol::Response* const response)
                 allPlayerIDs.push_back(obs->player_result(i).player_id());
             }
             obs->clear_player_result();
-            for (size_t i(0); i < allPlayerIDs.size(); ++i)
+            for (const auto& playerID : allPlayerIDs)
             {
                 auto* const result = obs->add_player_result();
-                result->set_player_id(allPlayerIDs[i]);
+                result->set_player_id(playerID);
                 result->set_result(SC2APIProtocol::Result::Tie);
             }
         }
@@ -672,8 +661,6 @@ bool Proxy::saveReplay(const std::string& replayFile)
     return true;
 }
 
-// toDo: change all receives
-// toDo: give the expected response type
 SC2APIProtocol::Response* Proxy::receiveResponse(const SC2APIProtocol::Response::ResponseCase responseCase)
 {
     SC2APIProtocol::Response* response{nullptr};

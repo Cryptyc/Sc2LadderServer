@@ -35,6 +35,7 @@ class Proxy
     SC2APIProtocol::Status m_gameStatus{SC2APIProtocol::Status::unknown};
     std::future<void> m_gameUpdateThread{};
     ExitCase m_result{ExitCase::Unknown};
+    bool m_realTimeMode{false};
 
     // Bot
     const BotConfig m_botConfig{};
@@ -43,7 +44,7 @@ class Proxy
     bool m_usedDebugInterface{false};
 
     // stats
-    Stats m_stats;
+    Stats m_stats{};
     using clock = std::chrono::system_clock;  // there is also steady_clock and high_resolution_clock
     clock::time_point m_lastResponseSendTime{};
     clock::duration m_totalTime{std::chrono::seconds(0)};
@@ -55,9 +56,9 @@ class Proxy
 
 
     bool createGameHasErrors(const SC2APIProtocol::ResponseCreateGame& createGameResponse) const;
-    std::string GetBotCommandLine(const int gamePort, const int startPort, const std::string &OpponentId, const bool CompOpp = false, const sc2::Race CompRace = sc2::Race::Random, sc2::Difficulty CompDifficulty = sc2::Difficulty::VeryEasy) const;
-    bool isBotCrashed(const int ms) const;
-    bool isClientCrashed(const int ms) const;
+    std::string getBotCommandLine(const int gamePort, const int startPort, const std::string& opponentID) const;
+    bool isBotCrashed(const int milliseconds) const;
+    bool isClientCrashed(const int milliseconds) const;
     bool processRequest(const sc2::RequestData& request);
     bool processResponse(SC2APIProtocol::Response* const response);
     void gameUpdate();
