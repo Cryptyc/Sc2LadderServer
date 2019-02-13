@@ -3,16 +3,20 @@
 #include <fstream>
 
 #include "Tools.h"
+
 #include "sc2utils/sc2_manage_process.h"
 
 
 bool Proxy::m_mapAlreadyLoaded{false};
 
+
+
 Proxy::Proxy(const uint32_t maxGameLoops, const uint32_t maxRealGameTime, const BotConfig& botConfig):
     m_maxGameLoops(maxGameLoops)
   , m_maxRealGameTime(maxRealGameTime)
   , m_botConfig(botConfig)
-{ }
+{
+}
 
 Proxy::~Proxy()
 {
@@ -180,7 +184,20 @@ bool Proxy::startBot(const int portServer, const int portStart, const std::strin
         return false;
     }
     m_botProgramThread = std::async(std::launch::async, &StartBotProcess, m_botConfig, botStartCommand, &m_botThreadId);
-    return m_botProgramThread.wait_for(std::chrono::seconds(2)) != std::future_status::ready;
+    if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+    {
+        return false;
+    }
+    constexpr size_t maxStartUpTime = 10U; // The bot gets 10 seconds to connect to the proxy. This is NOT the first game loop time.
+    for (auto waitedFor(0U); waitedFor < maxStartUpTime; ++waitedFor)
+    {
+        if (!m_server.connections_.empty())
+        {
+            return true;
+        }
+        sc2::SleepFor(1000);
+    }
+    return false;
 }
 
 void Proxy::startGame()
