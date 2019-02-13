@@ -26,6 +26,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 		NULL);
 
 	HANDLE stdoutfile = NULL;
+	DWORD flags;
 	if (Agent.Debug)
 	{
 		std::string stdoutFile = Agent.RootPath + "/data/stdout.log";
@@ -36,11 +37,15 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 			OPEN_ALWAYS,
 			FILE_ATTRIBUTE_NORMAL,
 			NULL);
+		flags = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE; // Showing the console is just a visual indicator that the bot started. Not needed if we do not debug.
+	}
+	else
+	{
+		flags = NORMAL_PRIORITY_CLASS | CREATE_NO_WINDOW;
 	}
 
 	PROCESS_INFORMATION processInformation;
 	STARTUPINFO startupInfo;
-	DWORD flags = NORMAL_PRIORITY_CLASS | CREATE_NEW_CONSOLE; //CREATE_NO_WINDOW <-- also possible, but we don't see easily if bot is still running.
 
 	ZeroMemory(&processInformation, sizeof(PROCESS_INFORMATION));
 	ZeroMemory(&startupInfo, sizeof(STARTUPINFO));
