@@ -126,6 +126,8 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
                 std::cerr << "Is the path " << NewBot.RootPath << " correct?" << std::endl;
                 continue;
             }
+            const std::string dataLocation = NewBot.RootPath + "/data";
+            MakeDirectory(dataLocation); // If a directory exists this just fails and does nothing.
             if (val.HasMember("Args") && val["Args"].IsString())
             {
                 NewBot.Args = val["Args"].GetString();
