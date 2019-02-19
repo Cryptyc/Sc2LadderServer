@@ -32,20 +32,21 @@ enum BotType
 	Wine,
 	Mono,
 	DotNetCore,
-	DefaultBot,
     Java,
     NodeJS,
 };
 
-enum ResultType
+enum class ResultType
 {
 	InitializationError,
 	Timeout,
 	ProcessingReplay,
-	Player1Win,
-	Player1Crash,
+    Player1Win,
+    Player1Crash,
+    Player1TimeOut,
 	Player2Win,
 	Player2Crash,
+    Player2TimeOut,
 	Tie,
 	Error
 };
@@ -57,13 +58,16 @@ enum MatchupListType
     None
 };
 
-enum ExitCase
+enum class ExitCase
 {
-	InProgress,
-	GameEnd,
-	ClientRequestExit,
-	ClientTimeout,
-	GameTimeout
+    Unknown,
+    GameEndVictory,
+    GameEndDefeat,
+    GameEndTie,
+    BotStepTimeout,
+    BotCrashed,
+    GameTimeOver,
+    Error
 };
 
 struct GameState
@@ -102,6 +106,7 @@ struct BotConfig
 	std::string BotName;
 	std::string RootPath;
 	std::string FileName;
+    std::string CheckSum;
 	sc2::Race Race;
 	sc2::Difficulty Difficulty;
 	std::string Args; //Optional arguments
@@ -110,6 +115,9 @@ struct BotConfig
     bool Enabled;
     bool Skeleton;
     int ELO;
+    std::string executeCommand;
+    std::string SurrenderPhrase{"pineapple"};
+
 	BotConfig()
 		: Type(BotType::BinaryCpp)
 		, Race(sc2::Race::Random)
@@ -119,21 +127,23 @@ struct BotConfig
         , Skeleton(false)
         , ELO(0)
 	{}
+
 	BotConfig(BotType InType, const std::string & InBotName, sc2::Race InBotRace, const std::string & InBotPath, const std::string & InFileName, sc2::Difficulty InDifficulty = sc2::Difficulty::Easy, const std::string & InArgs = "")
-		: Type(InType)
-		, Race(InBotRace)
+        : Type(InType)
 		, BotName(InBotName)
 		, RootPath(InBotPath)
-		, FileName(InFileName)
+        , FileName(InFileName)
+        , Race(InBotRace)
 		, Difficulty(InDifficulty)
 		, Args(InArgs)
 		, Debug(false)
         , Skeleton(false)
     {}
+
 	bool operator ==(const BotConfig &Other) const
 	{
 		return BotName == Other.BotName;
-	}
+    }
 };
 
 struct Matchup
@@ -142,8 +152,10 @@ struct Matchup
 	BotConfig Agent2;
     std::string Bot1Id;
     std::string Bot1Checksum;
+    std::string Bot1DataChecksum;
     std::string Bot2Id;
     std::string Bot2Checksum;
+    std::string Bot2DataChecksum;
     std::string Map;
 	Matchup() {}
 	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)
@@ -179,17 +191,23 @@ static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorT
 static std::string GetExitCaseString(ExitCase ExitCaseIn)
 {
 	switch (ExitCaseIn)
-	{
-	case ExitCase::ClientRequestExit:
-		return "ClientRequestExit";
-	case ExitCase::ClientTimeout:
-		return "ClientTimeout";
-	case ExitCase::GameEnd:
-		return "GameEnd";
-	case ExitCase::GameTimeout:
-		return "GameTimeout";
-	case ExitCase::InProgress:
-		return "InProgress";
+    {
+    case ExitCase::BotCrashed:
+        return "BotCrashed";
+    case ExitCase::BotStepTimeout:
+        return "BotStepTimeout";
+    case ExitCase::Error:
+        return "Error";
+    case ExitCase::GameEndVictory:
+        return "GameEndWin";
+    case ExitCase::GameEndDefeat:
+        return "GameEndLoss";
+    case ExitCase::GameEndTie:
+        return "GameEndTie";
+    case ExitCase::GameTimeOver:
+        return "GameTimeOver";
+    case ExitCase::Unknown:
+        return "Unknown";
 	}
 	return "Error";
 }
@@ -248,10 +266,6 @@ static BotType GetTypeFromString(const std::string &TypeIn)
 	else if (type == "commandcenter")
 	{
 		return BotType::CommandCenter;
-	}
-	else if (type == "computer")
-	{
-		return BotType::DefaultBot;
 	}
 	else if (type == "python")
 	{
@@ -377,28 +391,34 @@ static std::string GetResultType(ResultType InResultType)
 {
 	switch (InResultType)
 	{
-	case InitializationError:
+    case ResultType::InitializationError:
 		return "InitializationError";
 
-	case Timeout:
+    case ResultType::Timeout:
 		return "Timeout";
 
-	case ProcessingReplay:
+    case ResultType::ProcessingReplay:
 		return "ProcessingReplay";
 
-	case Player1Win:
+    case ResultType::Player1Win:
 		return "Player1Win";
 
-	case Player1Crash:
-		return "Player1Crash";
+    case ResultType::Player1Crash:
+        return "Player1Crash";
 
-	case Player2Win:
+    case ResultType::Player1TimeOut:
+        return "Player1TimeOut";
+
+    case ResultType::Player2Win:
 		return "Player2Win";
 
-	case Player2Crash:
+    case ResultType::Player2Crash:
 		return "Player2Crash";
 
-	case Tie:
+    case ResultType::Player2TimeOut:
+        return "Player2TimeOut";
+
+    case ResultType::Tie:
 		return "Tie";
 
 	default:
@@ -414,4 +434,86 @@ static std::string RemoveMapExtension(const std::string& filename)
         return filename;
     }
     return filename.substr(0, lastdot);
+}
+
+static ResultType getEndResultFromProxyResults(const ExitCase resultBot1, const ExitCase resultBot2)
+{
+    if ((resultBot1 == ExitCase::BotCrashed && resultBot2 == ExitCase::BotCrashed)
+            || (resultBot1 == ExitCase::BotStepTimeout && resultBot2 == ExitCase::BotStepTimeout)
+            || (resultBot1 == ExitCase::Error && resultBot2 == ExitCase::Error))
+    {
+        // If both bots crashed we assume the bots are not the problem.
+        return ResultType::Error;
+    }
+    if (resultBot1 == ExitCase::BotCrashed)
+    {
+        return ResultType::Player1Crash;
+    }
+    if (resultBot2 == ExitCase::BotCrashed)
+    {
+        return ResultType::Player2Crash;
+    }
+    if (resultBot1 == ExitCase::GameEndVictory && (resultBot2 == ExitCase::GameEndDefeat || resultBot2 == ExitCase::BotStepTimeout || resultBot2 == ExitCase::Error))
+    {
+        return  ResultType::Player1Win;
+    }
+    if (resultBot2 == ExitCase::GameEndVictory && (resultBot1 == ExitCase::GameEndDefeat || resultBot1 == ExitCase::BotStepTimeout || resultBot1 == ExitCase::Error))
+    {
+        return  ResultType::Player2Win;
+    }
+    if (resultBot1 == ExitCase::GameEndTie && resultBot2 == ExitCase::GameEndTie)
+    {
+        return  ResultType::Tie;
+    }
+    if (resultBot1 == ExitCase::GameTimeOver && resultBot2 == ExitCase::GameTimeOver)
+    {
+        return  ResultType::Timeout;
+    }
+    return ResultType::Error;
+}
+
+static std::string statusToString(SC2APIProtocol::Status status)
+{
+    switch (status)
+    {
+    case SC2APIProtocol::Status::launched: return "launched";
+    case SC2APIProtocol::Status::init_game: return "init_game";
+    case SC2APIProtocol::Status::in_game: return "in_game";
+    case SC2APIProtocol::Status::in_replay: return "in_replay";
+    case SC2APIProtocol::Status::ended: return "ended";
+    case SC2APIProtocol::Status::quit: return "quit";
+    case SC2APIProtocol::Status::unknown: return "unknown";
+    }
+    return "unknown (" + std::to_string(static_cast<int>(status)) + ")";
+}
+
+static std::string responseCaseToString(SC2APIProtocol::Response::ResponseCase responseCase)
+{
+    switch(responseCase)
+    {
+    case SC2APIProtocol::Response::ResponseCase::kCreateGame: return "CreateGame";
+    case SC2APIProtocol::Response::ResponseCase::kJoinGame: return "JoinGame";
+    case SC2APIProtocol::Response::ResponseCase::kRestartGame : return "RestartGame";
+    case SC2APIProtocol::Response::ResponseCase::kStartReplay: return "StartReplay";
+    case SC2APIProtocol::Response::ResponseCase::kLeaveGame: return "LeaveGame";
+    case SC2APIProtocol::Response::ResponseCase::kQuickSave: return "QuickSave";
+    case SC2APIProtocol::Response::ResponseCase::kQuickLoad: return "QuickLoad";
+    case SC2APIProtocol::Response::ResponseCase::kQuit: return "Quit";
+    case SC2APIProtocol::Response::ResponseCase::kGameInfo: return "GameInfo";
+    case SC2APIProtocol::Response::ResponseCase::kObservation: return "Observation";
+    case SC2APIProtocol::Response::ResponseCase::kAction: return "Action";
+    case SC2APIProtocol::Response::ResponseCase::kObsAction: return "ObsAction";
+    case SC2APIProtocol::Response::ResponseCase::kStep: return "Step";
+    case SC2APIProtocol::Response::ResponseCase::kData: return "Data";
+    case SC2APIProtocol::Response::ResponseCase::kQuery: return "Query";
+    case SC2APIProtocol::Response::ResponseCase::kSaveReplay: return "SaveReplay";
+    case SC2APIProtocol::Response::ResponseCase::kReplayInfo: return "ReplayInfo";
+    case SC2APIProtocol::Response::ResponseCase::kAvailableMaps: return "AvailableMaps";
+    case SC2APIProtocol::Response::ResponseCase::kSaveMap: return "SaveMap";
+    //case SC2APIProtocol::Response::ResponseCase::kMapCommand: return "MapCommand";
+    case SC2APIProtocol::Response::ResponseCase::kPing: return "Ping";
+    case SC2APIProtocol::Response::ResponseCase::kDebug: return "Debug";
+    case SC2APIProtocol::Response::ResponseCase::RESPONSE_NOT_SET: return "RESPONSE_NOT_SET";
+    }
+    return "unknown (" + std::to_string(static_cast<int>(responseCase)) + ")";
 }

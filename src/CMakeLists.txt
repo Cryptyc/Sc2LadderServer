@@ -13,7 +13,7 @@ include_directories(SYSTEM
 
 if (WIN32)
     include_directories(SYSTEM
-        ${PROJECT_SOURCE_DIR}/s2client-api/src/sc2utils/dirent.h
+        ${PROJECT_SOURCE_DIR}/s2client-api/src/sc2utils/
     )
 endif ()
 

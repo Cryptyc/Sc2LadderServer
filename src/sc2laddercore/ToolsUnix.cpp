@@ -66,12 +66,12 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
             exit(errno);
         }
 
-        if (RedirectOutput(Agent, STDERR_FILENO, "stderr.log") < 0)
+        if (RedirectOutput(Agent, STDERR_FILENO, "data/stderr.log") < 0)
             exit(errno);
 
         if (Agent.Debug)
         {
-            if (RedirectOutput(Agent, STDOUT_FILENO, "stdout.log") < 0)
+            if (RedirectOutput(Agent, STDOUT_FILENO, "data/stdout.log") < 0)
                 exit(errno);
         }
         else
@@ -148,6 +148,11 @@ void SleepFor(int seconds)
 
 void KillBotProcess(unsigned long pid)
 {
+    if (pid == 0)
+    {
+        //Maybe a warning?
+        return;
+    }
     int ret = kill(pid, SIGKILL);
     if (ret < 0)
     {
@@ -200,6 +205,11 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
 std::string GenerateMD5(std::string filename)
 {
 
+}
+
+bool MakeDirectory(const std::string& directory_name)
+{
+    return mkdir(directory_name.c_str(), 0755);
 }
 
 #endif

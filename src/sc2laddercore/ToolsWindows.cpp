@@ -16,7 +16,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	securityAttributes.nLength = sizeof(securityAttributes);
 	securityAttributes.lpSecurityDescriptor = NULL;
 	securityAttributes.bInheritHandle = TRUE;
-	std::string stderrLogFile = Agent.RootPath + "/stderr.log";
+	std::string stderrLogFile = Agent.RootPath + "/data/stderr.log";
 	HANDLE stderrfile = CreateFile(stderrLogFile.c_str(),
 		FILE_APPEND_DATA,
 		FILE_SHARE_WRITE | FILE_SHARE_READ,
@@ -28,7 +28,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	HANDLE stdoutfile = NULL;
 	if (Agent.Debug)
 	{
-		std::string stdoutFile = Agent.RootPath + "/stdout.log";
+		std::string stdoutFile = Agent.RootPath + "/data/stdout.log";
 		stdoutfile = CreateFile(stdoutFile.c_str(),
 			FILE_APPEND_DATA,
 			FILE_SHARE_WRITE | FILE_SHARE_READ,
@@ -68,7 +68,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 		size_t size = FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			NULL, dw, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR)&lpMsgBuf, 0, NULL);
 		std::string message(lpMsgBuf, size);
-		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...failed" << std::endl << "Error " << dw << " : " << message << std::endl;
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << " failed. Error " << dw << " : " << message << std::endl;
 		// Free resources created by the system
 		LocalFree(lpMsgBuf);
 		// We failed.
@@ -76,7 +76,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 	}
 	else
 	{
-		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << std::endl << CommandLine << std::endl << "...success!" << std::endl;
+		PrintThread{} << "Starting bot: " << Agent.BotName << " with command:" << CommandLine << std::endl;
 		// Successfully created the process.  Wait for it to finish.
 		*ProcessId = processInformation.dwProcessId;
 		WaitForSingleObject(processInformation.hProcess, INFINITE);
@@ -292,6 +292,11 @@ std::string GenerateMD5(std::string filename)
     CloseHandle(hFile);
 
     return ReturnString;
+}
+
+bool MakeDirectory(const std::string& directory_name)
+{
+    return CreateDirectory(directory_name.c_str(), NULL);
 }
 
 #endif

@@ -24,10 +24,12 @@ public:
 private:
     bool IsBotEnabled(std::string BotName);
 	bool IsInsideEloRange(std::string Bot1Name, std::string Bot2Name);
-	bool DownloadBot(const BotConfig &bot, std::string Checksum);
+    bool DownloadBot(const std::string & BotName, const std::string & checksum, bool Data);
     bool VerifyUploadRequest(const std::string & uploadResult);
-    bool UploadBot(const BotConfig &bot);
-	bool UploadCmdLine(GameResult result, const Matchup &ThisMatch, std::string UploadLocation);
+    bool UploadBot(const BotConfig &bot, bool Data);
+	bool GetBot(const BotConfig& Agent, const std::string & BotChecksum, const std::string & DataChecksum);
+    bool ConfgureBot(BotConfig & Agent, const std::string & BotId, const std::string & Checksum, const std::string & DataChecksum);
+    bool UploadCmdLine(GameResult result, const Matchup &ThisMatch, std::string UploadLocation);
 
 	bool LoginToServer();
 	std::string ResultsLogFile;
