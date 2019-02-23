@@ -265,6 +265,12 @@ bool LadderManager::IsInsideEloRange(std::string Bot1Name, std::string Bot2Name)
 bool LadderManager::DownloadBot(const std::string& BotName, const std::string& Checksum, bool Data)
 {
     constexpr int DownloadRetrys = 3;
+    std::string RootPath = Config->GetStringValue("BaseBotDirectory") + "/" + BotName;
+    if (Data)
+    {
+        RootPath += "/data";
+    }
+    RemoveDirectoryRecursive(RootPath);
     for (int RetryCount = 0; RetryCount < DownloadRetrys; RetryCount++)
     {
         std::vector<std::string> arguments;
@@ -283,11 +289,6 @@ bool LadderManager::DownloadBot(const std::string& BotName, const std::string& C
         remove(BotZipLocation.c_str());
         argument = " -o " + BotZipLocation;
         arguments.push_back(argument);
-        std::string RootPath = Config->GetStringValue("BaseBotDirectory") + "/" + BotName;
-        if (Data)
-        {
-            RootPath += "/data";
-        }
         PerformRestRequest(Config->GetStringValue("BotDownloadPath"), arguments);
         std::string BotMd5 = GenerateMD5(BotZipLocation);
         PrintThread{} << "Download checksum: " << Checksum << " Bot checksum: " << BotMd5 << std::endl;
@@ -367,7 +368,7 @@ bool LadderManager::UploadBot(const BotConfig &bot, bool Data)
     return false;
 }
 
-bool LadderManager::GetBot(const BotConfig& Agent, const std::string& BotChecksum, const std::string& DataChecksum)
+bool LadderManager::GetBot(BotConfig& Agent, const std::string& BotChecksum, const std::string& DataChecksum)
 {
     if (BotChecksum != "" && BotChecksum != Agent.CheckSum)
     {
@@ -375,6 +376,7 @@ bool LadderManager::GetBot(const BotConfig& Agent, const std::string& BotChecksu
         {
             PrintThread{} << "Bot download failed, skipping game" << std::endl;
             LogNetworkFailiure(Agent.BotName, "Download");
+            Agent.CheckSum = "";
             return false;
         }
     }

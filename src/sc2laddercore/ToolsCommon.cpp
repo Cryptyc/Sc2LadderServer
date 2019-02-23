@@ -26,6 +26,10 @@ void RemoveDirectoryRecursive(std::string Path)
     struct dirent *entry = NULL;
     DIR *dir = NULL;
     dir = opendir(Path.c_str());
+    if (dir == NULL)
+    {
+        return;
+    }
     while (entry = readdir(dir))
     {
         DIR *SubDir = NULL;
