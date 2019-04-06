@@ -2,12 +2,26 @@ language: cpp
 
 matrix:
   include:
+    - os: windows
+      env: BUILD_CONFIGURATION=Debug
+    - os: windows
+      env: BUILD_CONFIGURATION=Release
     - os: linux
       dist: trusty
       group: travis_lts
       sudo: required
+      env: BUILD_CONFIGURATION=Debug
+    - os: linux
+      dist: trusty
+      group: travis_lts
+      sudo: required
+      env: BUILD_CONFIGURATION=Release
     - os: osx
       osx_image: xcode9.1
+      env: BUILD_CONFIGURATION=Debug
+    - os: osx
+      osx_image: xcode9.1
+      env: BUILD_CONFIGURATION=Release
 
 before_install:
   - . .travis/before-install.sh
@@ -18,5 +32,4 @@ install:
 script:
   - mkdir build
   - cd build
-  - cmake ../
-  - make
+  - . ../.travis/build.sh
