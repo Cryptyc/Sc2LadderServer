@@ -40,24 +40,42 @@ $ cmake ../ -G "Visual Studio 15 2017 Win64"
 $ start Sc2LadderServer.sln
 ```
 
- ### Linux and OS X
- 
- ```bash
- # Clone the project.
- $ git clone --recursive https://github.com/Cryptyc/Sc2LadderServer.git
- $ cd Sc2LadderServer
- 
- # Create build directory.
- $ mkdir build
- $ cd build
- 
- # Generate a Makefile.
- # Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debuginfo is needed
- $ cmake ../
- 
- # Build.
- $ make
- ```
+### Linux
+```bash
+# Get the project.
+$ git clone --recursive https://github.com/Cryptyc/Sc2LadderServer.git
+$ cd Sc2LadderServer
+
+# Create build directory.
+$ mkdir build && cd build
+
+# Generate a Makefile.
+# Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debuginfo is needed
+$ cmake ../
+
+# Build.
+$ make
+```
+
+### OS X
+```bash
+# Get the project.
+$ git clone --recursive https://github.com/Cryptyc/Sc2LadderServer.git
+$ cd Sc2LadderServer
+
+# Apply compilation fixes for OS X.
+$ git apply hacks/civetweb_compilation_fix.patch
+
+# Create build directory.
+$ mkdir build && cd build
+
+# Generate a Makefile.
+# Use 'cmake -DCMAKE_BUILD_TYPE=Debug ../' if debuginfo is needed
+$ cmake ../
+
+# Build.
+$ make
+```
 
 ### Submodules
 If you don't initially do a `--recursive` clone (in which case, submodule folders will be left empty), you can download any submodules later like so:
