@@ -30,7 +30,7 @@ void RemoveDirectoryRecursive(std::string Path)
     {
         return;
     }
-    while (entry = readdir(dir))
+    while ((entry = readdir(dir)))
     {
         DIR *SubDir = NULL;
         FILE *file = NULL;
@@ -38,14 +38,14 @@ void RemoveDirectoryRecursive(std::string Path)
         if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."))
         {
             sprintf(AbsPath, "%s/%s", Path.c_str(), entry->d_name);
-            if (SubDir = opendir(AbsPath))
+            if ((SubDir = opendir(AbsPath)))
             {
                 closedir(SubDir);
                 RemoveDirectoryRecursive(AbsPath);
             }
             else
             {
-                if (file = fopen(AbsPath, "r"))
+                if ((file = fopen(AbsPath, "r")))
                 {
                     fclose(file);
                     remove(AbsPath);

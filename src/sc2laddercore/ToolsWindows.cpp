@@ -205,7 +205,7 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
     return true;
 }
 
-std::string GenerateMD5(std::string filename)
+std::string GenerateMD5(std::string& filename)
 {
     constexpr int BufferSize = 1024;
     constexpr int MD5Len = 16;
