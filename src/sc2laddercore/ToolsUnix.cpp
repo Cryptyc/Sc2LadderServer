@@ -21,7 +21,7 @@ namespace {
 
 int RedirectOutput(const BotConfig &Agent, int SrcFD, const char *LogFile)
 {
-    int logFD = open(LogFile, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR);
+    int logFD = open(LogFile, O_WRONLY | O_APPEND | O_CREAT, S_IRUSR | S_IWUSR);
     if (logFD < 0) {
         std::cerr << Agent.BotName +
             ": Failed to create a log file, error: " +
