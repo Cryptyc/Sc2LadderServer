@@ -15,6 +15,7 @@ Proxy::Proxy(const uint32_t maxGameLoops, const uint32_t maxRealGameTime, const 
     m_maxGameLoops(maxGameLoops)
   , m_maxRealGameTime(maxRealGameTime)
   , m_botConfig(botConfig)
+  , m_lastResponseSendTime(clock::now())
 {
 }
 
@@ -553,7 +554,10 @@ bool Proxy::processResponse(SC2APIProtocol::Response* const response)
             {
                 if (chat.has_message() && chat.message() == m_botConfig.SurrenderPhrase)
                 {
-                    m_surrenderLoop = m_currentGameLoop + 68; // ~3 in-game sec
+                    if (!m_surrenderLoop)
+                    {
+                        m_surrenderLoop = m_currentGameLoop + 68; // ~3 in-game sec
+                    }
                 }
             }
         }
