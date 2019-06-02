@@ -24,6 +24,7 @@ AgentsConfig::AgentsConfig(LadderConfig *InLadderConfig)
 	if (PlayerIdFile.length() > 0)
 	{
 		PlayerIds = new LadderConfig(PlayerIdFile);
+        PlayerIds->ParseConfig();
 		EnablePlayerIds = true;
 	}
 	if (Config->GetStringValue("BotConfigFile") != "")
