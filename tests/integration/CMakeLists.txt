@@ -18,14 +18,14 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/integration_test_configs/TestMatch_Bot1
 include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/tests/integration
     ${PROJECT_SOURCE_DIR}/src/sc2laddercore
-    ${PROJECT_SOURCE_DIR}/s2client-api/include
-    ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
-    ${PROJECT_BINARY_DIR}/s2client-api/generated
+    ${PROJECT_SOURCE_DIR}/cpp-sc2/include
+    ${PROJECT_SOURCE_DIR}/cpp-sc2/contrib/protobuf/src
+    ${PROJECT_BINARY_DIR}/cpp-sc2/generated
     ${PROJECT_SOURCE_DIR}/rapidjson
 )
 
 # Link directories
-link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
+link_directories(${PROJECT_BINARY_DIR}/cpp-sc2/bin)
 
 # Create the executable.
 add_executable(Sc2LadderIntegrationTests ${SOURCES_SC2LADDERSERVER_INTEGRATION_TESTS})

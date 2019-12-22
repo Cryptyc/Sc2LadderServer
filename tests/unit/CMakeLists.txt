@@ -5,13 +5,13 @@ file(GLOB SOURCES_SC2LADDERSERVER_UNIT_TESTS "*.cpp" "*.h")
 include_directories(SYSTEM
         ${PROJECT_SOURCE_DIR}/tests/unit
         ${PROJECT_SOURCE_DIR}/src/sc2laddercore
-        ${PROJECT_SOURCE_DIR}/s2client-api/include
-        ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
-        ${PROJECT_BINARY_DIR}/s2client-api/generated
+        ${PROJECT_SOURCE_DIR}/cpp-sc2/include
+        ${PROJECT_SOURCE_DIR}/cpp-sc2/contrib/protobuf/src
+        ${PROJECT_BINARY_DIR}/cpp-sc2/generated
         )
 
 # Link directories
-link_directories(${PROJECT_BINARY_DIR}/s2client-api/bin)
+link_directories(${PROJECT_BINARY_DIR}/cpp-sc2/bin)
 
 # Create the executable.
 add_executable(Sc2LadderUnitTests ${SOURCES_SC2LADDERSERVER_UNIT_TESTS})

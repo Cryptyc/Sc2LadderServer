@@ -5,20 +5,20 @@ file(GLOB SOURCES_SC2LADDERCORE "sc2laddercore/*.cpp" "sc2laddercore/*.h")
 # Include directories
 include_directories(SYSTEM
     ${PROJECT_SOURCE_DIR}/src/sc2laddercore
-    ${PROJECT_SOURCE_DIR}/s2client-api/include
-    ${PROJECT_SOURCE_DIR}/s2client-api/contrib/protobuf/src
-    ${PROJECT_BINARY_DIR}/s2client-api/generated
+    ${PROJECT_SOURCE_DIR}/cpp-sc2/include
+    ${PROJECT_SOURCE_DIR}/cpp-sc2/contrib/protobuf/src
+    ${PROJECT_BINARY_DIR}/cpp-sc2/generated
     ${PROJECT_SOURCE_DIR}/rapidjson
 )
 
 if (WIN32)
     include_directories(SYSTEM
-        ${PROJECT_SOURCE_DIR}/s2client-api/src/sc2utils/
+        ${PROJECT_SOURCE_DIR}/cpp-sc2/src/sc2utils/
     )
 endif ()
 
 # Link directories
-link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/s2client-api/bin)
+link_directories(${PROJECT_BINARY_DIR} ${PROJECT_BINARY_DIR}/cpp-sc2/bin)
 
 
 # Create the executable.
