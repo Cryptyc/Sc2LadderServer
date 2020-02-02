@@ -37,7 +37,7 @@
 
 LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderConfig *InConfig)
     : CoordinatorArgc(InCoordinatorArgc)
-    , CoordinatorArgv(InCoordinatorArgv)
+    , CoordinatorArgv()
     , Config(InConfig)
 {
     const int maxGameTimeInt = Config->GetIntValue("MaxGameTime");
@@ -46,6 +46,15 @@ LadderGame::LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderCo
     MaxRealGameTime = MaxRealGameTimeInt > 0 ? static_cast<uint32_t>(MaxRealGameTimeInt) : 0;
     RealTime = Config->GetBoolValue("RealTimeMode");
 }
+
+LadderGame::LadderGame(std::string InReplayDirectory, std::string InNameChangerLocation, bool InRealTime)
+    : ReplayDirectory(InReplayDirectory)
+    , NameChangeerLocation(InNameChangerLocation)
+    , RealTime(InRealTime)
+{
+    CoordinatorArgv[0] = NullCoordArgs;
+}
+
 
 void LadderGame::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
 {
@@ -81,6 +90,10 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     PrintThread {} << "Starting the StarCraft II clients." << std::endl;
     proxyBot1.startSC2Instance(process_settings, portServerBot1, portClientBot1);
     proxyBot2.startSC2Instance(process_settings, portServerBot2, portClientBot2);
+    if (Agent1.Type == BotType::Human)
+    {
+
+    }
     const bool startSC2InstanceSuccessful1 = proxyBot1.ConnectToSC2Instance(process_settings, portServerBot1, portClientBot1);
     const bool startSC2InstanceSuccessful2 = proxyBot2.ConnectToSC2Instance(process_settings, portServerBot2, portClientBot2);
     if (!startSC2InstanceSuccessful1 || !startSC2InstanceSuccessful2)
@@ -125,13 +138,15 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     {
         sc2::SleepFor(1000);
     }
-
-    std::string replayDir = Config->GetStringValue("LocalReplayDirectory");
-    if (replayDir.back() != '/')
+    if (ReplayDirectory == "")
     {
-        replayDir += "/";
+        ReplayDirectory = Config->GetStringValue("LocalReplayDirectory");
     }
-    std::string replayFile = replayDir + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
+    if (ReplayDirectory.back() != '/')
+    {
+        ReplayDirectory += "/";
+    }
+    std::string replayFile = ReplayDirectory + Agent1.BotName + "v" + Agent2.BotName + "-" + RemoveMapExtension(Map) + ".SC2Replay";
     replayFile.erase(remove_if(replayFile.begin(), replayFile.end(), isspace), replayFile.end());
     if (!(proxyBot1.saveReplay(replayFile) || proxyBot2.saveReplay(replayFile)))
     {
@@ -160,10 +175,13 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 
 void LadderGame::ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name)
 {
-    std::string CmdLine = Config->GetStringValue("ReplayBotRenameProgram");
-    if (CmdLine.size() > 0)
+    if (NameChangeerLocation == "")
     {
-        CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
+        NameChangeerLocation = Config->GetStringValue("ReplayBotRenameProgram");
+    }
+    if (NameChangeerLocation.size() > 0)
+    {
+        std::string CmdLine = NameChangeerLocation + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
         StartExternalProcess(CmdLine);
     }
 }

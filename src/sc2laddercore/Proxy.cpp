@@ -3,6 +3,8 @@
 #include <fstream>
 
 #include "Tools.h"
+#include "HumanBot.h"
+#include "ProxyBot.h"
 
 #include "sc2utils/sc2_manage_process.h"
 
@@ -28,7 +30,7 @@ Proxy::~Proxy()
     std::chrono::duration<double> elapsedSeconds{0};
     std::future_status botProgStatus{std::future_status::deferred};
     // toDo: add to config?
-    constexpr auto maxWaitTime{20};
+    constexpr auto maxWaitTime{60};
     if (m_botProgramThread.valid())
     {
         while (elapsedSeconds.count() < maxWaitTime)
@@ -65,7 +67,20 @@ void Proxy::startSC2Instance(const sc2::ProcessSettings& processSettings, const 
     m_gameClientPid = sc2::StartProcess(processSettings.process_path,
         { "-listen", m_localHost,
           "-port", std::to_string(portClient),
-          "-displayMode", "0",
+          "-displaymode", "0",
+          "-mastervolume", "0.0"
+          "-dataVersion", processSettings.data_version });
+}
+
+void Proxy::startSC2InstanceHuman(const sc2::ProcessSettings& processSettings, const int portServer, const int portClient)
+{
+    // magic numbers
+    m_server.Listen(std::to_string(portServer).c_str(), "100000", "100000", "5");
+
+    m_gameClientPid = sc2::StartProcess(processSettings.process_path,
+        { "-listen", m_localHost,
+          "-port", std::to_string(portClient),
+          "-displaymode", "1",
           "-dataVersion", processSettings.data_version });
 }
 
@@ -102,6 +117,7 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
     // Only one client needs to / is allowed to send the create game request.
     if (m_mapAlreadyLoaded)
     {
+        PrintThread{} << "Send request aborted, as map already loaded" << std::endl;
         return true;
     }
     sc2::ProtoInterface proto;
@@ -154,6 +170,7 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
                 }
                 else
                 {
+                    PrintThread{} << "Unable to find map, aborting" << std::endl;
                     return false;
                 }
             }
@@ -162,6 +179,7 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
 
     // Real time mode
     requestCreateGame->set_realtime(realTimeMode);
+
 
     // Send the request
     m_client.Send(request.get());
@@ -176,19 +194,70 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
     return true;
 }
 
+void StartHumanProcess(const int portServer, const int portStart, const std::string& opponentPlayerId, sc2::Race BotRace)
+{
+    HumanBot Human(BotRace);
+    Human.StartHuman(portServer, portStart, "127.0.0.1", false, opponentPlayerId);
+
+}
+
+void StartProxyProcess(const int portServer, const int portStart, const std::string& opponentPlayerId, sc2::Race BotRace, const std::string& ProxyServer, const std::string& ProxyPort, const std::string& BotName, std::string RemoteServer )
+{
+    ProxyBot RemoteProxy(BotName, ProxyServer, ProxyPort, std::to_string(portServer), std::to_string(portStart), RemoteServer);
+    RemoteProxy.RunProxy();
+}
+
+void StartProxyTestProcess(const int portServer, const int portStart, const std::string& opponentPlayerId, sc2::Race BotRace, const std::string& ProxyServer, const std::string& ProxyPort, const std::string& BotName, std::string Username, std::string Password, std::string RemoteServer)
+{
+    ProxyBot RemoteProxy(BotName, ProxyServer, ProxyPort, std::to_string(portServer), std::to_string(portStart), Username, Password, RemoteServer);
+    RemoteProxy.RunProxy();
+}
+
+
 bool Proxy::startBot(const int portServer, const int portStart, const std::string & opponentPlayerId)
 {
-    const std::string botStartCommand = getBotCommandLine(portServer, portStart, opponentPlayerId);
-    if (botStartCommand == m_botConfig.executeCommand)
+    if (m_botConfig.Type == BotType::Human)
     {
-        return false;
+        m_botProgramThread = std::async(std::launch::async, &StartHumanProcess, portServer, portStart, opponentPlayerId, m_botConfig.Race);
+        m_botThreadId = 0;
+        if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+        {
+            return false;
+        }
     }
-    m_botProgramThread = std::async(std::launch::async, &StartBotProcess, m_botConfig, botStartCommand, &m_botThreadId);
-    if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+    else if (m_botConfig.Type == BotType::RemoteBot)
     {
-        return false;
+        m_botProgramThread = std::async(std::launch::async, &StartProxyProcess, portServer, portStart, opponentPlayerId, m_botConfig.Race, m_botConfig.ProxyAddress, m_botConfig.ProxyPort, m_botConfig.BotName, m_botConfig.FileName);
+        m_botThreadId = 0;
+        if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+        {
+            return false;
+        }
     }
-    constexpr size_t maxStartUpTime = 10U; // The bot gets 10 seconds to connect to the proxy. This is NOT the first game loop time.
+    else if (m_botConfig.Type == BotType::RemoteTestBot)
+    {
+        m_botProgramThread = std::async(std::launch::async, &StartProxyTestProcess, portServer, portStart, opponentPlayerId, m_botConfig.Race, m_botConfig.ProxyAddress, m_botConfig.ProxyPort, m_botConfig.BotName, m_botConfig.Username, m_botConfig.Password, m_botConfig.FileName);
+        m_botThreadId = 0;
+        if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        const std::string botStartCommand = getBotCommandLine(portServer, portStart, opponentPlayerId);
+        if (botStartCommand == m_botConfig.executeCommand)
+        {
+            return false;
+        }
+        m_botProgramThread = std::async(std::launch::async, &StartBotProcess, m_botConfig, botStartCommand, &m_botThreadId);
+        if (m_botProgramThread.wait_for(std::chrono::seconds(2)) == std::future_status::ready)
+        {
+            return false;
+        }
+
+    }
+    constexpr size_t maxStartUpTime = 30U; // The bot gets 10 seconds to connect to the proxy. This is NOT the first game loop time.
     for (auto waitedFor(0U); waitedFor < maxStartUpTime; ++waitedFor)
     {
         if (!m_server.connections_.empty())
@@ -328,6 +397,7 @@ void Proxy::gameUpdate()
                 m_result = ExitCase::BotCrashed;
                 continue;
             }
+//            PrintThread{} << m_botConfig.BotName << " Req:  " << request.second->DebugString() << std::endl;
             // Forward the valid request
             // The cast puts a lot of trust in Blizzard
             const auto expectedResponseCase = static_cast<SC2APIProtocol::Response::ResponseCase>(request.second->request_case());
@@ -345,6 +415,7 @@ void Proxy::gameUpdate()
             // Send the response back to the client.
             if (!m_server.connections_.empty() && m_client.connection_ != nullptr)
             {
+//                PrintThread{} << m_botConfig.BotName << " Resp:  " << response->DebugString() << std::endl;
                 m_server.QueueResponse(m_client.connection_, response);
                 m_server.SendResponse();
             }
