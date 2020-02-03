@@ -11,7 +11,6 @@ class LadderGame
 {
 public:
     LadderGame(int InCoordinatorArgc, char** InCoordinatorArgv, LadderConfig *InConfig);
-    LadderGame(std::string ReplayDirectory, std::string InNameChangerLocation, bool InRealTime);
     GameResult StartGame(const BotConfig & Agent1, const BotConfig & Agent2, const std::string & Map);
 
 
@@ -20,13 +19,10 @@ private:
     void LogStartGame(const BotConfig & Bot1, const BotConfig & Bot2);
     void ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name);
 
-    char NullCoordArgs[14] = { "LadderManager" };
-    int CoordinatorArgc = 1;
-    char* CoordinatorArgv[2];
-    LadderConfig *Config = nullptr;
+    int CoordinatorArgc;
+    char** CoordinatorArgv;
+    LadderConfig *Config;
     uint32_t MaxGameTime{0U};
     uint32_t MaxRealGameTime{0U};
     bool RealTime{false};
-    std::string ReplayDirectory = "";
-    std::string NameChangeerLocation = "";
 };

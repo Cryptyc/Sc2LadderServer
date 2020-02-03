@@ -97,8 +97,7 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
 		// We succeeded.
 	}
 	CloseHandle(stderrfile);
-//    if (true)
-    if (Agent.Debug)
+	if (Agent.Debug)
 	{
 		CloseHandle(stdoutfile);
 	}
@@ -136,10 +135,9 @@ void KillBotProcess(unsigned long pid)
 	DWORD dwDesiredAccess = PROCESS_TERMINATE;
 	BOOL  bInheritHandle = FALSE;
 	HANDLE hProcess = OpenProcess(dwDesiredAccess, bInheritHandle, pid);
-    if (hProcess == NULL)
-    {
-        return;
-    }
+	if (hProcess == NULL)
+		return;
+
 	TerminateProcess(hProcess, 0);
 	CloseHandle(hProcess);
 }
@@ -158,6 +156,7 @@ std::string PerformRestRequest(const std::string &location, const std::vector<st
 		command = command + NextArgument;
 	}
 	command = command + " " + location;
+    PrintThread{} << command << std::endl;
 	std::shared_ptr<FILE> pipe(_popen(command.c_str(), "r"), _pclose);
 	if (!pipe)
 	{
@@ -206,7 +205,7 @@ bool UnzipArchive(const std::string &InArchive, const std::string &OutDirectory)
     return true;
 }
 
-std::string GenerateMD5(const std::string& filename)
+std::string GenerateMD5(std::string& filename)
 {
     constexpr int BufferSize = 1024;
     constexpr int MD5Len = 16;

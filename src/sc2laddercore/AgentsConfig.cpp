@@ -195,11 +195,6 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
                 OutCmdLine = Config->GetStringValue("NodeJSBinary") + " " + NewBot.FileName;
                 break;
             }
-            case Human:
-            {
-                OutCmdLine = "HumanBot";
-                break;
-            }
             }
 
             if (NewBot.Args != "")

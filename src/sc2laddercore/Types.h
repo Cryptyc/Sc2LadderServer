@@ -34,9 +34,6 @@ enum BotType
 	DotNetCore,
     Java,
     NodeJS,
-    Human,
-    RemoteTestBot,
-    RemoteBot
 };
 
 enum class ResultType
@@ -88,11 +85,19 @@ struct GameState
 
 struct GameResult
 {
-    ResultType Result = ResultType::InitializationError;
-    float Bot1AvgFrame = 0.f;
-    float Bot2AvgFrame = 0.f;
-    uint32_t GameLoop = 0;
+    ResultType Result;
+    float Bot1AvgFrame;
+    float Bot2AvgFrame;
+    uint32_t GameLoop;
     std::string TimeStamp;
+    GameResult()
+        : Result(ResultType::InitializationError)
+        , Bot1AvgFrame(0)
+        , Bot2AvgFrame(0)
+        , GameLoop(0)
+        , TimeStamp("")
+    {}
+
 };
 
 struct BotConfig
@@ -112,10 +117,6 @@ struct BotConfig
     int ELO;
     std::string executeCommand;
     std::string SurrenderPhrase{"pineapple"};
-    std::string ProxyAddress;
-    std::string ProxyPort;
-    std::string Username;
-    std::string Password;
 
 	BotConfig()
 		: Type(BotType::BinaryCpp)
