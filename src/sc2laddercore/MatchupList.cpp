@@ -251,6 +251,10 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
         }
 
 	}
+    else
+    {
+        return false;
+    }
 	if (doc.HasMember("Bot2") && doc["Bot2"].IsObject())
 	{
 		const rapidjson::Value &Bot2Value = doc["Bot2"];
@@ -276,6 +280,10 @@ bool MatchupList::GetNextMatchFromURL(Matchup &NextMatch)
         {
             NextMatch.Bot2DataChecksum = Bot2Value["datachecksum"].GetString();
         }
+    }
+    else
+    {
+        return false;
     }
 	if (doc.HasMember("Map") && doc["Map"].IsString())
 	{
