@@ -278,7 +278,12 @@ bool Proxy::createGameHasErrors(const SC2APIProtocol::ResponseCreateGame& create
 std::string Proxy::getBotCommandLine(const int gamePort, const int startPort, const std::string& opponentID) const
 {
     // Add universal arguments
-    return m_botConfig.executeCommand + " --GamePort " + std::to_string(gamePort) + " --StartPort " + std::to_string(startPort) + " --LadderServer " + m_localHost + " --OpponentId " + opponentID;
+    std::string ReturnCmd = m_botConfig.executeCommand + " --GamePort " + std::to_string(gamePort) + " --StartPort " + std::to_string(startPort) + " --LadderServer " + m_localHost + " --OpponentId " + opponentID;
+    if (m_realTimeMode)
+    {
+        ReturnCmd += " --RealTime";
+    }
+
 }
 
 
@@ -380,7 +385,7 @@ void Proxy::gameUpdate()
         {
             const uint32_t maxStepTime = getMaxStepTime();  // ms
             const auto timeSinceLastResponse = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - m_lastResponseSendTime).count();
-            if (!m_botConfig.Debug && !m_realTimeMode && maxStepTime && timeSinceLastResponse > static_cast<int>(maxStepTime))
+            if ( !m_realTimeMode && maxStepTime && timeSinceLastResponse > static_cast<int>(maxStepTime))
             {
                 PrintThread{} << m_botConfig.BotName << " : bot is too slow. " << timeSinceLastResponse << " milliseconds passed. Max step time: " << static_cast<int>(maxStepTime) << " milliseconds." << std::endl;
                 // ToDo: Make a chat announcement
