@@ -283,6 +283,7 @@ std::string Proxy::getBotCommandLine(const int gamePort, const int startPort, co
     {
         ReturnCmd += " --RealTime";
     }
+    return ReturnCmd;
 
 }
 
