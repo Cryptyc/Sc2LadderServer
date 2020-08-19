@@ -16,6 +16,8 @@ Proxy::Proxy(const uint32_t maxGameLoops, const uint32_t maxRealGameTime, const 
   , m_maxRealGameTime(maxRealGameTime)
   , m_botConfig(botConfig)
 {
+    m_lastResponseSendTime = clock::now();
+
 }
 
 Proxy::~Proxy()
@@ -632,7 +634,7 @@ uint32_t Proxy::getMaxStepTime() const
     {
         return 20000U;  // ToDo: Add this to config file.
     }
-    return 0U;
+    return 300000U;
 }
 
 void Proxy::updateStatus(const SC2APIProtocol::Status newStatus)
