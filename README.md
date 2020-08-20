@@ -63,9 +63,6 @@ $ make
 $ git clone --recursive https://github.com/Cryptyc/Sc2LadderServer.git
 $ cd Sc2LadderServer
 
-# Apply compilation fixes for OS X.
-$ git apply hacks/civetweb_compilation_fix.patch
-
 # Create build directory.
 $ mkdir build && cd build
 
