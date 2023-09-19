@@ -280,7 +280,12 @@ bool Proxy::createGameHasErrors(const SC2APIProtocol::ResponseCreateGame& create
 std::string Proxy::getBotCommandLine(const int gamePort, const int startPort, const std::string& opponentID) const
 {
     // Add universal arguments
-    std::string ReturnCmd = m_botConfig.executeCommand + " --GamePort " + std::to_string(gamePort) + " --StartPort " + std::to_string(startPort) + " --LadderServer " + m_localHost + " --OpponentId " + opponentID;
+    std::string ReturnCmd = m_botConfig.executeCommand +
+            " --GamePort " + std::to_string(gamePort) +
+            " --StartPort " + std::to_string(startPort) +
+            " --LadderServer " + m_localHost +
+            " --OpponentId " + opponentID +
+            " --ForceRace " + GetRaceString(m_botConfig.Race);
     if (m_realTimeMode)
     {
         ReturnCmd += " --RealTime";
