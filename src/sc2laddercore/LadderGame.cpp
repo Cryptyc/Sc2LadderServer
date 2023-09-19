@@ -52,8 +52,8 @@ void LadderGame::LogStartGame(const BotConfig &Bot1, const BotConfig &Bot2)
     std::time_t t = std::time(nullptr);
     std::tm tm = *std::localtime(&t);
     // Why do we log this in stderr ?
-    std::string Bot1Filename = Bot1.RootPath + "/data/stderr.log";
-    std::string Bot2Filename = Bot2.RootPath + "/data/stderr.log";
+    std::string Bot1Filename = Bot1.RootPath + "/data/stderr-" + Bot1.PlayerId + ".log";
+    std::string Bot2Filename = Bot2.RootPath + "/data/stderr-" + Bot2.PlayerId + ".log";
     std::ofstream outfile;
     outfile.open(Bot1Filename, std::ios_base::app);
     outfile << std::endl << std::put_time(&tm, "%d-%m-%Y %H-%M-%S") << ": " << "Starting game vs " << Bot2.BotName << std::endl;
