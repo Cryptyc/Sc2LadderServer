@@ -89,11 +89,7 @@ bool LadderManager::LoadSetup()
 		return false;
 	}
 
-	std::string EnableReplayUploadString = Config->GetStringValue("EnableReplayUpload");
-	if (EnableReplayUploadString == "True")
-	{
-		EnableReplayUploads = true;
-	}
+    EnableReplayUploads = Config->GetBoolValue("EnableReplayUpload");
 
 	ResultsLogFile = Config->GetStringValue("ResultsLogFile");
 	ServerUsername = Config->GetStringValue("ServerUsername");
