@@ -16,7 +16,7 @@ public:
 
 
 private:
-    void LogStartGame(const BotConfig & Bot1, const BotConfig & Bot2);
+    static void LogStartGame(const BotConfig & Bot1, const BotConfig & Bot2);
     void ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name);
 
     int CoordinatorArgc;

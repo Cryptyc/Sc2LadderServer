@@ -16,8 +16,6 @@ private:
     const std::string MatchupListFile;
     std::vector<Matchup> Matchups;
     AgentsConfig *AgentConfig;
-    bool LoadMatchupList();
-	bool GetNextMatchFromURL(Matchup &NextMatch);
 
 	const std::string sc2Path{""};
     MatchupListType MatchUpProcess;

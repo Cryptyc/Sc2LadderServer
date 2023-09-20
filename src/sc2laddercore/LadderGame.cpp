@@ -1,34 +1,17 @@
 #include "LadderGame.h"
 
-#include <sys/stat.h>
-#include <fcntl.h>
-
-#include <exception>
 #include <fstream>
 #include <string>
-#include <vector>
-#include <memory>
 #include <iostream>
 #include <future>
 #include <chrono>
 #include <sstream>
 #include <cctype>
 
-#include "sc2lib/sc2_lib.h"
-#include "sc2api/sc2_api.h"
-#include "sc2api/sc2_interfaces.h"
 #include "sc2api/sc2_score.h"
-#include "sc2api/sc2_map_info.h"
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2api/sc2_game_settings.h"
-#include "sc2api/sc2_proto_interface.h"
-#include "sc2api/sc2_proto_to_pods.h"
-#include "s2clientprotocol/sc2api.pb.h"
-#include "sc2api/sc2_server.h"
-#include "sc2api/sc2_connection.h"
 #include "sc2api/sc2_args.h"
-#include "sc2api/sc2_client.h"
-#include "civetweb.h"
 
 #include "Types.h"
 #include "Tools.h"
@@ -86,7 +69,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     if (!startSC2InstanceSuccessful1 || !startSC2InstanceSuccessful2)
     {
         PrintThread {} << "Failed to start the StarCraft II clients." << std::endl;
-        return GameResult();
+        return {};
     }
     // Setup map
     PrintThread {} << "Creating the game on " << Map << "." << std::endl;
@@ -95,7 +78,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     if (!setupGameSuccessful1 || !setupGameSuccessful2)
     {
         PrintThread {} << "Failed to create the game." << std::endl;
-        return GameResult();
+        return {};
     }
 
     // Start the bots
@@ -112,7 +95,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
     }
     if (!startBotSuccessful1 || !startBotSuccessful2)
     {
-        return GameResult();
+        return {};
     }
 
     // Start the match
@@ -161,7 +144,7 @@ GameResult LadderGame::StartGame(const BotConfig &Agent1, const BotConfig &Agent
 void LadderGame::ChangeBotNames(const std::string &ReplayFile, const std::string &Bot1Name, const std::string &Bot2Name)
 {
     std::string CmdLine = Config->GetStringValue("ReplayBotRenameProgram");
-    if (CmdLine.size() > 0)
+    if (!CmdLine.empty())
     {
         CmdLine = CmdLine + " " + ReplayFile + " " + FIRST_PLAYER_NAME + " " + Bot1Name + " " + SECOND_PLAYER_NAME + " " + Bot2Name;
         StartExternalProcess(CmdLine);

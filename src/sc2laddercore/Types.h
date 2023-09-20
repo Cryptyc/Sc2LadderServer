@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <list>
 
 class PrintThread : public std::ostringstream
 {
@@ -54,7 +55,6 @@ enum class ResultType
 enum MatchupListType
 {
     File,
-    URL,
     None
 };
 
@@ -148,25 +148,37 @@ struct BotConfig
 
 struct Matchup
 {
-	BotConfig Agent1;
-	BotConfig Agent2;
-    std::string Bot1Id;
-    std::string Bot1Checksum;
-    std::string Bot1DataChecksum;
-    std::string Bot2Id;
-    std::string Bot2Checksum;
-    std::string Bot2DataChecksum;
+
+    std::vector<BotConfig>      Agents; // agents, ids and checksums size should be equal
+    std::vector<std::string>    BotIds;
+    std::vector<std::string>    BotChecksums;
+    std::vector<std::string>    BotDataChecksums;
+
     std::string Map;
+
 	Matchup() {}
-	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)
-		: Agent1(InAgent1),
-		Agent2(InAgent2),
-		Map(InMap)
-	{
 
-	}
+    Matchup(const std::vector<BotConfig> Agents, const std::string &InMap):
+        Map(InMap),
+        Agents(Agents) {}
 
+public:
+    std::string ReplayName() const {
+        return std::string();
+    }
 
+    std::string GameName() const {
+        return std::string();
+    }
+
+    std::vector<std::string> AgentNames() const {
+        std::vector<std::string> agentNames = std::vector<std::string>();
+        for (const auto & bot : Agents) {
+            agentNames.push_back(bot.BotName);
+        }
+
+        return agentNames;
+    }
 };
 
 static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorType)
@@ -174,11 +186,7 @@ static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorT
     std::string type(GeneratorType);
     std::transform(type.begin(), type.end(), type.begin(), ::tolower);
 
-    if (type == "url")
-    {
-        return MatchupListType::URL;
-    }
-    else if (type == "file")
+    if (type == "file")
     {
         return MatchupListType::File;
     }
