@@ -16,16 +16,14 @@ public:
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv);
 	LadderManager(int InCoordinatorArgc, char** inCoordinatorArgv, const char *InConfigFile);
     bool LoadSetup();
-	void SaveJsonResult(const BotConfig & Bot1, const BotConfig & Bot2, const std::string & Map, GameResult Result);
+	void SaveJsonResult(const std::vector<BotConfig> &Agents, const std::string &Map, const GameResult &Result);
 	void RunLadderManager();
 
     void LogNetworkFailure(const std::string &AgentName, const std::string &Action);
 
 private:
-    bool IsBotEnabled(std::string BotName);
-	bool IsInsideEloRange(std::string Bot1Name, std::string Bot2Name);
     bool DownloadBot(const std::string & BotName, const std::string & checksum, bool Data);
-    bool VerifyUploadRequest(const std::string & uploadResult);
+    static bool VerifyUploadRequest(const std::string & uploadResult);
     bool UploadBot(const BotConfig &bot, bool Data);
 	bool GetBot(BotConfig& Agent, const std::string & BotChecksum, const std::string & DataChecksum);
     bool ConfigureBot(BotConfig & Agent, const std::string & BotId, const std::string & Checksum, const std::string & DataChecksum);

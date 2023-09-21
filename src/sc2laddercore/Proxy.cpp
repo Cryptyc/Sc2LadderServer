@@ -98,7 +98,8 @@ bool Proxy::ConnectToSC2Instance(const sc2::ProcessSettings& processSettings, co
 }
 
 // Technically, we only need opponents race. But I think it looks clearer on the caller side with both races.
-bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::string& map, const bool realTimeMode, const sc2::Race bot1Race, const sc2::Race bot2Race)
+bool Proxy::setupGame(const sc2::ProcessSettings &processSettings, const std::string &map, const bool realTimeMode,
+                      const std::vector<sc2::Race> &races)
 {
     m_realTimeMode = realTimeMode;
     // Only one client needs to / is allowed to send the create game request.
@@ -111,17 +112,13 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
 
     SC2APIProtocol::RequestCreateGame* requestCreateGame = request->mutable_create_game();
 
-    // Player 1
-    SC2APIProtocol::PlayerSetup* playerSetup = requestCreateGame->add_player_setup();
-    playerSetup->set_type(SC2APIProtocol::PlayerType::Participant);
-    playerSetup->set_race(SC2APIProtocol::Race(static_cast<int>(bot1Race) + 1));  // Ugh
-    playerSetup->set_difficulty(SC2APIProtocol::Difficulty::VeryEasy);
-
-    // Player 2
-    playerSetup = requestCreateGame->add_player_setup();
-    playerSetup->set_type(SC2APIProtocol::PlayerType::Participant);
-    playerSetup->set_race(SC2APIProtocol::Race(static_cast<int>(bot2Race) + 1));
-    playerSetup->set_difficulty(SC2APIProtocol::Difficulty::VeryEasy);
+    // setup players
+    for (const auto & race : races) {
+        SC2APIProtocol::PlayerSetup* playerSetup = requestCreateGame->add_player_setup();
+        playerSetup->set_type(SC2APIProtocol::PlayerType::Participant);
+        playerSetup->set_race(SC2APIProtocol::Race(static_cast<int>(race) + 1));  // Ugh
+        playerSetup->set_difficulty(SC2APIProtocol::Difficulty::VeryEasy);
+    }
 
     // Map
     // BattleNet map
@@ -134,12 +131,9 @@ bool Proxy::setupGame(const sc2::ProcessSettings& processSettings, const std::st
         // Local map file
         SC2APIProtocol::LocalMap* const localMap = requestCreateGame->mutable_local_map();
         // Absolute path
-        if (sc2::DoesFileExist(map))
-        {
+        if (sc2::DoesFileExist(map)) {
             localMap->set_map_path(map);
-        }
-        else
-        {
+        } else {
             // Relative path - Game maps directory
             const std::string gameRelative = sc2::GetGameMapsDirectory(processSettings.process_path) + map;
             if (sc2::DoesFileExist(gameRelative))

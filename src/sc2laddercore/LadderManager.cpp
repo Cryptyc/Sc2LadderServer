@@ -96,8 +96,11 @@ bool LadderManager::LoadSetup()
 	return true;
 }
 
-void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2, const std::string  &Map, GameResult Result)
-{
+void
+LadderManager::SaveJsonResult(const std::vector<BotConfig> &Agents,
+                              const std::string &Map,
+                              const GameResult &Result) {
+
 	rapidjson::Document ResultsDoc;
 	rapidjson::Document OriginalResults;
 	rapidjson::Document::AllocatorType& alloc = ResultsDoc.GetAllocator();
@@ -122,19 +125,19 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	}
 
 	rapidjson::Value NewResult(rapidjson::kObjectType);
-	NewResult.AddMember("Bot1", Bot1.BotName, ResultsDoc.GetAllocator());
-	NewResult.AddMember("Bot2", Bot2.BotName, alloc);
-	switch (Result.Result)
-	{
-    case ResultType::Player1Win:
-    case ResultType::Player2Crash:
-    case ResultType::Player2TimeOut:
-		NewResult.AddMember("Winner", Bot1.BotName, alloc);
-		break;
-    case ResultType::Player2Win:
-    case ResultType::Player1Crash:
-    case ResultType::Player1TimeOut:
-		NewResult.AddMember("Winner", Bot2.BotName, alloc);
+
+    int agentIndex = 0;
+    for (const auto & Agent : Agents) {
+        std::string fieldName = "Bot" + std::to_string(agentIndex + 1);
+
+        NewResult.AddMember(rapidjson::StringRef(fieldName),
+                            Agent.BotName, alloc);
+        agentIndex++;
+    }
+
+	switch (Result.Result) {
+    case ResultType::Win:
+		NewResult.AddMember("Winner", Result.Winner, alloc);
 		break;
     case ResultType::Tie:
     case ResultType::Timeout:
@@ -151,8 +154,10 @@ void LadderManager::SaveJsonResult(const BotConfig &Bot1, const BotConfig &Bot2,
 	NewResult.AddMember("Result", GetResultType(Result.Result), alloc);
 	NewResult.AddMember("GameTime", Result.GameLoop, alloc);
 	NewResult.AddMember("TimeStamp", Result.TimeStamp, alloc);
+
 	ResultsArray.PushBack(NewResult, alloc);
 	ResultsDoc.AddMember("Results", ResultsArray, alloc);
+
 	std::ofstream ofs(ResultsLogFile.c_str());
 	rapidjson::OStreamWrapper osw(ofs);
 	rapidjson::PrettyWriter<rapidjson::OStreamWrapper> writer(osw);
@@ -175,15 +180,13 @@ bool LadderManager::UploadCmdLine(GameResult result, const Matchup &ThisMatch, c
     argument = " -F Password=" + ServerPassword;
     arguments.push_back(argument);
 
-    int botCounter = 1;
+    int botCounter = 0;
     for (const BotConfig &bot : ThisMatch.Agents) { // todo use cpp23 enumerate (if it happen...)
-        argument = " -F Bot" + std::to_string(botCounter) + "Name=" + bot.BotName;
+        argument = " -F Bot" + std::to_string(botCounter + 1) + "Name=" + bot.BotName;
         arguments.push_back(argument);
 
         // todo update avgframe fields
-        argument = " -F Bot1AvgFrame=" + std::to_string(result.Bot1AvgFrame);
-        arguments.push_back(argument);
-        argument = " -F Bot2AvgFrame=" + std::to_string(result.Bot2AvgFrame);
+        argument = " -F Bot" + std::to_string(botCounter + 1) + "AvgFrame=" + std::to_string(result.AvgFrames[botCounter]);
         arguments.push_back(argument);
         botCounter += 1;
     }
@@ -212,38 +215,6 @@ bool LadderManager::LoginToServer()
     argument = " -F Password=" + ServerPassword;
     arguments.push_back(argument);
     PerformRestRequest(ServerLoginAddress, arguments);
-	return true;
-}
-
-bool LadderManager::IsBotEnabled(std::string BotName)
-{
-	BotConfig ThisBot;
-	if (AgentConfig->FindBot(BotName, ThisBot))
-	{
-		return ThisBot.Enabled;
-
-	}
-	return false;
-}
-bool LadderManager::IsInsideEloRange(std::string Bot1Name, std::string Bot2Name)
-{
-	if (MaxEloDiff == 0)
-	{
-		return true;
-	}
-	BotConfig Bot1, Bot2;
-	if (AgentConfig->FindBot(Bot1Name, Bot1) && AgentConfig->FindBot(Bot2Name, Bot2))
-	{
-		int32_t EloDiff = abs(Bot1.ELO - Bot2.ELO);
-		PrintThread{} << Bot1Name << " ELO: " << Bot1.ELO << " | " << Bot2Name << " ELO: " << Bot2.ELO << " | Diff: " << EloDiff << std::endl;
-
-		if (Bot1.ELO > 0 && Bot2.ELO > 0 && abs(EloDiff) > MaxEloDiff)
-		{
-			return false;
-		}
-		return true;
-
-	}
 	return true;
 }
 
@@ -278,7 +249,7 @@ bool LadderManager::DownloadBot(const std::string& BotName, const std::string& C
         std::string BotMd5 = GenerateMD5(BotZipLocation);
         PrintThread{} << "Download checksum: " << Checksum << " Bot checksum: " << BotMd5 << std::endl;
 
-        if (BotMd5.compare(Checksum) == 0)
+        if (BotMd5 == Checksum)
         {
             UnzipArchive(BotZipLocation, RootPath);
             remove(BotZipLocation.c_str());
@@ -412,8 +383,7 @@ bool LadderManager::ConfigureBot(BotConfig& Agent,
         return false;
     }
 
-    if (BotId != "")
-    {
+    if (!BotId.empty()) {
         Agent.PlayerId = BotId;
     }
 
@@ -473,9 +443,7 @@ void LadderManager::RunLadderManager()
             }
 
             // todo replace with vector argument
-			result = CurrentLadderGame.StartGame(NextMatch.Agents[0],
-                                                 NextMatch.Agents[1],
-                                                 NextMatch.Map);
+			result = CurrentLadderGame.StartGame(NextMatch.Agents, NextMatch.Map);
 
 			if (!Config->GetStringValue("BotUploadPath").empty()) {
                 for (auto & Agent : NextMatch.Agents) {
@@ -496,10 +464,10 @@ void LadderManager::RunLadderManager()
 	    	}
 
     		if (!ResultsLogFile.empty()) {
-			    SaveJsonResult(NextMatch.Agents[0],
-                               NextMatch.Agents[1],
-                               NextMatch.Map,
-                               result);
+                SaveJsonResult(
+                        NextMatch.Agents,
+                        NextMatch.Map,
+                        result);
     		}
 
             Matchups->SaveMatchList();

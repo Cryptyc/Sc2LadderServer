@@ -42,12 +42,7 @@ enum class ResultType
 	InitializationError,
 	Timeout,
 	ProcessingReplay,
-    Player1Win,
-    Player1Crash,
-    Player1TimeOut,
-	Player2Win,
-	Player2Crash,
-    Player2TimeOut,
+    Win,
 	Tie,
 	Error
 };
@@ -86,18 +81,18 @@ struct GameState
 struct GameResult
 {
     ResultType Result;
-    float Bot1AvgFrame;
-    float Bot2AvgFrame;
+    std::vector<float> AvgFrames;
     uint32_t GameLoop;
     std::string TimeStamp;
+    std::string Winner;
+
     GameResult()
         : Result(ResultType::InitializationError)
-        , Bot1AvgFrame(0)
-        , Bot2AvgFrame(0)
         , GameLoop(0)
         , TimeStamp("")
+        , Winner("")
+        , AvgFrames{}
     {}
-
 };
 
 struct BotConfig
@@ -408,26 +403,11 @@ static std::string GetResultType(ResultType InResultType)
     case ResultType::ProcessingReplay:
 		return "ProcessingReplay";
 
-    case ResultType::Player1Win:
-		return "Player1Win";
-
-    case ResultType::Player1Crash:
-        return "Player1Crash";
-
-    case ResultType::Player1TimeOut:
-        return "Player1TimeOut";
-
-    case ResultType::Player2Win:
-		return "Player2Win";
-
-    case ResultType::Player2Crash:
-		return "Player2Crash";
-
-    case ResultType::Player2TimeOut:
-        return "Player2TimeOut";
-
     case ResultType::Tie:
 		return "Tie";
+
+    case ResultType::Win:
+		return "Win";
 
 	default:
 		return "Error";
@@ -442,42 +422,6 @@ static std::string RemoveMapExtension(const std::string& filename)
         return filename;
     }
     return filename.substr(0, lastdot);
-}
-
-static ResultType getEndResultFromProxyResults(const ExitCase resultBot1, const ExitCase resultBot2)
-{
-    if ((resultBot1 == ExitCase::BotCrashed && resultBot2 == ExitCase::BotCrashed)
-            || (resultBot1 == ExitCase::BotStepTimeout && resultBot2 == ExitCase::BotStepTimeout)
-            || (resultBot1 == ExitCase::Error && resultBot2 == ExitCase::Error))
-    {
-        // If both bots crashed we assume the bots are not the problem.
-        return ResultType::Error;
-    }
-    if (resultBot1 == ExitCase::BotCrashed)
-    {
-        return ResultType::Player1Crash;
-    }
-    if (resultBot2 == ExitCase::BotCrashed)
-    {
-        return ResultType::Player2Crash;
-    }
-    if (resultBot1 == ExitCase::GameEndVictory && (resultBot2 == ExitCase::GameEndDefeat || resultBot2 == ExitCase::BotStepTimeout || resultBot2 == ExitCase::Error))
-    {
-        return  ResultType::Player1Win;
-    }
-    if (resultBot2 == ExitCase::GameEndVictory && (resultBot1 == ExitCase::GameEndDefeat || resultBot1 == ExitCase::BotStepTimeout || resultBot1 == ExitCase::Error))
-    {
-        return  ResultType::Player2Win;
-    }
-    if (resultBot1 == ExitCase::GameEndTie && resultBot2 == ExitCase::GameEndTie)
-    {
-        return  ResultType::Tie;
-    }
-    if (resultBot1 == ExitCase::GameTimeOver && resultBot2 == ExitCase::GameTimeOver)
-    {
-        return  ResultType::Timeout;
-    }
-    return ResultType::Error;
 }
 
 static std::string statusToString(SC2APIProtocol::Status status)
