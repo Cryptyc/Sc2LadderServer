@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <list>
 
 class PrintThread : public std::ostringstream
 {
@@ -41,12 +42,7 @@ enum class ResultType
 	InitializationError,
 	Timeout,
 	ProcessingReplay,
-    Player1Win,
-    Player1Crash,
-    Player1TimeOut,
-	Player2Win,
-	Player2Crash,
-    Player2TimeOut,
+    Win,
 	Tie,
 	Error
 };
@@ -54,7 +50,6 @@ enum class ResultType
 enum MatchupListType
 {
     File,
-    URL,
     None
 };
 
@@ -86,18 +81,18 @@ struct GameState
 struct GameResult
 {
     ResultType Result;
-    float Bot1AvgFrame;
-    float Bot2AvgFrame;
+    std::vector<float> AvgFrames;
     uint32_t GameLoop;
     std::string TimeStamp;
+    std::string Winner;
+
     GameResult()
         : Result(ResultType::InitializationError)
-        , Bot1AvgFrame(0)
-        , Bot2AvgFrame(0)
         , GameLoop(0)
         , TimeStamp("")
+        , Winner("")
+        , AvgFrames{}
     {}
-
 };
 
 struct BotConfig
@@ -148,25 +143,37 @@ struct BotConfig
 
 struct Matchup
 {
-	BotConfig Agent1;
-	BotConfig Agent2;
-    std::string Bot1Id;
-    std::string Bot1Checksum;
-    std::string Bot1DataChecksum;
-    std::string Bot2Id;
-    std::string Bot2Checksum;
-    std::string Bot2DataChecksum;
+
+    std::vector<BotConfig>      Agents; // agents, ids and checksums size should be equal
+    std::vector<std::string>    BotIds;
+    std::vector<std::string>    BotChecksums;
+    std::vector<std::string>    BotDataChecksums;
+
     std::string Map;
+
 	Matchup() {}
-	Matchup(const BotConfig &InAgent1, const BotConfig &InAgent2, const std::string &InMap)
-		: Agent1(InAgent1),
-		Agent2(InAgent2),
-		Map(InMap)
-	{
 
-	}
+    Matchup(const std::vector<BotConfig> Agents, const std::string &InMap):
+        Map(InMap),
+        Agents(Agents) {}
 
+public:
+    std::string ReplayName() const {
+        return std::string();
+    }
 
+    std::string GameName() const {
+        return std::string();
+    }
+
+    std::vector<std::string> AgentNames() const {
+        std::vector<std::string> agentNames = std::vector<std::string>();
+        for (const auto & bot : Agents) {
+            agentNames.push_back(bot.BotName);
+        }
+
+        return agentNames;
+    }
 };
 
 static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorType)
@@ -174,11 +181,7 @@ static MatchupListType GetMatchupListTypeFromString(const std::string GeneratorT
     std::string type(GeneratorType);
     std::transform(type.begin(), type.end(), type.begin(), ::tolower);
 
-    if (type == "url")
-    {
-        return MatchupListType::URL;
-    }
-    else if (type == "file")
+    if (type == "file")
     {
         return MatchupListType::File;
     }
@@ -400,26 +403,11 @@ static std::string GetResultType(ResultType InResultType)
     case ResultType::ProcessingReplay:
 		return "ProcessingReplay";
 
-    case ResultType::Player1Win:
-		return "Player1Win";
-
-    case ResultType::Player1Crash:
-        return "Player1Crash";
-
-    case ResultType::Player1TimeOut:
-        return "Player1TimeOut";
-
-    case ResultType::Player2Win:
-		return "Player2Win";
-
-    case ResultType::Player2Crash:
-		return "Player2Crash";
-
-    case ResultType::Player2TimeOut:
-        return "Player2TimeOut";
-
     case ResultType::Tie:
 		return "Tie";
+
+    case ResultType::Win:
+		return "Win";
 
 	default:
 		return "Error";
@@ -434,42 +422,6 @@ static std::string RemoveMapExtension(const std::string& filename)
         return filename;
     }
     return filename.substr(0, lastdot);
-}
-
-static ResultType getEndResultFromProxyResults(const ExitCase resultBot1, const ExitCase resultBot2)
-{
-    if ((resultBot1 == ExitCase::BotCrashed && resultBot2 == ExitCase::BotCrashed)
-            || (resultBot1 == ExitCase::BotStepTimeout && resultBot2 == ExitCase::BotStepTimeout)
-            || (resultBot1 == ExitCase::Error && resultBot2 == ExitCase::Error))
-    {
-        // If both bots crashed we assume the bots are not the problem.
-        return ResultType::Error;
-    }
-    if (resultBot1 == ExitCase::BotCrashed)
-    {
-        return ResultType::Player1Crash;
-    }
-    if (resultBot2 == ExitCase::BotCrashed)
-    {
-        return ResultType::Player2Crash;
-    }
-    if (resultBot1 == ExitCase::GameEndVictory && (resultBot2 == ExitCase::GameEndDefeat || resultBot2 == ExitCase::BotStepTimeout || resultBot2 == ExitCase::Error))
-    {
-        return  ResultType::Player1Win;
-    }
-    if (resultBot2 == ExitCase::GameEndVictory && (resultBot1 == ExitCase::GameEndDefeat || resultBot1 == ExitCase::BotStepTimeout || resultBot1 == ExitCase::Error))
-    {
-        return  ResultType::Player2Win;
-    }
-    if (resultBot1 == ExitCase::GameEndTie && resultBot2 == ExitCase::GameEndTie)
-    {
-        return  ResultType::Tie;
-    }
-    if (resultBot1 == ExitCase::GameTimeOver && resultBot2 == ExitCase::GameTimeOver)
-    {
-        return  ResultType::Timeout;
-    }
-    return ResultType::Error;
 }
 
 static std::string statusToString(SC2APIProtocol::Status status)

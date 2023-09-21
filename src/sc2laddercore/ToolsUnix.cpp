@@ -66,12 +66,12 @@ void StartBotProcess(const BotConfig &Agent, const std::string &CommandLine, uns
             exit(errno);
         }
 
-        if (RedirectOutput(Agent, STDERR_FILENO, "data/stderr.log") < 0)
+        if (RedirectOutput(Agent, STDERR_FILENO, "data/stderr-" + Agent.PlayerId + ".log") < 0)
             exit(errno);
 
         if (Agent.Debug)
         {
-            if (RedirectOutput(Agent, STDOUT_FILENO, "data/stdout.log") < 0)
+            if (RedirectOutput(Agent, STDOUT_FILENO, "data/stdout" + Agent.PlayerId + ".log") < 0)
                 exit(errno);
         }
         else

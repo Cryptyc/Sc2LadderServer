@@ -3,7 +3,6 @@
 #include "sc2utils/sc2_manage_process.h"
 #include "sc2utils/sc2_scan_directory.h"
 #define RAPIDJSON_HAS_STDSTRING 1
-#include "rapidjson.h"
 #include "document.h"
 
 #include <iostream>
@@ -96,12 +95,7 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
             }
             if (val.HasMember("RootPath") && val["RootPath"].IsString())
             {
-                NewBot.RootPath = BaseDirectory;
-                if (NewBot.RootPath.back() != '/')
-                {
-                    NewBot.RootPath += '/';
-                }
-                NewBot.RootPath = NewBot.RootPath + val["RootPath"].GetString();
+                NewBot.RootPath = BaseDirectory + val["RootPath"].GetString();
                 if (NewBot.RootPath.back() != '/')
                 {
                     NewBot.RootPath += '/';
@@ -146,13 +140,14 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
                 NewBot.PlayerId = PlayerIds->GetStringValue(NewBot.BotName);
                 if (NewBot.PlayerId.empty())
                 {
-                    NewBot.PlayerId = GerneratePlayerId(PLAYER_ID_LENGTH);
+                    NewBot.PlayerId = GeneratePlayerId(PLAYER_ID_LENGTH);
                     PlayerIds->AddValue(NewBot.BotName, NewBot.PlayerId);
                     PlayerIds->WriteConfig();
                 }
             }
 
-            std::string OutCmdLine = "";
+            std::string OutCmdLine;
+
             switch (NewBot.Type)
             {
             case Python:
@@ -222,12 +217,9 @@ void AgentsConfig::LoadAgents(const std::string &BaseDirectory, const std::strin
 void AgentsConfig::SaveBotConfig(const BotConfig& Agent)
 {
     BotConfig SavedBot;
-    if (FindBot(Agent.BotName, SavedBot))
-    {
+    if (FindBot(Agent.BotName, SavedBot)) {
         BotConfigs[Agent.BotName] = Agent;
-    }
-    else
-    {
+    } else {
         BotConfigs.insert(std::make_pair(std::string(Agent.BotName), Agent));
     }
 }
@@ -241,69 +233,12 @@ bool AgentsConfig::FindBot(const std::string &BotName, BotConfig &ReturnBot)
 		ReturnBot = ThisBot->second;
 		return true;
 	}
+
 	return false;
 }
 
-bool AgentsConfig::CheckDiactivatedBots()
-{
-	std::string BotCheckLocation = Config->GetStringValue("BotInfoLocation");
-	if (BotCheckLocation.empty())
-	{
-		return false;
-	}
-	std::vector<std::string> arguments;
-	std::string result = PerformRestRequest(BotCheckLocation, arguments);
-	if (result.empty())
-	{
-		return false;
-	}
-	rapidjson::Document doc;
-	bool parsingFailed = doc.Parse(result.c_str()).HasParseError();
-	if (parsingFailed)
-	{
-		std::cerr << "Unable to parse incoming bot config: " << BotCheckLocation << std::endl;
-		return false;
-	}
-	if (doc.HasMember("Bots") && doc["Bots"].IsArray())
-	{
-		const rapidjson::Value & Units = doc["Bots"];
-		for (const auto& val : Units.GetArray())
-		{
-			if (val.HasMember("name") && val["name"].IsString())
-			{
-				auto ThisBot = BotConfigs.find(val["name"].GetString());
-				if (ThisBot != BotConfigs.end())
-				{
-					if (val.HasMember("deactivated") && val.HasMember("deleted") && val["deactivated"].IsBool() && val["deleted"].IsBool())
-					{
-						if ((val["deactivated"].GetBool() || val["deleted"].GetBool()) && ThisBot->second.Enabled)
-						{
-							// Set bot to disabled
-							PrintThread{} << "Deactivating bot " << ThisBot->second.BotName << std::endl;
-							ThisBot->second.Enabled = false;
 
-						}
-						else if (val["deactivated"].GetBool() == false && val["deleted"].GetBool() == false && ThisBot->second.Enabled == false)
-						{
-							// reenable a bot
-							PrintThread{} << "Activating bot " << ThisBot->second.BotName;
-							ThisBot->second.Enabled = true;
-						}
-					}
-					if (val.HasMember("elo") && val["elo"].IsString())
-					{
-						ThisBot->second.ELO = std::stoi(val["elo"].GetString());
-					}
-				}
-
-			}
-		}
-		return true;
-	}
-	return false;
-}
-
-std::string AgentsConfig::GerneratePlayerId(size_t Length)
+std::string AgentsConfig::GeneratePlayerId(size_t Length)
 {
 	static const char hexdigit[16] = { '0', '1','2','3','4','5','6','7','8','9','a','b','c','d','e','f' };
 	std::string outstring;
@@ -318,4 +253,13 @@ std::string AgentsConfig::GerneratePlayerId(size_t Length)
 		outstring.append(1, hexdigit[rand() % sizeof hexdigit]);
 	}
 	return outstring;
+}
+
+std::vector<BotConfig> AgentsConfig::Bots() {
+    std::vector<BotConfig> bots = std::vector<BotConfig>();
+    for (const auto &Bot : this->BotConfigs) {
+        bots.push_back(Bot.second);
+    }
+
+    return bots;
 }
